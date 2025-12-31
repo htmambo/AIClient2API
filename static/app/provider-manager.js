@@ -601,7 +601,33 @@ function showAuthModal(authUrl, authInfo) {
     const modal = document.createElement('div');
     modal.className = 'modal-overlay';
     modal.style.display = 'flex';
-    
+
+    // 用于存储授权窗口引用
+    let authWindow = null;
+
+    // 在模态框创建时就注册 OAuth 成功监听器
+    const handleOAuthSuccess = (event) => {
+        console.log('[OAuth] Received oauth_success_event:', event.detail);
+
+        if (authWindow && !authWindow.closed) {
+            console.log('[OAuth] Closing auth window');
+            authWindow.close();
+        }
+
+        console.log('[OAuth] Removing modal');
+        modal.remove();
+        window.removeEventListener('oauth_success_event', handleOAuthSuccess);
+
+        // 授权成功后刷新配置和提供商列表
+        console.log('[OAuth] Refreshing providers and config list');
+        loadProviders();
+        loadConfigList();
+
+        // 显示成功提示
+        showToast(t('common.success'), t('modal.provider.auth.success'), 'success');
+    };
+    //window.addEventListener('oauth_success_event', handleOAuthSuccess);
+
     // 获取授权文件路径
     const authFilePath = getAuthFilePath(authInfo.provider);
     
@@ -699,22 +725,24 @@ function showAuthModal(authUrl, authInfo) {
     `;
     
     document.body.appendChild(modal);
-    
+
     // 关闭按钮事件
     const closeBtn = modal.querySelector('.modal-close');
     const cancelBtn = modal.querySelector('.modal-cancel');
     [closeBtn, cancelBtn].forEach(btn => {
         btn.addEventListener('click', () => {
+            //window.removeEventListener('oauth_success_event', handleOAuthSuccess);
             modal.remove();
         });
     });
-    
+
     // 重新生成按钮事件
     const regenerateBtn = modal.querySelector('.regenerate-port-btn');
     if (regenerateBtn) {
         regenerateBtn.onclick = async () => {
             const newPort = modal.querySelector('.auth-port-input').value;
             if (newPort && newPort !== requiredPort) {
+                //window.removeEventListener('oauth_success_event', handleOAuthSuccess);
                 modal.remove();
                 // 构造重新请求的参数
                 const options = { ...authInfo, port: newPort };

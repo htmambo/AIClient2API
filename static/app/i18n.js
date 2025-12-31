@@ -23,7 +23,7 @@ const translations = {
         // Navigation
         'nav.main': '主导航',
         'nav.dashboard': '仪表盘',
-        'nav.config': '配置管理',
+        'nav.config': '系统配置',
         'nav.providers': '提供商池管理',
         'nav.upload': '配置管理',
         'nav.usage': '用量查询',
@@ -130,7 +130,7 @@ const translations = {
         'oauth.kiro.step4': '刷新本页面查看凭据文件',
 
         // Config
-        'config.title': '配置管理',
+        'config.title': '系统配置',
         'config.apiKey': 'API密钥',
         'config.apiKeyPlaceholder': '请输入API密钥',
         'config.host': '监听地址',
@@ -297,6 +297,10 @@ const translations = {
         'modal.provider.disableConfirm': '确定要禁用这个提供商配置吗？禁用后该提供商将不会被选中使用。',
         'modal.provider.enableConfirm': '确定要启用这个提供商配置吗？',
         'modal.provider.edit': '编辑',
+        'modal.provider.check': '检查',
+        'modal.provider.check.healthy': '供应商健康',
+        'modal.provider.check.unhealthy': '供应商异常',
+        'modal.provider.check.failed': '检查失败',
         'modal.provider.delete': '删除',
         'modal.provider.save': '保存',
         'modal.provider.cancel': '取消',
@@ -346,6 +350,7 @@ const translations = {
         // Usage
         'usage.title': '用量查询',
         'usage.refresh': '刷新用量',
+        'usage.autoRefresh': '自动刷新',
         'usage.lastUpdate': '上次更新: {time}',
         'usage.lastUpdateCache': '缓存时间: {time}',
         'usage.loading': '正在加载用量数据...',
@@ -428,7 +433,7 @@ const translations = {
         // Navigation
         'nav.main': 'Main Navigation',
         'nav.dashboard': 'Dashboard',
-        'nav.config': 'Configuration',
+        'nav.config': 'System Config',
         'nav.providers': 'Provider Pools',
         'nav.upload': 'Config Management',
         'nav.usage': 'Usage Query',
@@ -535,7 +540,7 @@ const translations = {
         'oauth.kiro.step4': 'Refresh this page to view the credentials file',
 
         // Config
-        'config.title': 'Configuration Management',
+        'config.title': 'System Configuration',
         'config.apiKey': 'API Key',
         'config.apiKeyPlaceholder': 'Please enter API key',
         'config.host': 'Listen Address',
@@ -702,6 +707,10 @@ const translations = {
         'modal.provider.disableConfirm': 'Are you sure you want to disable this provider? It will no longer be selected for use.',
         'modal.provider.enableConfirm': 'Are you sure you want to enable this provider?',
         'modal.provider.edit': 'Edit',
+        'modal.provider.check': 'Check',
+        'modal.provider.check.healthy': 'Provider healthy',
+        'modal.provider.check.unhealthy': 'Provider unhealthy',
+        'modal.provider.check.failed': 'Check failed',
         'modal.provider.delete': 'Delete',
         'modal.provider.save': 'Save',
         'modal.provider.cancel': 'Cancel',
@@ -751,6 +760,7 @@ const translations = {
         // Usage
         'usage.title': 'Usage Query',
         'usage.refresh': 'Refresh Usage',
+        'usage.autoRefresh': 'Auto Refresh',
         'usage.lastUpdate': 'Last Update: {time}',
         'usage.lastUpdateCache': 'Cache Time: {time}',
         'usage.loading': 'Loading usage data...',

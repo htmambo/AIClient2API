@@ -4,6 +4,9 @@ import { showToast } from './utils.js';
 import { getAuthHeaders } from './auth.js';
 import { t, getCurrentLanguage } from './i18n.js';
 
+// 自动刷新定时器
+let autoRefreshTimer = null;
+
 /**
  * 初始化用量管理功能
  */
@@ -12,25 +15,65 @@ export function initUsageManager() {
     if (refreshBtn) {
         refreshBtn.addEventListener('click', refreshUsage);
     }
-    
+
+    // 初始化自动刷新开关
+    const autoRefreshToggle = document.getElementById('autoRefreshUsage');
+    if (autoRefreshToggle) {
+        autoRefreshToggle.addEventListener('change', (e) => {
+            if (e.target.checked) {
+                startAutoRefresh();
+            } else {
+                stopAutoRefresh();
+            }
+        });
+    }
+
     // 初始化时自动加载缓存数据
     loadUsage();
+}
+
+/**
+ * 启动自动刷新
+ */
+function startAutoRefresh() {
+    stopAutoRefresh(); // 先清除已有的定时器
+    refreshUsage();
+    autoRefreshTimer = setInterval(() => {
+        refreshUsage();
+    }, 10000); // 每10秒刷新一次
+}
+
+/**
+ * 停止自动刷新
+ */
+export function stopAutoRefresh() {
+    if (autoRefreshTimer) {
+        clearInterval(autoRefreshTimer);
+        autoRefreshTimer = null;
+    }
 }
 
 /**
  * 加载用量数据（优先从缓存读取）
  */
 export async function loadUsage() {
-    const loadingEl = document.getElementById('usageLoading');
     const errorEl = document.getElementById('usageError');
     const contentEl = document.getElementById('usageContent');
     const emptyEl = document.getElementById('usageEmpty');
     const lastUpdateEl = document.getElementById('usageLastUpdate');
+    const refreshBtn = document.getElementById('refreshUsageBtn');
+    const btnIcon = refreshBtn?.querySelector('i');
 
-    // 显示加载状态
-    if (loadingEl) loadingEl.style.display = 'block';
+    // 显示加载状态 - 修改按钮图标为动态旋转，添加高亮样式
     if (errorEl) errorEl.style.display = 'none';
     if (emptyEl) emptyEl.style.display = 'none';
+    if (refreshBtn) {
+        refreshBtn.disabled = true;
+        refreshBtn.classList.add('auto-refreshing');
+    }
+    if (btnIcon) {
+        btnIcon.className = 'fas fa-spinner fa-spin';
+    }
 
     try {
         // 不带 refresh 参数，优先读取缓存
@@ -44,13 +87,10 @@ export async function loadUsage() {
         }
 
         const data = await response.json();
-        
-        // 隐藏加载状态
-        if (loadingEl) loadingEl.style.display = 'none';
-        
+
         // 渲染用量数据
         renderUsageData(data, contentEl);
-        
+
         // 更新最后更新时间
         if (lastUpdateEl) {
             const timeStr = new Date(data.timestamp || Date.now()).toLocaleString(getCurrentLanguage());
@@ -66,14 +106,22 @@ export async function loadUsage() {
         }
     } catch (error) {
         console.error('获取用量数据失败:', error);
-        
-        if (loadingEl) loadingEl.style.display = 'none';
+
         if (errorEl) {
             errorEl.style.display = 'block';
             const errorMsgEl = document.getElementById('usageErrorMessage');
             if (errorMsgEl) {
                 errorMsgEl.textContent = error.message || t('usage.title') + '失败';
             }
+        }
+    } finally {
+        // 恢复按钮图标和状态
+        if (btnIcon) {
+            btnIcon.className = 'fas fa-sync-alt';
+        }
+        if (refreshBtn) {
+            refreshBtn.disabled = false;
+            refreshBtn.classList.remove('auto-refreshing');
         }
     }
 }
@@ -82,18 +130,25 @@ export async function loadUsage() {
  * 刷新用量数据（强制从服务器获取最新数据）
  */
 export async function refreshUsage() {
-    const loadingEl = document.getElementById('usageLoading');
     const errorEl = document.getElementById('usageError');
     const contentEl = document.getElementById('usageContent');
     const emptyEl = document.getElementById('usageEmpty');
     const lastUpdateEl = document.getElementById('usageLastUpdate');
     const refreshBtn = document.getElementById('refreshUsageBtn');
+    const btnIcon = refreshBtn?.querySelector('i');
+    const autoRefreshToggle = document.getElementById('autoRefreshUsage');
+    const isAutoRefresh = autoRefreshToggle?.checked;
 
-    // 显示加载状态
-    if (loadingEl) loadingEl.style.display = 'block';
+    // 显示加载状态 - 修改按钮图标为动态旋转，添加高亮样式
     if (errorEl) errorEl.style.display = 'none';
     if (emptyEl) emptyEl.style.display = 'none';
-    if (refreshBtn) refreshBtn.disabled = true;
+    if (refreshBtn) {
+        refreshBtn.disabled = true;
+        refreshBtn.classList.add('auto-refreshing');
+    }
+    if (btnIcon) {
+        btnIcon.className = 'fas fa-spinner fa-spin';
+    }
 
     try {
         // 带 refresh=true 参数，强制刷新
@@ -107,13 +162,10 @@ export async function refreshUsage() {
         }
 
         const data = await response.json();
-        
-        // 隐藏加载状态
-        if (loadingEl) loadingEl.style.display = 'none';
-        
+
         // 渲染用量数据
         renderUsageData(data, contentEl);
-        
+
         // 更新最后更新时间
         if (lastUpdateEl) {
             const timeStr = new Date().toLocaleString(getCurrentLanguage());
@@ -122,11 +174,13 @@ export async function refreshUsage() {
             lastUpdateEl.setAttribute('data-i18n-params', JSON.stringify({ time: timeStr }));
         }
 
-        showToast(t('common.success'), t('common.refresh.success'), 'success');
+        // 自动刷新时不显示 toast
+        if (!isAutoRefresh) {
+            showToast(t('common.success'), t('common.refresh.success'), 'success');
+        }
     } catch (error) {
         console.error('获取用量数据失败:', error);
-        
-        if (loadingEl) loadingEl.style.display = 'none';
+
         if (errorEl) {
             errorEl.style.display = 'block';
             const errorMsgEl = document.getElementById('usageErrorMessage');
@@ -134,10 +188,17 @@ export async function refreshUsage() {
                 errorMsgEl.textContent = error.message || t('usage.title') + '失败';
             }
         }
-        
+
         showToast(t('common.error'), t('common.refresh.failed') + ': ' + error.message, 'error');
     } finally {
-        if (refreshBtn) refreshBtn.disabled = false;
+        // 恢复按钮图标和状态
+        if (btnIcon) {
+            btnIcon.className = 'fas fa-sync-alt';
+        }
+        if (refreshBtn) {
+            refreshBtn.disabled = false;
+            refreshBtn.classList.remove('auto-refreshing');
+        }
     }
 }
 
@@ -210,7 +271,7 @@ function renderUsageData(data, container) {
  */
 function createProviderGroup(providerType, instances) {
     const groupContainer = document.createElement('div');
-    groupContainer.className = 'usage-provider-group collapsed';
+    groupContainer.className = 'usage-provider-group';
     
     const providerDisplayName = getProviderDisplayName(providerType);
     const providerIcon = getProviderIcon(providerType);
@@ -229,25 +290,103 @@ function createProviderGroup(providerType, instances) {
             <span class="success-count ${successCount === instanceCount ? 'all-success' : ''}" data-i18n="usage.group.success" data-i18n-params='{"count":"${successCount}","total":"${instanceCount}"}'>${t('usage.group.success', { count: successCount, total: instanceCount })}</span>
         </div>
     `;
-    
+    // 初始化统计数据
+    const summary = {
+        usedQuota: 0,
+        totalQuota: 0,
+        percentUsed: 0,
+        remainingQuota: 0,
+        totalCount: instances.length,
+        healthyCount: 0,
+        bannedCount: 0
+    };
+
     // 点击头部切换折叠状态
     header.addEventListener('click', () => {
         groupContainer.classList.toggle('collapsed');
     });
-    
-    groupContainer.appendChild(header);
-    
+
     // 分组内容（卡片网格）
     const content = document.createElement('div');
     content.className = 'usage-group-content';
-    
+
     const gridContainer = document.createElement('div');
     gridContainer.className = 'usage-cards-grid';
-    
+
+    // 遍历实例，计算统计数据
     for (const instance of instances) {
+        // 计算用量统计
+        if (instance.usage && instance.usage.usageBreakdown) {
+            const totalUsage = calculateTotalUsage(instance.usage.usageBreakdown);
+            summary.usedQuota += totalUsage.used;
+            summary.totalQuota += totalUsage.limit;
+        }
+
+        // 计算健康状态统计
+        if (instance.isHealthy) {
+            summary.healthyCount++;
+        } else if (instance.error || !instance.success) {
+            summary.bannedCount++;
+        }
+
         const instanceCard = createInstanceUsageCard(instance, providerType);
         gridContainer.appendChild(instanceCard);
     }
+
+    // 计算百分比和剩余额度
+    summary.percentUsed = summary.totalQuota > 0 ? (summary.usedQuota / summary.totalQuota) * 100 : 0;
+    summary.remainingQuota = summary.totalQuota - summary.usedQuota;
+
+    groupContainer.appendChild(header);
+
+    // 创建汇总信息区域
+    const summaryDiv = document.createElement('div');
+    summaryDiv.className = 'usage-group-summary';
+
+    // 确定用量颜色类
+    const usageColorClass = summary.percentUsed > 80 ? 'text-danger' : summary.percentUsed > 50 ? 'text-warning' : 'text-success';
+    const progressColorClass = summary.percentUsed > 80 ? 'danger' : summary.percentUsed > 50 ? 'warning' : 'normal';
+
+    summaryDiv.innerHTML = `
+        <div class="summary-content">
+            <div class="summary-usage">
+                <div class="summary-usage-header">
+                    <span class="summary-label">已使用 / 总额度</span>
+                    <span class="summary-values">
+                        <span class="${usageColorClass}">${summary.usedQuota.toFixed(1)}</span>
+                        <span class="text-muted"> / </span>
+                        <span>${summary.totalQuota.toFixed(1)}</span>
+                    </span>
+                </div>
+                <div class="progress-bar ${progressColorClass}">
+                    <div class="progress-fill" style="width: ${Math.min(100, summary.percentUsed).toFixed(2)}%"></div>
+                </div>
+                <div class="summary-usage-footer">
+                    <span>${summary.percentUsed.toFixed(1)}% 已使用</span>
+                    <span>剩余 ${summary.remainingQuota.toFixed(1)}</span>
+                </div>
+            </div>
+
+            <div class="summary-stats">
+                <div class="summary-stats-grid">
+                    <div class="stat-item">
+                        <div class="stat-value">${summary.totalCount}</div>
+                        <div class="stat-label">全部</div>
+                    </div>
+                    <div class="stat-item stat-healthy">
+                        <div class="stat-value">${summary.healthyCount}</div>
+                        <div class="stat-label">健康</div>
+                    </div>
+                    <div class="stat-item stat-error">
+                        <div class="stat-value">${summary.bannedCount}</div>
+                        <div class="stat-label">异常</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+
+    groupContainer.appendChild(summaryDiv);
     
     content.appendChild(gridContainer);
     groupContainer.appendChild(content);

@@ -412,6 +412,9 @@ function renderProviderList(providers) {
                         <button class="btn-small ${toggleButtonClass}" onclick="window.toggleProviderStatus('${provider.uuid}', event)" title="${toggleButtonText}此提供商">
                             <i class="${toggleButtonIcon}"></i> ${toggleButtonText}
                         </button>
+                        <button class="btn-small btn-check" onclick="window.checkSingleProvider('${provider.uuid}', event)" title="检查此提供商健康状态">
+                            <i class="fas fa-stethoscope"></i> <span data-i18n="modal.provider.check">检查</span>
+                        </button>
                         <button class="btn-small btn-edit" onclick="window.editProvider('${provider.uuid}', event)">
                             <i class="fas fa-edit"></i> <span data-i18n="modal.provider.edit">编辑</span>
                         </button>
@@ -1373,6 +1376,67 @@ async function performHealthCheck(providerType) {
 }
 
 /**
+ * 执行单个供应商健康检测
+ * @param {string} uuid - 供应商UUID
+ * @param {Event} event - 事件对象
+ */
+async function checkSingleProvider(uuid, event) {
+    event.stopPropagation();
+
+    const providerDetail = event.target.closest('.provider-item-detail');
+    const providerType = providerDetail.closest('.provider-modal').getAttribute('data-provider-type');
+    const btn = event.target.closest('button');
+    const btnIcon = btn?.querySelector('i');
+    const originalIconClass = btnIcon?.className;
+
+    try {
+        // 显示加载状态
+        if (btnIcon) {
+            btnIcon.className = 'fas fa-spinner fa-spin';
+        }
+        if (btn) {
+            btn.disabled = true;
+        }
+
+        const response = await window.apiClient.post(
+            `/providers/${encodeURIComponent(providerType)}/${uuid}/health-check`,
+            {}
+        );
+
+        if (response.success && response.result) {
+            const result = response.result;
+
+            if (result.success === true) {
+                showToast(t('common.success'), t('modal.provider.check.healthy'), 'success');
+            } else if (result.success === false) {
+                showToast(t('common.warning'), t('modal.provider.check.unhealthy') + ': ' + result.message, 'warning');
+            } else {
+                showToast(t('common.info'), result.message, 'info');
+            }
+
+            // 重新加载配置
+            await window.apiClient.post('/reload-config');
+
+            // 刷新提供商配置显示
+            await refreshProviderConfig(providerType);
+        } else {
+            showToast(t('common.error'), t('modal.provider.check.failed'), 'error');
+        }
+    } catch (error) {
+        console.error('单个供应商健康检测失败:', error);
+        showToast(t('common.error'), t('modal.provider.check.failed') + ': ' + error.message, 'error');
+    } finally {
+        // 恢复按钮状态
+        if (btnIcon && originalIconClass) {
+            btnIcon.className = originalIconClass;
+        }
+        if (btn) {
+            btn.disabled = false;
+        }
+    }
+}
+
+/**
  * 渲染不支持的模型选择器（不调用API，直接使用传入的模型列表）
  * @param {string} uuid - 提供商UUID
  * @param {Array} models - 模型列表
@@ -1423,6 +1487,7 @@ export {
     toggleProviderStatus,
     resetAllProvidersHealth,
     performHealthCheck,
+    checkSingleProvider,
     loadModelsForProviderType,
     renderNotSupportedModelsSelector,
     goToProviderPage
@@ -1440,4 +1505,5 @@ window.addProvider = addProvider;
 window.toggleProviderStatus = toggleProviderStatus;
 window.resetAllProvidersHealth = resetAllProvidersHealth;
 window.performHealthCheck = performHealthCheck;
+window.checkSingleProvider = checkSingleProvider;
 window.goToProviderPage = goToProviderPage;

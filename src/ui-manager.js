@@ -355,11 +355,11 @@ async function handleLoginRequest(req, res) {
         const isValid = await validateCredentials(password);
         
         if (isValid) {
-            // Generate simple token
+            // 生成简单token
             const token = generateToken();
             const expiryTime = getExpiryTime();
             
-            // Store token info to local file
+            // 存储token信息到本地文件
             await saveToken(token, {
                 username: 'admin',
                 loginTime: Date.now(),
@@ -1320,6 +1320,105 @@ export async function handleUIApiRequests(method, pathParam, req, res, currentCo
         }
     }
 
+    // Perform health check for a single provider by UUID (must be before batch health check route)
+    const singleHealthCheckMatch = pathParam.match(/^\/api\/providers\/([^\/]+)\/([^\/]+)\/health-check$/);
+    if (method === 'POST' && singleHealthCheckMatch) {
+        const providerType = decodeURIComponent(singleHealthCheckMatch[1]);
+        const providerUuid = singleHealthCheckMatch[2];
+
+        try {
+            if (!providerPoolManager) {
+                res.writeHead(400, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ error: { message: 'Provider pool manager not initialized' } }));
+                return true;
+            }
+
+            const providers = providerPoolManager.providerStatus[providerType] || [];
+            const providerStatus = providers.find(p => p.config.uuid === providerUuid);
+
+            if (!providerStatus) {
+                res.writeHead(404, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ error: { message: 'Provider not found' } }));
+                return true;
+            }
+
+            console.log(`[UI API] Starting health check for single provider ${providerUuid} in ${providerType}`);
+
+            const providerConfig = providerStatus.config;
+            let result;
+
+            try {
+                const healthResult = await providerPoolManager._checkProviderHealth(providerType, providerConfig, true);
+
+                if (healthResult === null) {
+                    result = {
+                        uuid: providerConfig.uuid,
+                        success: null,
+                        message: '健康检测不支持此提供商类型'
+                    };
+                } else if (healthResult.success) {
+                    providerPoolManager.markProviderHealthy(providerType, providerConfig, false, healthResult.modelName);
+                    result = {
+                        uuid: providerConfig.uuid,
+                        success: true,
+                        modelName: healthResult.modelName,
+                        message: '健康'
+                    };
+                } else {
+                    providerPoolManager.markProviderUnhealthy(providerType, providerConfig, healthResult.errorMessage);
+                    providerStatus.config.lastHealthCheckTime = new Date().toISOString();
+                    if (healthResult.modelName) {
+                        providerStatus.config.lastHealthCheckModel = healthResult.modelName;
+                    }
+                    result = {
+                        uuid: providerConfig.uuid,
+                        success: false,
+                        modelName: healthResult.modelName,
+                        message: healthResult.errorMessage || '检测失败'
+                    };
+                }
+            } catch (error) {
+                providerPoolManager.markProviderUnhealthy(providerType, providerConfig, error.message);
+                result = {
+                    uuid: providerConfig.uuid,
+                    success: false,
+                    message: error.message
+                };
+            }
+
+            // 保存更新后的状态到文件
+            const filePath = currentConfig.PROVIDER_POOLS_FILE_PATH || 'configs/provider_pools.json';
+            const providerPools = {};
+            for (const pType in providerPoolManager.providerStatus) {
+                providerPools[pType] = providerPoolManager.providerStatus[pType].map(ps => ps.config);
+            }
+            writeFileSync(filePath, JSON.stringify(providerPools, null, 2), 'utf8');
+
+            console.log(`[UI API] Single health check completed for ${providerUuid}: ${result.success ? 'healthy' : 'unhealthy'}`);
+
+            // 广播更新事件
+            broadcastEvent('config_update', {
+                action: 'health_check',
+                filePath: filePath,
+                providerType,
+                results: [result],
+                timestamp: new Date().toISOString()
+            });
+
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({
+                success: true,
+                result
+            }));
+            return true;
+        } catch (error) {
+            console.error('[UI API] Single health check error:', error);
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ error: { message: error.message } }));
+            return true;
+        }
+    }
+
     // Perform health check for all providers of a specific type
     const healthCheckMatch = pathParam.match(/^\/api\/providers\/([^\/]+)\/health-check$/);
     if (method === 'POST' && healthCheckMatch) {
@@ -1890,7 +1989,7 @@ export async function handleUIApiRequests(method, pathParam, req, res, currentCo
             let usageResults;
             
             if (!refresh) {
-                // Prefer reading from cache
+                // 优先读取缓存
                 const cachedData = await readProviderUsageCache(providerType);
                 if (cachedData) {
                     console.log(`[Usage API] Returning cached usage data for ${providerType}`);
@@ -1899,7 +1998,7 @@ export async function handleUIApiRequests(method, pathParam, req, res, currentCo
             }
             
             if (!usageResults) {
-                // Cache does not exist or refresh required, re-query
+                // 缓存不存在或需要刷新，重新查询
                 console.log(`[Usage API] Fetching fresh usage data for ${providerType}`);
                 usageResults = await getProviderTypeUsage(providerType, currentConfig, providerPoolManager);
                 // 更新缓存
@@ -2555,15 +2654,15 @@ async function getProviderTypeUsage(providerType, currentConfig, providerPoolMan
             error: null
         };
 
-        // First check if disabled, skip initialization for disabled providers
+        // 首先检查是否已禁用，已禁用的提供商跳过初始化
         if (provider.isDisabled) {
             instanceResult.error = 'Provider is disabled';
             result.errorCount++;
         } else if (!adapter) {
-            // Service instance not initialized, try auto-initialization
+            // 服务实例未初始化，尝试自动初始化
             try {
                 console.log(`[Usage API] Auto-initializing service adapter for ${providerType}: ${provider.uuid}`);
-                // Build configuration object
+                // 构建配置对象
                 const serviceConfig = {
                     ...CONFIG,
                     ...provider,
@@ -2577,7 +2676,7 @@ async function getProviderTypeUsage(providerType, currentConfig, providerPoolMan
             }
         }
         
-        // If adapter exists (including just initialized), and no error, try to get usage
+        // 如果适配器存在（包括刚初始化的），且没有错误，尝试获取用量
         if (adapter && !instanceResult.error) {
             try {
                 const usage = await getAdapterUsage(adapter, providerType);
