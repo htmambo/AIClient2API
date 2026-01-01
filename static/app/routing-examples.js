@@ -122,23 +122,11 @@ function getAvailableRoutes() {
             provider: 'claude-kiro-oauth',
             name: 'Claude Kiro OAuth',
             paths: {
-                openai: '/claude-kiro-oauth/v1/chat/completions',
                 claude: '/claude-kiro-oauth/v1/messages'
             },
             description: t('dashboard.routing.free'),
             badge: t('dashboard.routing.free'),
             badgeClass: 'oauth'
-        },
-        {
-            provider: 'openaiResponses-custom',
-            name: 'OpenAI Responses',
-            paths: {
-                openai: '/openaiResponses-custom/v1/responses',
-                claude: '/openaiResponses-custom/v1/messages'
-            },
-            description: '结构化对话API',
-            badge: 'Responses',
-            badgeClass: 'responses'
         }
     ];
 }
@@ -163,78 +151,8 @@ function highlightProviderRoute(provider) {
     }
 }
 
-/**
- * 复制curl命令示例
- * @param {string} provider - 提供商标识
- * @param {Object} options - 选项参数
- */
-async function copyCurlExample(provider, options = {}) {
-    const routes = getAvailableRoutes();
-    const route = routes.find(r => r.provider === provider);
-    
-    if (!route) {
-        showToast(t('common.error'), t('common.error'), 'error');
-        return;
-    }
-    
-    const { protocol = 'openai', model = 'default-model', message = 'Hello!' } = options;
-    const path = route.paths[protocol];
-    
-    if (!path) {
-        showToast(t('common.error'), t('common.error'), 'error');
-        return;
-    }
-    
-    let curlCommand = '';
-    
-    // 根据不同提供商和协议生成对应的curl命令
-    switch (provider) {
-        case 'claude-kiro-oauth':
-            curlCommand = `curl http://localhost:3000${path} \\
-  -H "Content-Type: application/json" \\
-  -d '{
-    "model": "${model}",
-    "max_tokens": 1000,
-    "messages": [{"role": "user", "content": "${message}"}]
-  }'`;
-            break;
-            
-            
-        case 'openaiResponses-custom':
-            if (protocol === 'openai') {
-                curlCommand = `curl http://localhost:3000${path} \\
-  -H "Content-Type: application/json" \\
-  -H "Authorization: Bearer YOUR_API_KEY" \\
-  -d '{
-    "model": "${model}",
-    "input": "${message}",
-    "max_output_tokens": 1000
-  }'`;
-            } else {
-                curlCommand = `curl http://localhost:3000${path} \\
-  -H "Content-Type: application/json" \\
-  -H "X-API-Key: YOUR_API_KEY" \\
-  -d '{
-    "model": "${model}",
-    "max_tokens": 1000,
-    "messages": [{"role": "user", "content": "${message}"}]
-  }'`;
-            }
-            break;
-    }
-    
-    try {
-        await navigator.clipboard.writeText(curlCommand);
-        showToast(t('common.success'), t('oauth.success.msg'), 'success');
-    } catch (error) {
-        console.error('Failed to copy curl command:', error);
-        showToast(t('common.error'), t('common.error'), 'error');
-    }
-}
-
 export {
     initRoutingExamples,
     getAvailableRoutes,
-    highlightProviderRoute,
-    copyCurlExample
+    highlightProviderRoute
 };

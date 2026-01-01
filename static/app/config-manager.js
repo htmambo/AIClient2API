@@ -1,7 +1,7 @@
 // 配置管理模块
 
 import { showToast, formatUptime } from './utils.js';
-import { handleProviderChange, handleKiroCredsTypeChange } from './event-handlers.js';
+import { handleKiroCredsTypeChange } from './event-handlers.js';
 import { loadProviders } from './provider-manager.js';
 import { t } from './i18n.js';
 
@@ -16,28 +16,12 @@ async function loadConfiguration() {
         const apiKeyEl = document.getElementById('apiKey');
         const hostEl = document.getElementById('host');
         const portEl = document.getElementById('port');
-        const modelProviderEl = document.getElementById('modelProvider');
         const systemPromptEl = document.getElementById('systemPrompt');
 
         if (apiKeyEl) apiKeyEl.value = data.REQUIRED_API_KEY || '';
         if (hostEl) hostEl.value = data.HOST || '127.0.0.1';
         if (portEl) portEl.value = data.SERVER_PORT || 3000;
-        if (modelProviderEl) modelProviderEl.value = data.MODEL_PROVIDER || 'claude-kiro-oauth';
         if (systemPromptEl) systemPromptEl.value = data.systemPrompt || '';
-        
-        // OpenAI Custom
-        const openaiApiKeyEl = document.getElementById('openaiApiKey');
-        const openaiBaseUrlEl = document.getElementById('openaiBaseUrl');
-        
-        if (openaiApiKeyEl) openaiApiKeyEl.value = data.OPENAI_API_KEY || '';
-        if (openaiBaseUrlEl) openaiBaseUrlEl.value = data.OPENAI_BASE_URL || 'https://api.openai.com/v1';
-        
-        // Claude Custom
-        const claudeApiKeyEl = document.getElementById('claudeApiKey');
-        const claudeBaseUrlEl = document.getElementById('claudeBaseUrl');
-        
-        if (claudeApiKeyEl) claudeApiKeyEl.value = data.CLAUDE_API_KEY || '';
-        if (claudeBaseUrlEl) claudeBaseUrlEl.value = data.CLAUDE_BASE_URL || 'https://api.anthropic.com';
         
         // Claude Kiro OAuth
         const kiroOauthCredsBase64El = document.getElementById('kiroOauthCredsBase64');
@@ -51,13 +35,6 @@ async function loadConfiguration() {
         if (kiroRefreshUrlEl) kiroRefreshUrlEl.value = data.KIRO_REFRESH_URL || '';
         const kiroRefreshIdcUrlEl = document.getElementById('kiroRefreshIdcUrl');
         if (kiroRefreshIdcUrlEl) kiroRefreshIdcUrlEl.value = data.KIRO_REFRESH_IDC_URL || '';
-        
-        // OpenAI Responses
-        const openaiResponsesApiKeyEl = document.getElementById('openaiResponsesApiKey');
-        const openaiResponsesBaseUrlEl = document.getElementById('openaiResponsesBaseUrl');
-        
-        if (openaiResponsesApiKeyEl) openaiResponsesApiKeyEl.value = data.OPENAI_API_KEY || '';
-        if (openaiResponsesBaseUrlEl) openaiResponsesBaseUrlEl.value = data.OPENAI_BASE_URL || 'https://api.openai.com/v1';
 
         // 高级配置参数
         const systemPromptFilePathEl = document.getElementById('systemPromptFilePath');
@@ -91,9 +68,6 @@ async function loadConfiguration() {
                 providerFallbackChainEl.value = '';
             }
         }
-
-        // 触发提供商配置显示
-        handleProviderChange();
         
         // 根据Kiro凭据类型设置显示
         const kiroCredsType = data.KIRO_OAUTH_CREDS_BASE64 ? 'base64' : 'file';
@@ -125,7 +99,7 @@ async function saveConfiguration() {
         REQUIRED_API_KEY: document.getElementById('apiKey')?.value || '',
         HOST: document.getElementById('host')?.value || '127.0.0.1',
         SERVER_PORT: parseInt(document.getElementById('port')?.value || 3000),
-        MODEL_PROVIDER: document.getElementById('modelProvider')?.value || 'claude-kiro-oauth',
+        MODEL_PROVIDER: 'claude-kiro-oauth',
         systemPrompt: document.getElementById('systemPrompt')?.value || '',
     };
 
@@ -133,7 +107,7 @@ async function saveConfiguration() {
     const adminPassword = document.getElementById('adminPassword')?.value || '';
 
     // 根据不同提供商保存不同的配置
-    const provider = document.getElementById('modelProvider')?.value;
+    const provider = 'claude-kiro-oauth';
 
     switch (provider) {
         case 'claude-kiro-oauth':
@@ -148,11 +122,6 @@ async function saveConfiguration() {
             config.KIRO_BASE_URL = document.getElementById('kiroBaseUrl')?.value || null;
             config.KIRO_REFRESH_URL = document.getElementById('kiroRefreshUrl')?.value || null;
             config.KIRO_REFRESH_IDC_URL = document.getElementById('kiroRefreshIdcUrl')?.value || null;
-            break;
-            
-        case 'openaiResponses-custom':
-            config.OPENAI_API_KEY = document.getElementById('openaiResponsesApiKey')?.value || '';
-            config.OPENAI_BASE_URL = document.getElementById('openaiResponsesBaseUrl')?.value || '';
             break;
     }
 

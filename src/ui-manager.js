@@ -691,10 +691,6 @@ export async function handleUIApiRequests(method, pathParam, req, res, currentCo
             if (newConfig.SERVER_PORT !== undefined) currentConfig.SERVER_PORT = newConfig.SERVER_PORT;
             if (newConfig.MODEL_PROVIDER !== undefined) currentConfig.MODEL_PROVIDER = newConfig.MODEL_PROVIDER;
             if (newConfig.PROJECT_ID !== undefined) currentConfig.PROJECT_ID = newConfig.PROJECT_ID;
-            if (newConfig.OPENAI_API_KEY !== undefined) currentConfig.OPENAI_API_KEY = newConfig.OPENAI_API_KEY;
-            if (newConfig.OPENAI_BASE_URL !== undefined) currentConfig.OPENAI_BASE_URL = newConfig.OPENAI_BASE_URL;
-            if (newConfig.CLAUDE_API_KEY !== undefined) currentConfig.CLAUDE_API_KEY = newConfig.CLAUDE_API_KEY;
-            if (newConfig.CLAUDE_BASE_URL !== undefined) currentConfig.CLAUDE_BASE_URL = newConfig.CLAUDE_BASE_URL;
             if (newConfig.KIRO_OAUTH_CREDS_BASE64 !== undefined) currentConfig.KIRO_OAUTH_CREDS_BASE64 = newConfig.KIRO_OAUTH_CREDS_BASE64;
             if (newConfig.KIRO_OAUTH_CREDS_FILE_PATH !== undefined) currentConfig.KIRO_OAUTH_CREDS_FILE_PATH = newConfig.KIRO_OAUTH_CREDS_FILE_PATH;
             
@@ -745,10 +741,6 @@ export async function handleUIApiRequests(method, pathParam, req, res, currentCo
                     SERVER_PORT: currentConfig.SERVER_PORT,
                     HOST: currentConfig.HOST,
                     MODEL_PROVIDER: currentConfig.MODEL_PROVIDER,
-                    OPENAI_API_KEY: currentConfig.OPENAI_API_KEY,
-                    OPENAI_BASE_URL: currentConfig.OPENAI_BASE_URL,
-                    CLAUDE_API_KEY: currentConfig.CLAUDE_API_KEY,
-                    CLAUDE_BASE_URL: currentConfig.CLAUDE_BASE_URL,
                     PROJECT_ID: currentConfig.PROJECT_ID,
                     KIRO_OAUTH_CREDS_BASE64: currentConfig.KIRO_OAUTH_CREDS_BASE64,
                     KIRO_OAUTH_CREDS_FILE_PATH: currentConfig.KIRO_OAUTH_CREDS_FILE_PATH,
@@ -2309,14 +2301,6 @@ async function analyzeOAuthFile(filePath, usedPaths, currentConfig) {
                     oauthProvider = 'token_based';
                 } else if (jsonData.credentials) {
                     oauthProvider = 'service_account';
-                }
-                
-                if (jsonData.base_url || jsonData.endpoint) {
-                    if (jsonData.base_url.includes('openai.com')) {
-                        oauthProvider = 'openai';
-                    } else if (jsonData.base_url.includes('anthropic.com')) {
-                        oauthProvider = 'claude';
-                    }
                 }
             } else {
                 content = await fs.readFile(filePath, 'utf8');

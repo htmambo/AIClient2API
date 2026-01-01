@@ -48,16 +48,6 @@ export class BaseConverter {
     }
 
     /**
-     * 转换模型列表
-     * @param {Object} data - 模型列表数据
-     * @param {string} targetProtocol - 目标协议
-     * @returns {Object} 转换后的模型列表
-     */
-    convertModelList(data, targetProtocol) {
-        throw new Error('convertModelList方法必须被子类实现');
-    }
-
-    /**
      * 获取协议名称
      * @returns {string} 协议名称
      */

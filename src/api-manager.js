@@ -1,10 +1,7 @@
 import {
-    handleModelListRequest,
     handleContentGenerationRequest,
-    API_ACTIONS,
     ENDPOINT_TYPE
 } from './common.js';
-import { getProviderPoolManager } from './service-manager.js';
 
 /**
  * Handle API authentication and routing

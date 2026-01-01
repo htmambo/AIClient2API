@@ -67,10 +67,6 @@ export async function initializeConfig(args = process.argv.slice(2), configFileP
             SERVER_PORT: 3000,
             HOST: '0.0.0.0',
             MODEL_PROVIDER: MODEL_PROVIDER.KIRO_API,
-            OPENAI_API_KEY: null,
-            OPENAI_BASE_URL: null,
-            CLAUDE_API_KEY: null,
-            CLAUDE_BASE_URL: null,
             KIRO_OAUTH_CREDS_BASE64: null,
             KIRO_OAUTH_CREDS_FILE_PATH: null,
             PROJECT_ID: null,
@@ -127,34 +123,6 @@ export async function initializeConfig(args = process.argv.slice(2), configFileP
                 i++;
             } else {
                 console.warn(`[Config Warning] --model-provider flag requires a value.`);
-            }
-        } else if (args[i] === '--openai-api-key') {
-            if (i + 1 < args.length) {
-                currentConfig.OPENAI_API_KEY = args[i + 1];
-                i++;
-            } else {
-                console.warn(`[Config Warning] --openai-api-key flag requires a value.`);
-            }
-        } else if (args[i] === '--openai-base-url') {
-            if (i + 1 < args.length) {
-                currentConfig.OPENAI_BASE_URL = args[i + 1];
-                i++;
-            } else {
-                console.warn(`[Config Warning] --openai-base-url flag requires a value.`);
-            }
-        } else if (args[i] === '--claude-api-key') {
-            if (i + 1 < args.length) {
-                currentConfig.CLAUDE_API_KEY = args[i + 1];
-                i++;
-            } else {
-                console.warn(`[Config Warning] --claude-api-key flag requires a value.`);
-            }
-        } else if (args[i] === '--claude-base-url') {
-            if (i + 1 < args.length) {
-                currentConfig.CLAUDE_BASE_URL = args[i + 1];
-                i++;
-            } else {
-                console.warn(`[Config Warning] --claude-base-url flag requires a value.`);
             }
         }
         // Provider URL arguments

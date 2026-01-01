@@ -50,11 +50,6 @@ function initEventListeners() {
         elements.resetConfigBtn.addEventListener('click', loadInitialData);
     }
 
-    // 模型提供商切换
-    if (elements.modelProvider) {
-        elements.modelProvider.addEventListener('change', handleProviderChange);
-    }
-
     // Kiro凭据类型切换
     document.querySelectorAll('input[name="kiroCredsType"]').forEach(radio => {
         radio.addEventListener('change', handleKiroCredsTypeChange);
@@ -104,27 +99,6 @@ function initEventListeners() {
                 }
             }
         });
-    }
-}
-
-/**
- * 提供商配置切换处理
- */
-function handleProviderChange() {
-    const selectedProvider = elements.modelProvider?.value;
-    if (!selectedProvider) return;
-
-    const allProviderConfigs = document.querySelectorAll('.provider-config');
-    
-    // 隐藏所有提供商配置
-    allProviderConfigs.forEach(config => {
-        config.style.display = 'none';
-    });
-    
-    // 显示当前选中的提供商配置
-    const targetConfig = document.querySelector(`[data-provider="${selectedProvider}"]`);
-    if (targetConfig) {
-        targetConfig.style.display = 'block';
     }
 }
 
@@ -424,7 +398,6 @@ export function setReloadConfig(configReloader) {
 
 export {
     initEventListeners,
-    handleProviderChange,
     handleKiroCredsTypeChange,
     handlePasswordToggle,
     handleProviderPoolsConfigChange,

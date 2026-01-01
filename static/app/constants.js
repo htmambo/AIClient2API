@@ -25,8 +25,7 @@ const elements = {
     toggleAutoScrollBtn: document.getElementById('toggleAutoScroll'),
     saveConfigBtn: document.getElementById('saveConfig'),
     resetConfigBtn: document.getElementById('resetConfig'),
-    toastContainer: document.getElementById('toastContainer'),
-    modelProvider: document.getElementById('modelProvider'),
+    toastContainer: document.getElementById('toastContainer')
 };
 
 // 定期刷新间隔

@@ -366,9 +366,6 @@ export function createRequestHandler(config, providerPoolManager) {
              *
              * 支持的端点：
              * - POST /v1/messages: Claude 消息 API
-             * - POST /v1/responses: OpenAI Responses API --- IGNORE ---
-             * - POST /v1/chat/completions: OpenAI Chat Completions API --- IGNORE ---
-             * - POST /v1/completions: OpenAI Completions API --- IGNORE ---
              * - 其他协议特定的端点
              *
              * 处理流程：

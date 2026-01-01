@@ -2,7 +2,7 @@ import { promises as fs } from 'fs';
 import * as path from 'path';
 import * as http from 'http'; // Add http for IncomingMessage and ServerResponse types
 import * as crypto from 'crypto'; // Import crypto for MD5 hashing
-import { convertData, getOpenAIStreamChunkStop } from './convert.js';
+import { convertData } from './convert.js';
 import { ProviderStrategyFactory } from './provider-strategies.js';
 
 export const API_ACTIONS = {
@@ -22,9 +22,9 @@ export const MODEL_PROVIDER = {
 
 /**
  * Extracts the protocol prefix from a given model provider string.
- * This is used to determine if two providers belong to the same underlying protocol (e.g., openai, claude).
+ * This is used to determine if two providers belong to the same underlying protocol (e.g., claude).
  * @param {string} provider - The model provider string (e.g., 'claude-kiro-oauth').
- * @returns {string} The protocol prefix (e.g., 'openai', 'claude').
+ * @returns {string} The protocol prefix (e.g., 'claude').
  */
 export function getProtocolPrefix(provider) {
     const hyphenIndex = provider.indexOf('-');
@@ -36,7 +36,6 @@ export function getProtocolPrefix(provider) {
 
 export const ENDPOINT_TYPE = {
     CLAUDE_MESSAGE: 'claude_message',
-    OPENAI_MODEL_LIST: 'openai_model_list',
 };
 
 export const FETCH_SYSTEM_PROMPT_FILE = path.join(process.cwd(), 'configs', 'fetch_system_prompt.txt');
@@ -115,7 +114,7 @@ export function isAuthorized(req, requestUrl, REQUIRED_API_KEY) {
     const googApiKey = req.headers['x-goog-api-key'];
     const claudeApiKey = req.headers['x-api-key']; // Claude-specific header
 
-    // Check for Bearer token in Authorization header (OpenAI style)
+    // Check for Bearer token in Authorization header
     if (authHeader && authHeader.startsWith('Bearer ')) {
         const token = authHeader.substring(7);
         if (token === REQUIRED_API_KEY) {
@@ -175,7 +174,6 @@ export async function handleStreamRequest(res, service, model, requestBody, from
     requestBody.model = model;
     const nativeStream = await service.generateContentStream(model, requestBody);
     const addEvent = getProtocolPrefix(fromProvider) === MODEL_PROTOCOL_PREFIX.CLAUDE;
-    const openStop = getProtocolPrefix(fromProvider) === MODEL_PROTOCOL_PREFIX.OPENAI ;
 
     try {
         for await (const nativeChunk of nativeStream) {
@@ -210,10 +208,6 @@ export async function handleStreamRequest(res, service, model, requestBody, from
                 res.write(`data: ${JSON.stringify(chunk)}\n\n`);
                 // console.log(`data: ${JSON.stringify(chunk)}\n`);
             }
-        }
-        if (openStop && needsConversion) {
-            res.write(`data: ${JSON.stringify(getOpenAIStreamChunkStop(model))}\n\n`);
-            // console.log(`data: ${JSON.stringify(getOpenAIStreamChunkStop(model))}\n`);
         }
 
         // 流式请求成功完成，统计使用次数，错误次数重置为0
@@ -291,55 +285,6 @@ export async function handleUnaryRequest(res, service, model, requestBody, fromP
         // 使用新方法创建符合 fromProvider 格式的错误响应
         const errorResponse = createErrorResponse(error, fromProvider);
         await handleUnifiedResponse(res, JSON.stringify(errorResponse), false);
-    }
-}
-
-/**
- * Handles requests for listing available models. It fetches models from the
- * service, transforms them to the format expected by the client (OpenAI, Claude, etc.),
- * and sends the JSON response.
- * @param {http.IncomingMessage} req The HTTP request object.
- * @param {http.ServerResponse} res The HTTP response object.
- * @param {string} endpointType The type of endpoint being called (e.g., OPENAI_MODEL_LIST).
- * @param {Object} CONFIG - The server configuration object.
- */
-export async function handleModelListRequest(req, res, service, endpointType, CONFIG, providerPoolManager, pooluuid) {
-    try{
-        const clientProviderMap = {
-            [ENDPOINT_TYPE.OPENAI_MODEL_LIST]: MODEL_PROTOCOL_PREFIX.OPENAI,
-        };
-
-
-        const fromProvider = clientProviderMap[endpointType];
-        const toProvider = CONFIG.MODEL_PROVIDER;
-
-        if (!fromProvider) {
-            throw new Error(`Unsupported endpoint type for model list: ${endpointType}`);
-        }
-
-        // 1. Get the model list in the backend's native format.
-        const nativeModelList = await service.listModels();
-                
-        // 2. Convert the model list to the client's expected format, if necessary.
-        let clientModelList = nativeModelList;
-        if (!getProtocolPrefix(toProvider).includes(getProtocolPrefix(fromProvider))) {
-            console.log(`[ModelList Convert] Converting model list from ${toProvider} to ${fromProvider}`);
-            clientModelList = convertData(nativeModelList, 'modelList', toProvider, fromProvider);
-        } else {
-            console.log(`[ModelList Convert] Model list format matches. No conversion needed.`);
-        }
-
-        console.log(`[ModelList Response] Sending model list to client: ${JSON.stringify(clientModelList)}`);
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify(clientModelList));
-    } catch (error) {
-        console.error('\n[Server] Error during model list processing:', error.stack);
-        if (providerPoolManager) {
-            // 如果是号池模式，并且请求处理失败，则标记当前使用的提供者为不健康
-            providerPoolManager.markProviderUnhealthy(toProvider, {
-                uuid: pooluuid
-            });
-        }
     }
 }
 
@@ -535,24 +480,12 @@ export function handleError(res, error) {
 /**
  * 从请求体中提取系统提示词。
  * @param {Object} requestBody - 请求体对象。
- * @param {string} provider - 提供商类型（'openai', 'claude'）。
+ * @param {string} provider - 提供商类型（'claude'）。
  * @returns {string} 提取到的系统提示词字符串。
  */
 export function extractSystemPromptFromRequestBody(requestBody, provider) {
     let incomingSystemText = '';
     switch (provider) {
-        case MODEL_PROTOCOL_PREFIX.OPENAI:
-            const openaiSystemMessage = requestBody.messages?.find(m => m.role === 'system');
-            if (openaiSystemMessage?.content) {
-                incomingSystemText = openaiSystemMessage.content;
-            } else if (requestBody.messages?.length > 0) {
-                // Fallback to first user message if no system message
-                const userMessage = requestBody.messages.find(m => m.role === 'user');
-                if (userMessage) {
-                    incomingSystemText = userMessage.content;
-                }
-            }
-            break;
         case MODEL_PROTOCOL_PREFIX.CLAUDE:
             if (typeof requestBody.system === 'string') {
                 incomingSystemText = requestBody.system;
@@ -663,7 +596,7 @@ function createStreamErrorResponse(error, fromProvider) {
             return `event: error\ndata: ${JSON.stringify(claudeError)}\n\n`;
             
         default:
-            // 默认使用 OpenAI SSE 格式
+            // 默认
             const defaultError = {
                 error: {
                     message: errorMessage,

@@ -72,10 +72,6 @@ function getFieldLabel(key) {
         'customName': t('modal.provider.customName') + ' ' + t('config.optional'),
         'checkModelName': t('modal.provider.checkModelName') + ' ' + t('config.optional'),
         'checkHealth': t('modal.provider.healthCheckLabel'),
-        'OPENAI_API_KEY': 'OpenAI API Key',
-        'OPENAI_BASE_URL': 'OpenAI Base URL',
-        'CLAUDE_API_KEY': 'Claude API Key',
-        'CLAUDE_BASE_URL': 'Claude Base URL',
         'KIRO_OAUTH_CREDS_FILE_PATH': isEn ? 'OAuth Credentials File Path' : 'OAuth凭据文件路径',
         'KIRO_BASE_URL': 'Base URL',
         'KIRO_REFRESH_URL': 'Refresh URL'
@@ -92,20 +88,6 @@ function getFieldLabel(key) {
 function getProviderTypeFields(providerType) {
     const isEn = getCurrentLanguage() === 'en-US';
     const fieldConfigs = {
-        'openaiResponses-custom': [
-            {
-                id: 'OPENAI_API_KEY',
-                label: 'OpenAI API Key',
-                type: 'password',
-                placeholder: 'sk-...'
-            },
-            {
-                id: 'OPENAI_BASE_URL',
-                label: 'OpenAI Base URL',
-                type: 'text',
-                placeholder: 'https://api.openai.com/v1'
-            }
-        ],
         'claude-kiro-oauth': [
             {
                 id: 'KIRO_OAUTH_CREDS_FILE_PATH',

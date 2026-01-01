@@ -540,16 +540,7 @@ export class ProviderPoolManager {
             return requests;
         }
         
-        // OpenAI Custom Responses 使用特殊格式
-        if (providerType === MODEL_PROVIDER.OPENAI_CUSTOM_RESPONSES) {
-            requests.push({
-                input: [baseMessage],
-                model: modelName
-            });
-            return requests;
-        }
-        
-        // 其他提供商（OpenAI、Claude）使用标准 messages 格式
+        // 其他提供商使用标准 messages 格式
         requests.push({
             messages: [baseMessage],
             model: modelName
@@ -581,7 +572,7 @@ export class ProviderPoolManager {
         }
 
         // 使用内部服务适配器方式进行健康检查
-        const proxyKeys = ['OPENAI', 'CLAUDE', 'KIRO'];
+        const proxyKeys = ['CLAUDE', 'KIRO'];
         const tempConfig = {
             ...providerConfig,
             MODEL_PROVIDER: providerType

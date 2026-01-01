@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
     <meta name="theme-color" content="#059669">
-    <meta name="description" content="AIClient2API Management Console - Unified management of AI service providers" data-i18n="header.description">
-    <title data-i18n="header.title">AIClient2API - 管理控制台</title>
+    <meta name="description" content="Kiro2API Management Console - Unified management of AI service providers" data-i18n="header.description">
+    <title data-i18n="header.title">Kiro2API - 管理控制台</title>
     <link rel="stylesheet" href="app/styles.css">
     <link rel="stylesheet" href="app/mobile.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -15,7 +15,7 @@
         <!-- Header -->
         <header class="header">
             <div class="header-content">
-                <h1><i class="fas fa-robot"></i> <span class="header-title" data-i18n="header.title">AIClient2API 管理控制台</span></h1>
+                <h1><i class="fas fa-robot"></i> <span class="header-title" data-i18n="header.title">Kiro2API 管理控制台</span></h1>
                 <div class="header-controls">
                     <span class="status-badge" id="serverStatus">
                         <i class="fas fa-circle"></i> <span class="status-text" data-i18n="header.status.connecting">连接中...</span>
@@ -162,42 +162,14 @@
 
                     <!-- Path Routing Examples Panel -->
                     <div class="routing-examples-panel">
-                        <h3><i class="fas fa-route"></i> <span data-i18n="dashboard.routing.title">路径路由调用示例</span></h3>
-                        <p class="routing-description" data-i18n="dashboard.routing.description">通过不同路径路由访问不同的AI模型提供商，支持灵活的模型切换</p>
-                        
                         <div class="routing-examples-grid">
                             <div class="routing-example-card" data-provider="claude-kiro-oauth-card">
                                 <div class="routing-card-header">
                                     <i class="fas fa-robot"></i>
-                                    <h4 data-i18n="dashboard.routing.nodeName.kiro">Claude Kiro OAuth</h4>
+                                    <h4 data-i18n="dashboard.routing.title"></h4>
                                     <span class="provider-badge oauth" data-i18n="dashboard.routing.free">突破限制/免费使用</span>
                                 </div>
                                 <div class="routing-card-content">
-                                    <!-- 协议标签切换 -->
-                                    <div class="protocol-tabs">
-                                        <button class="protocol-tab" data-protocol="openai" data-i18n="dashboard.routing.openai">OpenAI协议</button>
-                                        <button class="protocol-tab active" data-protocol="claude" data-i18n="dashboard.routing.claude">Claude协议</button>
-                                    </div>
-                                    
-                                    <!-- OpenAI协议示例 -->
-                                    <div class="protocol-content" data-protocol="openai">
-                                        <div class="endpoint-info">
-                                            <label data-i18n="dashboard.routing.endpoint">端点路径:</label>
-                                            <code class="endpoint-path">/claude-kiro-oauth/v1/chat/completions</code>
-                                        </div>
-                                        <div class="usage-example">
-                                            <label data-i18n="dashboard.routing.exampleOpenAI">使用示例 (OpenAI格式):</label>
-                                            <pre><code>curl http://localhost:3000/claude-kiro-oauth/v1/chat/completions \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer YOUR_API_KEY" \
-  -d '{
-    "model": "claude-3-5-sonnet-20241022",
-    "messages": [{"role": "user", "content": "Hello!"}],
-    "max_tokens": 1000
-  }'</code></pre>
-                                        </div>
-                                    </div>
-                                    
                                     <!-- Claude协议示例 -->
                                     <div class="protocol-content active" data-protocol="claude">
                                         <div class="endpoint-info">
@@ -220,15 +192,6 @@
                             </div>
 
 
-                        </div>
-
-                        <div class="routing-tips">
-                            <h4><i class="fas fa-lightbulb"></i> <span data-i18n="dashboard.routing.tips">使用提示</span></h4>
-                            <ul>
-                                <li data-i18n="dashboard.routing.tip1"><strong>即时切换:</strong> 通过修改URL路径即可切换不同的AI模型提供商</li>
-                                <li data-i18n="dashboard.routing.tip2"><strong>客户端配置:</strong> 在Cherry-Studio、NextChat、Cline等客户端中设置API端点为对应路径</li>
-                                <li data-i18n="dashboard.routing.tip3"><strong>跨协议调用:</strong> 支持OpenAI协议调用Claude模型，或Claude协议调用OpenAI模型</li>
-                            </ul>
                         </div>
                     </div>
                     
@@ -258,16 +221,10 @@
                                     <input type="number" id="port" class="form-control" value="3000">
                                 </div>
                             </div>
-                            <div class="form-group">
-                                <label for="modelProvider" data-i18n="config.modelProvider">模型提供商</label>
-                                <select id="modelProvider" class="form-control">
-                                    <option value="claude-kiro-oauth">Claude Kiro OAuth</option>
-                                </select>
-                            </div>
                             
                             
                             <!-- Claude Kiro OAuth 配置 -->
-                            <div class="provider-config" data-provider="claude-kiro-oauth" style="display: none;">
+                            <div class="provider-config" data-provider="claude-kiro-oauth">
                                 <div class="form-row">
                                     <div class="form-group">
                                         <label for="kiroBaseUrl"><span data-i18n="config.kiro.baseUrl">Base URL</span> <span class="optional-tag" data-i18n="config.optional">(选填)</span></label>

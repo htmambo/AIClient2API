@@ -669,7 +669,6 @@ function getFieldOrder(provider) {
     
     // 从 getProviderTypeFields 获取字段顺序映射
     const fieldOrderMap = {
-        'openaiResponses-custom': ['OPENAI_API_KEY', 'OPENAI_BASE_URL'],
         'claude-kiro-oauth': ['KIRO_OAUTH_CREDS_FILE_PATH', 'KIRO_BASE_URL', 'KIRO_REFRESH_URL']
     };
 

@@ -207,8 +207,7 @@ function renderProviders(providers) {
 
     // 定义所有支持的提供商显示顺序
     const providerDisplayOrder = [
-        'claude-kiro-oauth',
-        'openaiResponses-custom'
+        'claude-kiro-oauth'
     ];
     
     // 获取所有提供商类型并按指定顺序排序

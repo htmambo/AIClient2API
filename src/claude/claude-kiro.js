@@ -50,7 +50,6 @@ const KIRO_AUTH_TOKEN_FILE = "kiro-auth-token.json";
 
 /**
  * Kiro API Service - Node.js implementation based on the Python ki2api
- * Provides OpenAI-compatible API for Claude Sonnet 4 via Kiro/CodeWhisperer
  */
 
 /**
@@ -531,7 +530,7 @@ async initializeAuth(forceRefresh = false) {
 }
 
     /**
-     * Extract text content from OpenAI message format
+     * Extract text content
      */
     getContentText(message) {
         if(message==null){
@@ -554,7 +553,7 @@ async initializeAuth(forceRefresh = false) {
     }
 
     /**
-     * Build CodeWhisperer request from OpenAI messages
+     * Build CodeWhisperer request from messages
      */
     buildCodewhispererRequest(messages, model, tools = null, inSystemPrompt = null) {
         const conversationId = uuidv4();

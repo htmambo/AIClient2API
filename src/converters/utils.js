@@ -15,29 +15,11 @@ export const DEFAULT_TEMPERATURE = 1;
 export const DEFAULT_TOP_P = 0.95;
 
 // =============================================================================
-// OpenAI 相关常量
-// =============================================================================
-export const OPENAI_DEFAULT_MAX_TOKENS = 128000;
-export const OPENAI_DEFAULT_TEMPERATURE = 1;
-export const OPENAI_DEFAULT_TOP_P = 0.95;
-export const OPENAI_DEFAULT_INPUT_TOKEN_LIMIT = 32768;
-export const OPENAI_DEFAULT_OUTPUT_TOKEN_LIMIT = 128000;
-
-// =============================================================================
 // Claude 相关常量
 // =============================================================================
 export const CLAUDE_DEFAULT_MAX_TOKENS = 200000;
 export const CLAUDE_DEFAULT_TEMPERATURE = 1;
 export const CLAUDE_DEFAULT_TOP_P = 0.95;
-
-// =============================================================================
-// OpenAI Responses 相关常量
-// =============================================================================
-export const OPENAI_RESPONSES_DEFAULT_MAX_TOKENS = 128000;
-export const OPENAI_RESPONSES_DEFAULT_TEMPERATURE = 1;
-export const OPENAI_RESPONSES_DEFAULT_TOP_P = 0.95;
-export const OPENAI_RESPONSES_DEFAULT_INPUT_TOKEN_LIMIT = 32768;
-export const OPENAI_RESPONSES_DEFAULT_OUTPUT_TOKEN_LIMIT = 128000;
 
 // =============================================================================
 // 通用辅助函数
@@ -167,112 +149,6 @@ export function cleanJsonSchemaProperties(schema) {
     }
 
     return sanitized;
-}
-
-/**
- * 映射结束原因
- * @param {string} reason - 结束原因
- * @param {string} sourceFormat - 源格式
- * @param {string} targetFormat - 目标格式
- * @returns {string} 映射后的结束原因
- */
-export function mapFinishReason(reason, sourceFormat, targetFormat) {
-    const reasonMappings = {
-        openai: {
-            anthropic: {
-                stop: "end_turn",
-                length: "max_tokens",
-                content_filter: "stop_sequence",
-                tool_calls: "tool_use"
-            }
-        }
-    };
-
-    try {
-        return reasonMappings[sourceFormat][targetFormat][reason] || "end_turn";
-    } catch (e) {
-        return "end_turn";
-    }
-}
-
-/**
- * 根据budget_tokens智能判断OpenAI reasoning_effort等级
- * @param {number|null} budgetTokens - Anthropic thinking的budget_tokens值
- * @returns {string} OpenAI reasoning_effort等级
- */
-export function determineReasoningEffortFromBudget(budgetTokens) {
-    if (budgetTokens === null || budgetTokens === undefined) {
-        console.info("No budget_tokens provided, defaulting to reasoning_effort='high'");
-        return "high";
-    }
-
-    const LOW_THRESHOLD = 50;
-    const HIGH_THRESHOLD = 200;
-
-    console.debug(`Threshold configuration: low <= ${LOW_THRESHOLD}, medium <= ${HIGH_THRESHOLD}, high > ${HIGH_THRESHOLD}`);
-
-    let effort;
-    if (budgetTokens <= LOW_THRESHOLD) {
-        effort = "low";
-    } else if (budgetTokens <= HIGH_THRESHOLD) {
-        effort = "medium";
-    } else {
-        effort = "high";
-    }
-
-    console.info(`🎯 Budget tokens ${budgetTokens} -> reasoning_effort '${effort}' (thresholds: low<=${LOW_THRESHOLD}, high<=${HIGH_THRESHOLD})`);
-    return effort;
-}
-
-/**
- * 从OpenAI文本中提取thinking内容
- * @param {string} text - 文本内容
- * @returns {string|Array} 提取后的内容
- */
-export function extractThinkingFromOpenAIText(text) {
-    const thinkingPattern = /<thinking>\s*(.*?)\s*<\/thinking>/gs;
-    const matches = [...text.matchAll(thinkingPattern)];
-
-    const contentBlocks = [];
-    let lastEnd = 0;
-
-    for (const match of matches) {
-        const beforeText = text.substring(lastEnd, match.index).trim();
-        if (beforeText) {
-            contentBlocks.push({
-                type: "text",
-                text: beforeText
-            });
-        }
-
-        const thinkingText = match[1].trim();
-        if (thinkingText) {
-            contentBlocks.push({
-                type: "thinking",
-                thinking: thinkingText
-            });
-        }
-
-        lastEnd = match.index + match[0].length;
-    }
-
-    const afterText = text.substring(lastEnd).trim();
-    if (afterText) {
-        contentBlocks.push({
-            type: "text",
-            text: afterText
-        });
-    }
-
-    if (contentBlocks.length === 0) {
-        return text;
-    }
-
-    if (contentBlocks.length === 1 && contentBlocks[0].type === "text") {
-        return contentBlocks[0].text;
-    }
-
-    return contentBlocks;
 }
 
 // =============================================================================

@@ -30,13 +30,6 @@ class FileUploadHandler {
             }
         });
 
-        // 监听提供商切换事件
-        const modelProvider = document.getElementById('modelProvider');
-        if (modelProvider) {
-            modelProvider.addEventListener('change', (event) => {
-                this.updateCurrentProvider(event.target.value);
-            });
-        }
     }
 
     /**
