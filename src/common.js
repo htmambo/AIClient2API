@@ -15,7 +15,6 @@ export const MODEL_PROTOCOL_PREFIX = {
     OPENAI: 'openai',
     OPENAI_RESPONSES: 'openaiResponses',
     CLAUDE: 'claude',
-    OLLAMA: 'ollama',
 }
 
 export const MODEL_PROVIDER = {

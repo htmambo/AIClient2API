@@ -6,7 +6,6 @@ import { getApiService, getProviderStatus } from './service-manager.js';
 import { getProviderPoolManager } from './service-manager.js';
 import { MODEL_PROVIDER } from './common.js';
 import { PROMPT_LOG_FILENAME } from './config-manager.js';
-import { handleOllamaRequest, handleOllamaShow } from './ollama-handler.js';
 
 /**
  * Parse request body as JSON
@@ -61,12 +60,6 @@ export function createRequestHandler(config, providerPoolManager) {
 
         const uiHandled = await handleUIApiRequests(method, path, req, res, currentConfig, providerPoolManager);
         if (uiHandled) return;
-
-        // Ollama show endpoint with model name
-        if (method === 'POST' && path === '/ollama/api/show') {
-            await handleOllamaShow(req, res);
-            return true;
-        }
 
         console.log(`\n${new Date().toLocaleString()}`);
         console.log(`[Server] Received request: ${req.method} http://${req.headers.host}${req.url}`);
@@ -194,9 +187,6 @@ export function createRequestHandler(config, providerPoolManager) {
         }
 
         try {
-            // Handle Ollama request (normalize path and route to appropriate endpoints)
-            const { handled, normalizedPath } = await handleOllamaRequest(method, path, requestUrl, req, res, apiService, currentConfig, providerPoolManager);
-            if (handled) return;
             path = normalizedPath;
 
             // Handle API requests

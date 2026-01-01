@@ -8,7 +8,6 @@ import { ConverterFactory } from './ConverterFactory.js';
 import { OpenAIConverter } from './strategies/OpenAIConverter.js';
 import { OpenAIResponsesConverter } from './strategies/OpenAIResponsesConverter.js';
 import { ClaudeConverter } from './strategies/ClaudeConverter.js';
-import { OllamaConverter } from './strategies/OllamaConverter.js';
 
 /**
  * 注册所有转换器到工厂
@@ -18,7 +17,6 @@ export function registerAllConverters() {
     ConverterFactory.registerConverter(MODEL_PROTOCOL_PREFIX.OPENAI, OpenAIConverter);
     ConverterFactory.registerConverter(MODEL_PROTOCOL_PREFIX.OPENAI_RESPONSES, OpenAIResponsesConverter);
     ConverterFactory.registerConverter(MODEL_PROTOCOL_PREFIX.CLAUDE, ClaudeConverter);
-    ConverterFactory.registerConverter(MODEL_PROTOCOL_PREFIX.OLLAMA, OllamaConverter);
 }
 
 // 自动注册所有转换器
