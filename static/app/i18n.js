@@ -73,15 +73,6 @@ const translations = {
         'dashboard.routing.tip2': '客户端配置: 在Cherry-Studio、NextChat、Cline等客户端中设置API端点为对应路径',
         'dashboard.routing.tip3': '跨协议调用: 支持OpenAI协议调用Claude模型，或Claude协议调用OpenAI模型',
         'dashboard.routing.nodeName.claude': 'Claude Custom',
-        'dashboard.contact.title': '联系与赞助',
-        'dashboard.contact.wechat': '扫码进群，注明来意',
-        'dashboard.contact.wechatDesc': '添加微信获取更多技术支持和交流',
-        'dashboard.contact.x': '关注 X.com',
-        'dashboard.contact.xDesc': '在 X 上关注我们获取最新动态',
-        'dashboard.contact.sponsor': '扫码赞助',
-        'dashboard.contact.sponsorDesc': '您的赞助是项目持续发展的动力',
-        'dashboard.contact.coffee': 'Buy me a coffee',
-        'dashboard.contact.coffeeDesc': 'If you like this project, buy me a coffee!',
         
         // OAuth
         'oauth.modal.title': 'OAuth 授权',
@@ -445,15 +436,6 @@ const translations = {
         'dashboard.routing.tip1': 'Instant Switch: Switch between different AI model providers by modifying the URL path',
         'dashboard.routing.tip2': 'Client Configuration: Set API endpoint to corresponding path in clients like Cherry-Studio, NextChat, Cline',
         'dashboard.routing.tip3': 'Cross-protocol Calls: Support calling Claude models with OpenAI protocol, or OpenAI models with Claude protocol',
-        'dashboard.contact.title': 'Contact & Support',
-        'dashboard.contact.wechat': 'Scan to Join Group',
-        'dashboard.contact.wechatDesc': 'Add WeChat for more technical support and communication',
-        'dashboard.contact.x': 'Follow on X.com',
-        'dashboard.contact.xDesc': 'Follow us on X for latest updates',
-        'dashboard.contact.sponsor': 'Scan to Support',
-        'dashboard.contact.sponsorDesc': 'Your support is the driving force for the project\'s continuous development',
-        'dashboard.contact.coffee': 'Buy me a coffee',
-        'dashboard.contact.coffeeDesc': 'If you like this project, buy me a coffee!',
         
         // OAuth
         'oauth.modal.title': 'OAuth Authorization',
@@ -767,86 +749,8 @@ export function setLanguage(lang) {
         currentLanguage = lang;
         localStorage.setItem('language', lang);
         updatePageLanguage();
-        // 更新图片
-        updateDashboardImages(lang);
         // 触发语言切换事件
         window.dispatchEvent(new CustomEvent('languageChanged', { detail: { language: lang } }));
-    }
-}
-
-// 更新仪表盘图片
-function updateDashboardImages(lang) {
-    const sponsorImg = document.getElementById('sponsor-img');
-    const sponsorTitle = document.getElementById('sponsor-title');
-    const sponsorDesc = document.getElementById('sponsor-desc');
-    
-    const wechatImg = document.getElementById('wechat-img');
-    const wechatIcon = document.getElementById('wechat-icon');
-    const wechatTitle = document.getElementById('wechat-title');
-    const wechatDesc = document.getElementById('wechat-desc');
-
-    if (lang === 'en-US') {
-        // 更新赞助图片
-        if (sponsorImg) {
-            sponsorImg.src = 'static/coffee.png';
-            sponsorImg.alt = 'Buy me a coffee';
-            if (sponsorTitle) {
-                sponsorTitle.setAttribute('data-i18n', 'dashboard.contact.coffee');
-                sponsorTitle.textContent = translations['en-US']['dashboard.contact.coffee'];
-            }
-            if (sponsorDesc) {
-                sponsorDesc.setAttribute('data-i18n', 'dashboard.contact.coffeeDesc');
-                sponsorDesc.textContent = translations['en-US']['dashboard.contact.coffeeDesc'];
-            }
-        }
-        
-        // 更新联系方式图片 (WeChat -> X.com)
-        if (wechatImg) {
-            wechatImg.src = 'static/x.com.png';
-            wechatImg.alt = 'X.com';
-            if (wechatIcon) {
-                wechatIcon.className = 'fab fa-x-twitter';
-            }
-            if (wechatTitle) {
-                wechatTitle.setAttribute('data-i18n', 'dashboard.contact.x');
-                wechatTitle.textContent = translations['en-US']['dashboard.contact.x'] || 'Follow on X.com';
-            }
-            if (wechatDesc) {
-                wechatDesc.setAttribute('data-i18n', 'dashboard.contact.xDesc');
-                wechatDesc.textContent = translations['en-US']['dashboard.contact.xDesc'] || 'Follow us on X for latest updates';
-            }
-        }
-    } else {
-        // 更新赞助图片
-        if (sponsorImg) {
-            sponsorImg.src = 'static/sponsor.png';
-            sponsorImg.alt = '赞助二维码';
-            if (sponsorTitle) {
-                sponsorTitle.setAttribute('data-i18n', 'dashboard.contact.sponsor');
-                sponsorTitle.textContent = translations['zh-CN']['dashboard.contact.sponsor'];
-            }
-            if (sponsorDesc) {
-                sponsorDesc.setAttribute('data-i18n', 'dashboard.contact.sponsorDesc');
-                sponsorDesc.textContent = translations['zh-CN']['dashboard.contact.sponsorDesc'];
-            }
-        }
-
-        // 更新联系方式图片 (X.com -> WeChat)
-        if (wechatImg) {
-            wechatImg.src = 'static/wechat.png';
-            wechatImg.alt = '微信二维码';
-            if (wechatIcon) {
-                wechatIcon.className = 'fab fa-weixin';
-            }
-            if (wechatTitle) {
-                wechatTitle.setAttribute('data-i18n', 'dashboard.contact.wechat');
-                wechatTitle.textContent = translations['zh-CN']['dashboard.contact.wechat'];
-            }
-            if (wechatDesc) {
-                wechatDesc.setAttribute('data-i18n', 'dashboard.contact.wechatDesc');
-                wechatDesc.textContent = translations['zh-CN']['dashboard.contact.wechatDesc'];
-            }
-        }
     }
 }
 
@@ -907,8 +811,6 @@ function updatePageLanguage() {
 export function initI18n() {
     // 设置初始语言
     updatePageLanguage();
-    // 设置初始图片
-    updateDashboardImages(currentLanguage);
     
     // 监听 DOM 变化，自动翻译新添加的元素
     const observer = new MutationObserver((mutations) => {
