@@ -69,7 +69,6 @@ import { createRequestHandler } from './request-handler.js';
  */
 
 import 'dotenv/config'; // Import dotenv and configure it
-import './converters/register-converters.js'; // 注册所有转换器
 import { getProviderPoolManager } from './service-manager.js';
 
 // 检测是否作为子进程运行

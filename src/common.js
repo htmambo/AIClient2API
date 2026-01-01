@@ -2,7 +2,6 @@ import { promises as fs } from 'fs';
 import * as path from 'path';
 import * as http from 'http'; // Add http for IncomingMessage and ServerResponse types
 import * as crypto from 'crypto'; // Import crypto for MD5 hashing
-import { convertData } from './convert.js';
 import { ProviderStrategyFactory } from './provider-strategies.js';
 
 export const API_ACTIONS = {
@@ -170,7 +169,6 @@ export async function handleStreamRequest(res, service, model, requestBody, from
 
     // fs.writeFile('request'+Date.now()+'.json', JSON.stringify(requestBody));
     // The service returns a stream in its native format (toProvider).
-    const needsConversion = getProtocolPrefix(fromProvider) !== getProtocolPrefix(toProvider);
     requestBody.model = model;
     const nativeStream = await service.generateContentStream(model, requestBody);
     const addEvent = getProtocolPrefix(fromProvider) === MODEL_PROTOCOL_PREFIX.CLAUDE;
@@ -183,10 +181,8 @@ export async function handleStreamRequest(res, service, model, requestBody, from
                 fullResponseText += chunkText;
             }
 
-            // Convert the complete chunk object to the client's format (fromProvider), if necessary.
-            const chunkToSend = needsConversion
-                ? convertData(nativeChunk, 'streamChunk', toProvider, fromProvider, model)
-                : nativeChunk;
+            // Use the chunk directly (no conversion needed with single provider)
+            const chunkToSend = nativeChunk;
 
             if (!chunkToSend) {
                 continue;
@@ -247,18 +243,13 @@ export async function handleStreamRequest(res, service, model, requestBody, from
 export async function handleUnaryRequest(res, service, model, requestBody, fromProvider, toProvider, PROMPT_LOG_MODE, PROMPT_LOG_FILENAME, providerPoolManager, pooluuid) {
     try{
         // The service returns the response in its native format (toProvider).
-        const needsConversion = getProtocolPrefix(fromProvider) !== getProtocolPrefix(toProvider);
         requestBody.model = model;
         // fs.writeFile('oldRequest'+Date.now()+'.json', JSON.stringify(requestBody));
         const nativeResponse = await service.generateContent(model, requestBody);
         const responseText = extractResponseText(nativeResponse, toProvider);
 
-        // Convert the response back to the client's format (fromProvider), if necessary.
-        let clientResponse = nativeResponse;
-        if (needsConversion) {
-            console.log(`[Response Convert] Converting response from ${toProvider} to ${fromProvider}`);
-            clientResponse = convertData(nativeResponse, 'response', toProvider, fromProvider, model);
-        }
+        // Use the response directly (no conversion needed with single provider)
+        const clientResponse = nativeResponse;
 
         //console.log(`[Response] Sending response to client: ${JSON.stringify(clientResponse)}`);
         await handleUnifiedResponse(res, JSON.stringify(clientResponse), false);
@@ -342,15 +333,10 @@ export async function handleContentGenerationRequest(req, res, service, endpoint
         }
     }
 
-    // 1. Convert request body from client format to backend format, if necessary.
+    // 1. Use request body directly (no conversion needed with single provider)
     let processedRequestBody = originalRequestBody;
     // fs.writeFile('originalRequestBody'+Date.now()+'.json', JSON.stringify(originalRequestBody));
-    if (getProtocolPrefix(fromProvider) !== getProtocolPrefix(toProvider)) {
-        console.log(`[Request Convert] Converting request from ${fromProvider} to ${toProvider}`);
-        processedRequestBody = convertData(originalRequestBody, 'request', fromProvider, toProvider);
-    } else {
-        console.log(`[Request Convert] Request format matches backend provider. No conversion needed.`);
-    }
+    console.log(`[Request Convert] Request format matches backend provider. No conversion needed.`);
 
     // 3. Apply system prompt from file if configured.
     processedRequestBody = await _applySystemPromptFromFile(CONFIG, processedRequestBody, toProvider);
@@ -390,7 +376,7 @@ export async function _manageSystemPrompt(requestBody, provider) {
     await strategy.manageSystemPrompt(requestBody);
 }
 
-// Helper functions for content extraction and conversion (from convert.js, but needed here)
+// Helper functions for content extraction
 export function extractResponseText(response, provider) {
     const strategy = ProviderStrategyFactory.getStrategy(getProtocolPrefix(provider));
     return strategy.extractResponseText(response);

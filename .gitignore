@@ -34,3 +34,5 @@ out/
 configs/kiro
 configs/*.json
 configs/*_system_prompt.txt
+docs/CLEANUP_PLAN.md
+docs/UNUSED_CODE_ANALYSIS.md
