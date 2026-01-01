@@ -316,10 +316,10 @@ async function pollKiroBuilderIDToken(clientId, clientSecret, deviceCode, interv
                 // 保存令牌（符合现有规范）
                 if (options.saveToConfigs) {
                     const timestamp = Date.now();
-                    const folderName = `${timestamp}_kiro-auth-token`;
-                    const targetDir = path.join(process.cwd(), 'configs', 'kiro', folderName);
+                    const fileName = `${timestamp}_kiro-auth-token.json`;
+                    const targetDir = path.join(process.cwd(), 'configs', 'kiro');
                     await fs.promises.mkdir(targetDir, { recursive: true });
-                    credPath = path.join(targetDir, `${folderName}.json`);
+                    credPath = path.join(targetDir, fileName);
                 }
                 
                 const tokenData = {
@@ -498,10 +498,10 @@ function createKiroHttpCallbackServer(port, codeVerifier, expectedState, options
                     
                     if (options.saveToConfigs) {
                         const timestamp = Date.now();
-                        const folderName = `${timestamp}_kiro-auth-token`;
-                        const targetDir = path.join(process.cwd(), 'configs', 'kiro', folderName);
+                        const fileName = `${timestamp}_kiro-auth-token.json`;
+                        const targetDir = path.join(process.cwd(), 'configs', 'kiro');
                         await fs.promises.mkdir(targetDir, { recursive: true });
-                        credPath = path.join(targetDir, `${folderName}.json`);
+                        credPath = path.join(targetDir, fileName);
                     }
                     
                     const saveData = {
