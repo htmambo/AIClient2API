@@ -6,19 +6,7 @@
  * 可以逐步替换原有的 convert.js
  */
 
-import { v4 as uuidv4 } from 'uuid';
-import { MODEL_PROTOCOL_PREFIX, getProtocolPrefix } from './common.js';
 import { ConverterFactory } from './converters/ConverterFactory.js';
-import {
-    generateResponseCreated,
-    generateResponseInProgress,
-    generateOutputItemAdded,
-    generateContentPartAdded,
-    generateOutputTextDone,
-    generateContentPartDone,
-    generateOutputItemDone,
-    generateResponseCompleted
-} from './openai/openai-responses-core.mjs';
 
 // =============================================================================
 // 初始化：注册所有转换器
@@ -83,32 +71,6 @@ export function convertData(data, type, fromProvider, toProvider, model) {
  * 内部使用新的转换器架构
  */
 
-// Claude 相关转换
-export function toClaudeRequestFromOpenAI(openaiRequest) {
-    const converter = ConverterFactory.getConverter(MODEL_PROTOCOL_PREFIX.OPENAI);
-    return converter.toClaudeRequest(openaiRequest);
-}
-
-export function toClaudeRequestFromOpenAIResponses(responsesRequest) {
-    const converter = ConverterFactory.getConverter(MODEL_PROTOCOL_PREFIX.OPENAI_RESPONSES);
-    return converter.toClaudeRequest(responsesRequest);
-}
-
-export function toClaudeChatCompletionFromOpenAI(openaiResponse, model) {
-    const converter = ConverterFactory.getConverter(MODEL_PROTOCOL_PREFIX.OPENAI);
-    return converter.toClaudeResponse(openaiResponse, model);
-}
-
-export function toClaudeStreamChunkFromOpenAI(openaiChunk, model) {
-    const converter = ConverterFactory.getConverter(MODEL_PROTOCOL_PREFIX.OPENAI);
-    return converter.toClaudeStreamChunk(openaiChunk, model);
-}
-
-export function toClaudeModelListFromOpenAI(openaiModels) {
-    const converter = ConverterFactory.getConverter(MODEL_PROTOCOL_PREFIX.OPENAI);
-    return converter.toClaudeModelList(openaiModels);
-}
-
 // 辅助函数导出
 export async function extractAndProcessSystemMessages(messages) {
     const { Utils } = await import('./converters/utils.js');
@@ -158,71 +120,6 @@ export function getConverter(protocol) {
 }
 
 // =============================================================================
-// 辅助函数 - 从原 convert.js 迁移
-// =============================================================================
-
-/**
- * 生成 OpenAI 流式响应的停止块
- * @param {string} model - 模型名称
- * @returns {Object} OpenAI 流式停止块
- */
-export function getOpenAIStreamChunkStop(model) {
-    return {
-        id: `chatcmpl-${uuidv4()}`,
-        object: "chat.completion.chunk",
-        created: Math.floor(Date.now() / 1000),
-        model: model,
-        system_fingerprint: "",
-        choices: [{
-            index: 0,
-            delta: {
-                content: "",
-                reasoning_content: ""
-            },
-            finish_reason: 'stop',
-            message: {
-                content: "",
-                reasoning_content: ""
-            }
-        }],
-        usage:{
-            prompt_tokens: 0,
-            completion_tokens: 0,
-            total_tokens: 0,
-        },
-    };
-}
-
-/**
- * 生成 OpenAI Responses 流式响应的开始事件
- * @param {string} id - 响应 ID
- * @param {string} model - 模型名称
- * @returns {Array} 开始事件数组
- */
-export function getOpenAIResponsesStreamChunkBegin(id, model) {
-    return [
-        generateResponseCreated(id, model),
-        generateResponseInProgress(id),
-        generateOutputItemAdded(id),
-        generateContentPartAdded(id)
-    ];
-}
-
-/**
- * 生成 OpenAI Responses 流式响应的结束事件
- * @param {string} id - 响应 ID
- * @returns {Array} 结束事件数组
- */
-export function getOpenAIResponsesStreamChunkEnd(id) {
-    return [
-        generateOutputTextDone(id),
-        generateContentPartDone(id),
-        generateOutputItemDone(id),
-        generateResponseCompleted(id)
-    ];
-}
-
-// =============================================================================
 // 默认导出
 // =============================================================================
 
@@ -232,10 +129,4 @@ export default {
     isProtocolRegistered,
     clearConverterCache,
     getConverter,
-    // 向后兼容的函数
-    toClaudeRequestFromOpenAI,
-    toClaudeChatCompletionFromOpenAI,
-    toClaudeStreamChunkFromOpenAI,
-    toClaudeModelListFromOpenAI,
-    toClaudeRequestFromOpenAIResponses,
 };

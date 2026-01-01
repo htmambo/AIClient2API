@@ -18,31 +18,6 @@ import { createRequestHandler } from './request-handler.js';
  * This script creates a standalone Node.js HTTP server that acts as a local proxy for AI model APIs.
  * This version includes all features and bug fixes, designed to be robust, flexible, and easy to monitor through a comprehensive and controllable logging system.
  *
- * 主要功能 / Key Features:
- * - OpenAI & Claude 多重兼容性：无缝桥接使用不同 API 格式的客户端与后端服务。支持 OpenAI 兼容 (`/v1`) 端点、Claude Messages (`/v1/messages`) 以及 OpenAI Responses (`/v1/responses`)。
- *   OpenAI & Claude Compatibility: Seamlessly bridges clients using different API formats with backend services. Supports OpenAI-compatible (`/v1`), Claude Messages (`/v1/messages`), and OpenAI Responses (`/v1/responses`) endpoints.
- * 
- * - 强大的身份验证管理：支持多种身份验证方法，包括通过 Base64 字符串、文件路径或自动发现本地凭据的 OAuth 2.0 配置。能够自动刷新过期令牌以确保服务持续运行。
- *   Robust Authentication Management: Supports multiple authentication methods, including OAuth 2.0 configuration via Base64 strings, file paths, or automatic discovery of local credentials. Capable of automatically refreshing expired tokens to ensure continuous service operation.
- * 
- * - 灵活的 API 密钥验证：支持三种 API 密钥验证方法：`Authorization: Bearer <key>` 请求头、`x-goog-api-key` 请求头和 `?key=` URL 查询参数，可通过 `--api-key` 启动参数配置。
- *   Flexible API Key Validation: Supports three API key validation methods: `Authorization: Bearer <key>` request header, `x-goog-api-key` request header, and `?key=` URL query parameter, configurable via the `--api-key` startup parameter.
- * 
- * - 动态系统提示管理 / Dynamic System Prompt Management:
- *   - 文件注入：通过 `--system-prompt-file` 从外部文件加载系统提示，并通过 `--system-prompt-mode` 控制其行为（覆盖或追加）。
- *     File Injection: Loads system prompts from external files via `--system-prompt-file` and controls their behavior (overwrite or append) with `--system-prompt-mode`.
- *   - 实时同步：能够将请求中包含的系统提示实时写入 `configs/fetch_system_prompt.txt` 文件，便于开发者观察和调试。
- *     Real-time Synchronization: Capable of writing system prompts included in requests to the `fetch_system_prompt.txt` file in real-time, facilitating developer observation and debugging.
- * 
- * - 智能请求转换和修复：根据客户端与后端的协议差异自动转换请求与响应，并修复常见字段缺失/格式差异问题。
- *   Intelligent Request Conversion and Repair: Automatically converts requests/responses across supported protocols and fixes common shape issues.
- * 
- * - 全面可控的日志系统：提供两种日志模式（控制台或文件），详细记录每个请求的输入和输出、剩余令牌有效性等信息，用于监控和调试。
- *   Comprehensive and Controllable Logging System: Provides two logging modes (console or file), detailing input and output of each request, remaining token validity, and other information for monitoring and debugging.
- * 
- * - 高度可配置的启动：支持通过命令行参数配置服务监听地址、端口、项目 ID、API 密钥和日志模式。
- *   Highly Configurable Startup: Supports configuring service listening address, port, project ID, API key, and logging mode via command-line parameters.
- *
  * 使用示例 / Usage Examples:
  * 
  * 基本用法 / Basic Usage:
@@ -240,7 +215,6 @@ async function startServer() {
         console.log(`------------------------------------------`);
         console.log(`\nUnified API Server running on http://${CONFIG.HOST}:${CONFIG.SERVER_PORT}`);
         console.log(`Supports multiple API formats:`);
-        console.log(`  • OpenAI-compatible: /v1/chat/completions, /v1/responses, /v1/models`);
         console.log(`  • Claude-compatible: /v1/messages`);
         console.log(`  • Health check: /health`);
         console.log(`  • UI Management Console: http://${CONFIG.HOST}:${CONFIG.SERVER_PORT}/`);

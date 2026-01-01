@@ -1,6 +1,3 @@
-import { OpenAIResponsesApiService } from './openai/openai-responses-core.js'; // 导入OpenAIResponsesApiService
-import { OpenAIApiService } from './openai/openai-core.js'; // 导入OpenAIApiService
-import { ClaudeApiService } from './claude/claude-core.js'; // 导入ClaudeApiService
 import { KiroApiService } from './claude/claude-kiro.js'; // 导入KiroApiService
 import { MODEL_PROVIDER } from './common.js'; // 导入 MODEL_PROVIDER
 
@@ -50,94 +47,6 @@ export class ApiServiceAdapter {
     }
 }
 
-// OpenAI API 服务适配器
-export class OpenAIApiServiceAdapter extends ApiServiceAdapter {
-    constructor(config) {
-        super();
-        this.openAIApiService = new OpenAIApiService(config);
-    }
-
-    async generateContent(model, requestBody) {
-        // The adapter now expects the requestBody to be in the native OpenAI format.
-        // The conversion logic is handled upstream in the server.
-        return this.openAIApiService.generateContent(model, requestBody);
-    }
-
-    async *generateContentStream(model, requestBody) {
-        // The adapter now expects the requestBody to be in the native OpenAI format.
-        const stream = this.openAIApiService.generateContentStream(model, requestBody);
-        // The stream is yielded directly without conversion.
-        yield* stream;
-    }
-
-    async listModels() {
-        // The adapter now returns the native model list from the underlying service.
-        return this.openAIApiService.listModels();
-    }
-
-    async refreshToken() {
-        // OpenAI API keys are typically static and do not require refreshing.
-        return Promise.resolve();
-    }
-}
-
-// OpenAI Responses API 服务适配器
-export class OpenAIResponsesApiServiceAdapter extends ApiServiceAdapter {
-    constructor(config) {
-        super();
-        this.openAIResponsesApiService = new OpenAIResponsesApiService(config);
-    }
-
-    async generateContent(model, requestBody) {
-        // The adapter expects the requestBody to be in the OpenAI Responses format.
-        return this.openAIResponsesApiService.generateContent(model, requestBody);
-    }
-
-    async *generateContentStream(model, requestBody) {
-        // The adapter expects the requestBody to be in the OpenAI Responses format.
-        const stream = this.openAIResponsesApiService.generateContentStream(model, requestBody);
-        yield* stream;
-    }
-
-    async listModels() {
-        // The adapter returns the native model list from the underlying service.
-        return this.openAIResponsesApiService.listModels();
-    }
-
-    async refreshToken() {
-        // OpenAI API keys are typically static and do not require refreshing.
-        return Promise.resolve();
-    }
-}
-
-// Claude API 服务适配器
-export class ClaudeApiServiceAdapter extends ApiServiceAdapter {
-    constructor(config) {
-        super();
-        this.claudeApiService = new ClaudeApiService(config);
-    }
-
-    async generateContent(model, requestBody) {
-        // The adapter now expects the requestBody to be in the native Claude format.
-        return this.claudeApiService.generateContent(model, requestBody);
-    }
-
-    async *generateContentStream(model, requestBody) {
-        // The adapter now expects the requestBody to be in the native Claude format.
-        const stream = this.claudeApiService.generateContentStream(model, requestBody);
-        yield* stream;
-    }
-
-    async listModels() {
-        // The adapter now returns the native model list from the underlying service.
-        return this.claudeApiService.listModels();
-    }
-
-    async refreshToken() {
-        return Promise.resolve();
-    }
-}
-
 // Kiro API 服务适配器
 export class KiroApiServiceAdapter extends ApiServiceAdapter {
     constructor(config) {
@@ -149,7 +58,6 @@ export class KiroApiServiceAdapter extends ApiServiceAdapter {
     }
 
     async generateContent(model, requestBody) {
-        // The adapter expects the requestBody to be in OpenAI format for Kiro API
         if (!this.kiroApiService.isInitialized) {
             console.warn("kiroApiService not initialized, attempting to re-initialize...");
             await this.kiroApiService.initialize();
@@ -158,7 +66,6 @@ export class KiroApiServiceAdapter extends ApiServiceAdapter {
     }
 
     async *generateContentStream(model, requestBody) {
-        // The adapter expects the requestBody to be in OpenAI format for Kiro API
         if (!this.kiroApiService.isInitialized) {
             console.warn("kiroApiService not initialized, attempting to re-initialize...");
             await this.kiroApiService.initialize();
@@ -216,15 +123,6 @@ export function getServiceAdapter(config) {
     const providerKey = config.uuid ? provider + config.uuid : provider;
     if (!serviceInstances[providerKey]) {
         switch (provider) {
-            case MODEL_PROVIDER.OPENAI_CUSTOM:
-                serviceInstances[providerKey] = new OpenAIApiServiceAdapter(config);
-                break;
-            case MODEL_PROVIDER.OPENAI_CUSTOM_RESPONSES:
-                serviceInstances[providerKey] = new OpenAIResponsesApiServiceAdapter(config);
-                break;
-            case MODEL_PROVIDER.CLAUDE_CUSTOM:
-                serviceInstances[providerKey] = new ClaudeApiServiceAdapter(config);
-                break;
             case MODEL_PROVIDER.KIRO_API:
                 serviceInstances[providerKey] = new KiroApiServiceAdapter(config);
                 break;

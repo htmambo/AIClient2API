@@ -35,8 +35,6 @@ export function getProtocolPrefix(provider) {
 }
 
 export const ENDPOINT_TYPE = {
-    OPENAI_CHAT: 'openai_chat',
-    OPENAI_RESPONSES: 'openai_responses',
     CLAUDE_MESSAGE: 'claude_message',
     OPENAI_MODEL_LIST: 'openai_model_list',
 };
@@ -167,8 +165,6 @@ export async function handleUnifiedResponse(res, responsePayload, isStream) {
 
 export async function handleStreamRequest(res, service, model, requestBody, fromProvider, toProvider, PROMPT_LOG_MODE, PROMPT_LOG_FILENAME, providerPoolManager, pooluuid) {
     let fullResponseText = '';
-    let fullResponseJson = '';
-    let fullOldResponseJson = '';
     let responseClosed = false;
 
     await handleUnifiedResponse(res, '', true);
@@ -178,7 +174,7 @@ export async function handleStreamRequest(res, service, model, requestBody, from
     const needsConversion = getProtocolPrefix(fromProvider) !== getProtocolPrefix(toProvider);
     requestBody.model = model;
     const nativeStream = await service.generateContentStream(model, requestBody);
-    const addEvent = getProtocolPrefix(fromProvider) === MODEL_PROTOCOL_PREFIX.CLAUDE || getProtocolPrefix(fromProvider) === MODEL_PROTOCOL_PREFIX.OPENAI_RESPONSES;
+    const addEvent = getProtocolPrefix(fromProvider) === MODEL_PROTOCOL_PREFIX.CLAUDE;
     const openStop = getProtocolPrefix(fromProvider) === MODEL_PROTOCOL_PREFIX.OPENAI ;
 
     try {
@@ -353,7 +349,7 @@ export async function handleModelListRequest(req, res, service, endpointType, CO
  * logging, and dispatching to the appropriate stream or unary handler.
  * @param {http.IncomingMessage} req The HTTP request object.
  * @param {http.ServerResponse} res The HTTP response object.
- * @param {string} endpointType The type of endpoint being called (e.g., OPENAI_CHAT).
+ * @param {string} endpointType The type of endpoint being called (e.g., CLAUDE_MESSAGE).
  * @param {Object} CONFIG - The server configuration object.
  * @param {string} PROMPT_LOG_FILENAME - The prompt log filename.
  */
@@ -613,26 +609,6 @@ function createErrorResponse(error, fromProvider) {
     };
     
     switch (protocolPrefix) {
-        case MODEL_PROTOCOL_PREFIX.OPENAI:
-            // OpenAI 非流式错误格式
-            return {
-                error: {
-                    message: errorMessage,
-                    type: getErrorType(statusCode),
-                    code: getErrorType(statusCode)  // OpenAI 使用 code 字段作为核心判断
-                }
-            };
-            
-        case MODEL_PROTOCOL_PREFIX.OPENAI_RESPONSES:
-            // OpenAI Responses API 非流式错误格式
-            return {
-                error: {
-                    type: getErrorType(statusCode),
-                    message: errorMessage,
-                    code: getErrorType(statusCode)
-                }
-            };
-            
         case MODEL_PROTOCOL_PREFIX.CLAUDE:
             // Claude 非流式错误格式（外层有 type 标记）
             return {
@@ -644,7 +620,6 @@ function createErrorResponse(error, fromProvider) {
             };
             
         default:
-            // 默认使用 OpenAI 格式
             return {
                 error: {
                     message: errorMessage,
@@ -676,31 +651,6 @@ function createStreamErrorResponse(error, fromProvider) {
     };
     
     switch (protocolPrefix) {
-        case MODEL_PROTOCOL_PREFIX.OPENAI:
-            // OpenAI 流式错误格式（SSE data 块）
-            const openaiError = {
-                error: {
-                    message: errorMessage,
-                    type: getErrorType(statusCode),
-                    code: null
-                }
-            };
-            return `data: ${JSON.stringify(openaiError)}\n\n`;
-            
-        case MODEL_PROTOCOL_PREFIX.OPENAI_RESPONSES:
-            // OpenAI Responses API 流式错误格式（SSE event + data）
-            const responsesError = {
-                id: `resp_${Date.now()}`,
-                object: "error",
-                created: Math.floor(Date.now() / 1000),
-                error: {
-                    type: getErrorType(statusCode),
-                    message: errorMessage,
-                    code: getErrorType(statusCode)
-                }
-            };
-            return `event: error\ndata: ${JSON.stringify(responsesError)}\n\n`;
-            
         case MODEL_PROTOCOL_PREFIX.CLAUDE:
             // Claude 流式错误格式（SSE event + data）
             const claudeError = {

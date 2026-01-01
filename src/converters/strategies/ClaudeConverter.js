@@ -39,10 +39,6 @@ export class ClaudeConverter extends BaseConverter {
      */
     convertRequest(data, targetProtocol) {
         switch (targetProtocol) {
-            case MODEL_PROTOCOL_PREFIX.OPENAI:
-                return this.toOpenAIRequest(data);
-            case MODEL_PROTOCOL_PREFIX.OPENAI_RESPONSES:
-                return this.toOpenAIResponsesRequest(data);
             default:
                 throw new Error(`Unsupported target protocol: ${targetProtocol}`);
         }
@@ -53,10 +49,6 @@ export class ClaudeConverter extends BaseConverter {
      */
     convertResponse(data, targetProtocol, model) {
         switch (targetProtocol) {
-            case MODEL_PROTOCOL_PREFIX.OPENAI:
-                return this.toOpenAIResponse(data, model);
-            case MODEL_PROTOCOL_PREFIX.OPENAI_RESPONSES:
-                return this.toOpenAIResponsesResponse(data, model);
             default:
                 throw new Error(`Unsupported target protocol: ${targetProtocol}`);
         }
@@ -67,10 +59,6 @@ export class ClaudeConverter extends BaseConverter {
      */
     convertStreamChunk(chunk, targetProtocol, model) {
         switch (targetProtocol) {
-            case MODEL_PROTOCOL_PREFIX.OPENAI:
-                return this.toOpenAIStreamChunk(chunk, model);
-            case MODEL_PROTOCOL_PREFIX.OPENAI_RESPONSES:
-                return this.toOpenAIResponsesStreamChunk(chunk, model);
             default:
                 throw new Error(`Unsupported target protocol: ${targetProtocol}`);
         }

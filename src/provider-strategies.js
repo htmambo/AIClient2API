@@ -9,10 +9,6 @@ import { ResponsesAPIStrategy } from './openai/openai-responses-strategy.js';
 class ProviderStrategyFactory {
     static getStrategy(providerProtocol) {
         switch (providerProtocol) {
-            case MODEL_PROTOCOL_PREFIX.OPENAI:
-                return new OpenAIStrategy();
-            case MODEL_PROTOCOL_PREFIX.OPENAI_RESPONSES:
-                return new ResponsesAPIStrategy();
             case MODEL_PROTOCOL_PREFIX.CLAUDE:
                 return new ClaudeStrategy();
             default:
