@@ -335,14 +335,6 @@ export async function getSystemPromptFileContent(filePath) {
  */
 export function logProviderSpecificDetails(provider, config) {
     switch (provider) {
-        case MODEL_PROVIDER.OPENAI_CUSTOM:
-            console.log(`  [openai-custom] API Key: ${config.OPENAI_API_KEY ? '******' : 'Not Set'}`);
-            console.log(`  [openai-custom] Base URL: ${config.OPENAI_BASE_URL || 'Default'}`);
-            break;
-        case MODEL_PROVIDER.CLAUDE_CUSTOM:
-            console.log(`  [claude-custom] API Key: ${config.CLAUDE_API_KEY ? '******' : 'Not Set'}`);
-            console.log(`  [claude-custom] Base URL: ${config.CLAUDE_BASE_URL || 'Default'}`);
-            break;
         case MODEL_PROVIDER.KIRO_API:
             if (config.KIRO_OAUTH_CREDS_FILE_PATH) {
                 console.log(`  [claude-kiro-oauth] OAuth Creds File Path: ${config.KIRO_OAUTH_CREDS_FILE_PATH}`);

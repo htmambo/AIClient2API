@@ -12,24 +12,18 @@ export const API_ACTIONS = {
 
 export const MODEL_PROTOCOL_PREFIX = {
     // Model provider constants
-    OPENAI: 'openai',
-    OPENAI_RESPONSES: 'openaiResponses',
     CLAUDE: 'claude',
-    OLLAMA: 'ollama',
 }
 
 export const MODEL_PROVIDER = {
     // Model provider constants
-    OPENAI_CUSTOM: 'openai-custom',
-    OPENAI_CUSTOM_RESPONSES: 'openaiResponses-custom',
-    CLAUDE_CUSTOM: 'claude-custom',
     KIRO_API: 'claude-kiro-oauth',
 }
 
 /**
  * Extracts the protocol prefix from a given model provider string.
  * This is used to determine if two providers belong to the same underlying protocol (e.g., openai, claude).
- * @param {string} provider - The model provider string (e.g., 'claude-kiro-oauth', 'openai-custom').
+ * @param {string} provider - The model provider string (e.g., 'claude-kiro-oauth').
  * @returns {string} The protocol prefix (e.g., 'openai', 'claude').
  */
 export function getProtocolPrefix(provider) {
@@ -370,8 +364,6 @@ export async function handleContentGenerationRequest(req, res, service, endpoint
     }
 
     const clientProviderMap = {
-        [ENDPOINT_TYPE.OPENAI_CHAT]: MODEL_PROTOCOL_PREFIX.OPENAI,
-        [ENDPOINT_TYPE.OPENAI_RESPONSES]: MODEL_PROTOCOL_PREFIX.OPENAI_RESPONSES,
         [ENDPOINT_TYPE.CLAUDE_MESSAGE]: MODEL_PROTOCOL_PREFIX.CLAUDE,
     };
 

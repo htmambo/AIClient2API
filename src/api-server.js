@@ -50,23 +50,17 @@ import { createRequestHandler } from './request-handler.js';
  * 
  * 服务器配置 / Server Configuration:
  * node src/api-server.js --host 0.0.0.0 --port 8080 --api-key your-secret-key
- * 
- * OpenAI 提供商 / OpenAI Provider:
- * node src/api-server.js --model-provider openai-custom --openai-api-key sk-xxx --openai-base-url https://api.openai.com/v1
- * 
- * Claude 提供商 / Claude Provider:
- * node src/api-server.js --model-provider claude-custom --claude-api-key sk-ant-xxx --claude-base-url https://api.anthropic.com
- * 
+ *
  * Kiro 提供商（OAuth）/ Kiro Provider (OAuth):
  * node src/api-server.js --model-provider claude-kiro-oauth --kiro-oauth-creds-file /path/to/credentials.json
- * 
+ *
  * 系统提示管理 / System Prompt Management:
  * node src/api-server.js --system-prompt-file custom-prompt.txt --system-prompt-mode append
- * 
+ *
  * 日志配置 / Logging Configuration:
  * node src/api-server.js --log-prompts console
  * node src/api-server.js --log-prompts file --prompt-log-base-name my-logs
- * 
+ *
  * 完整示例 / Complete Example:
  * node src/api-server.js \
  *   --host 0.0.0.0 \
@@ -78,16 +72,12 @@ import { createRequestHandler } from './request-handler.js';
  *   --system-prompt-mode overwrite \
  *   --log-prompts file \
  *   --prompt-log-base-name api-logs
- * 
+ *
  * 命令行参数 / Command Line Parameters:
  * --host <address>                    服务器监听地址 / Server listening address (default: 0.0.0.0)
  * --port <number>                     服务器监听端口 / Server listening port (default: 3000)
  * --api-key <key>                     身份验证所需的 API 密钥 / Required API key for authentication (default: 123456)
- * --model-provider <provider[,provider...]> AI 模型提供商 / AI model provider: openai-custom, claude-custom, openaiResponses-custom, claude-kiro-oauth
- * --openai-api-key <key>             OpenAI API 密钥 / OpenAI API key (for openai-custom provider)
- * --openai-base-url <url>            OpenAI API 基础 URL / OpenAI API base URL (for openai-custom provider)
- * --claude-api-key <key>             Claude API 密钥 / Claude API key (for claude-custom provider)
- * --claude-base-url <url>            Claude API 基础 URL / Claude API base URL (for claude-custom provider)
+ * --model-provider <provider[,provider...]> AI 模型提供商 / AI model provider: claude-kiro-oauth
  * --kiro-oauth-creds-base64 <b64>    Kiro OAuth 凭据的 Base64 字符串 / Kiro OAuth credentials as Base64 string
  * --kiro-oauth-creds-file <path>     Kiro OAuth 凭据 JSON 文件路径 / Path to Kiro OAuth credentials JSON file
  * --project-id <id>                  项目 ID（按需）/ Project ID (optional)

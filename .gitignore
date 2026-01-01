@@ -33,3 +33,4 @@ out/
 # Project config files
 configs/kiro
 configs/*.json
+configs/*_system_prompt.txt

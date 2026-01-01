@@ -337,9 +337,6 @@ export async function getProviderStatus(config, options = {}) {
     ];
     // identify 字段映射表
     const identifyFieldMap = {
-        'openai-custom': 'OPENAI_BASE_URL',
-        'openaiResponses-custom': 'OPENAI_BASE_URL',
-        'claude-custom': 'CLAUDE_BASE_URL',
         'claude-kiro-oauth': 'KIRO_OAUTH_CREDS_FILE_PATH'
     };
     let providerPoolsSlim = [];

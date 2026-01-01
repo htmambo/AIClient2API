@@ -47,12 +47,8 @@ AIClient2API 现在包含一个功能完整的可视化 Web UI 管理控制台�
 - 一键复制端点路径功能
 
 支持的路由路径示例：
-- `/claude-custom/v1/chat/completions` - Claude Custom (OpenAI协议)
-- `/claude-custom/v1/messages` - Claude Custom (Claude协议)
 - `/claude-kiro-oauth/v1/chat/completions` - Claude Kiro OAuth (OpenAI协议)
 - `/claude-kiro-oauth/v1/messages` - Claude Kiro OAuth (Claude协议)
-- `/openai-custom/v1/chat/completions` - OpenAI Custom (OpenAI协议)
-- `/openai-custom/v1/messages` - OpenAI Custom (Claude协议)
 
 ### 📜 实时日志
 - 实时显示服务器输出日志

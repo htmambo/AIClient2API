@@ -669,20 +669,14 @@ function getFieldOrder(provider) {
     
     // 从 getProviderTypeFields 获取字段顺序映射
     const fieldOrderMap = {
-        'openai-custom': ['OPENAI_API_KEY', 'OPENAI_BASE_URL'],
         'openaiResponses-custom': ['OPENAI_API_KEY', 'OPENAI_BASE_URL'],
-        'claude-custom': ['CLAUDE_API_KEY', 'CLAUDE_BASE_URL'],
         'claude-kiro-oauth': ['KIRO_OAUTH_CREDS_FILE_PATH', 'KIRO_BASE_URL', 'KIRO_REFRESH_URL']
     };
-    
+
     // 尝试从全局或当前模态框上下文中推断提供商类型
     let providerType = currentProviderType;
     if (!providerType) {
-        if (provider.OPENAI_API_KEY && provider.OPENAI_BASE_URL) {
-            providerType = 'openai-custom';
-        } else if (provider.CLAUDE_API_KEY && provider.CLAUDE_BASE_URL) {
-            providerType = 'claude-custom';
-        } else if (provider.KIRO_OAUTH_CREDS_FILE_PATH) {
+        if (provider.KIRO_OAUTH_CREDS_FILE_PATH) {
             providerType = 'claude-kiro-oauth';
         }
     }

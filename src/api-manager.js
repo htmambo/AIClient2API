@@ -20,25 +20,8 @@ import { getProviderPoolManager } from './service-manager.js';
  */
 export async function handleAPIRequests(method, path, req, res, currentConfig, apiService, providerPoolManager, promptLogFilename) {
 
-
-    // Route model list requests
-    if (method === 'GET') {
-        if (path === '/v1/models') {
-            await handleModelListRequest(req, res, apiService, ENDPOINT_TYPE.OPENAI_MODEL_LIST, currentConfig, providerPoolManager, currentConfig.uuid);
-            return true;
-        }
-    }
-
     // Route content generation requests
     if (method === 'POST') {
-        if (path === '/v1/chat/completions') {
-            await handleContentGenerationRequest(req, res, apiService, ENDPOINT_TYPE.OPENAI_CHAT, currentConfig, promptLogFilename, providerPoolManager, currentConfig.uuid);
-            return true;
-        }
-        if (path === '/v1/responses') {
-            await handleContentGenerationRequest(req, res, apiService, ENDPOINT_TYPE.OPENAI_RESPONSES, currentConfig, promptLogFilename, providerPoolManager, currentConfig.uuid);
-            return true;
-        }
         if (path === '/v1/messages') {
             await handleContentGenerationRequest(req, res, apiService, ENDPOINT_TYPE.CLAUDE_MESSAGE, currentConfig, promptLogFilename, providerPoolManager, currentConfig.uuid);
             return true;

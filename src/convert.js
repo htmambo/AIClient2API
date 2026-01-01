@@ -83,27 +83,6 @@ export function convertData(data, type, fromProvider, toProvider, model) {
  * 内部使用新的转换器架构
  */
 
-// OpenAI 相关转换
-export function toOpenAIRequestFromClaude(claudeRequest) {
-    const converter = ConverterFactory.getConverter(MODEL_PROTOCOL_PREFIX.CLAUDE);
-    return converter.toOpenAIRequest(claudeRequest);
-}
-
-export function toOpenAIChatCompletionFromClaude(claudeResponse, model) {
-    const converter = ConverterFactory.getConverter(MODEL_PROTOCOL_PREFIX.CLAUDE);
-    return converter.toOpenAIResponse(claudeResponse, model);
-}
-
-export function toOpenAIStreamChunkFromClaude(claudeChunk, model) {
-    const converter = ConverterFactory.getConverter(MODEL_PROTOCOL_PREFIX.CLAUDE);
-    return converter.toOpenAIStreamChunk(claudeChunk, model);
-}
-
-export function toOpenAIModelListFromClaude(claudeModels) {
-    const converter = ConverterFactory.getConverter(MODEL_PROTOCOL_PREFIX.CLAUDE);
-    return converter.toOpenAIModelList(claudeModels);
-}
-
 // Claude 相关转换
 export function toClaudeRequestFromOpenAI(openaiRequest) {
     const converter = ConverterFactory.getConverter(MODEL_PROTOCOL_PREFIX.OPENAI);
@@ -128,43 +107,6 @@ export function toClaudeStreamChunkFromOpenAI(openaiChunk, model) {
 export function toClaudeModelListFromOpenAI(openaiModels) {
     const converter = ConverterFactory.getConverter(MODEL_PROTOCOL_PREFIX.OPENAI);
     return converter.toClaudeModelList(openaiModels);
-}
-
-// OpenAI Responses 相关转换
-export function toOpenAIResponsesFromOpenAI(openaiResponse, model) {
-    const converter = ConverterFactory.getConverter(MODEL_PROTOCOL_PREFIX.OPENAI);
-    return converter.toOpenAIResponsesResponse(openaiResponse, model);
-}
-
-export function toOpenAIResponsesFromClaude(claudeResponse, model) {
-    const converter = ConverterFactory.getConverter(MODEL_PROTOCOL_PREFIX.CLAUDE);
-    return converter.toOpenAIResponsesResponse(claudeResponse, model);
-}
-
-export function toOpenAIResponsesStreamChunkFromOpenAI(openaiChunk, model, requestId) {
-    const converter = ConverterFactory.getConverter(MODEL_PROTOCOL_PREFIX.OPENAI);
-    return converter.toOpenAIResponsesStreamChunk(openaiChunk, model, requestId);
-}
-
-export function toOpenAIResponsesStreamChunkFromClaude(claudeChunk, model, requestId) {
-    const converter = ConverterFactory.getConverter(MODEL_PROTOCOL_PREFIX.CLAUDE);
-    return converter.toOpenAIResponsesStreamChunk(claudeChunk, model, requestId);
-}
-
-// 从 OpenAI Responses 转换到其他格式
-export function toOpenAIRequestFromOpenAIResponses(responsesRequest) {
-    const converter = ConverterFactory.getConverter(MODEL_PROTOCOL_PREFIX.OPENAI_RESPONSES);
-    return converter.toOpenAIRequest(responsesRequest);
-}
-
-export function toOpenAIChatCompletionFromOpenAIResponses(responsesResponse, model) {
-    const converter = ConverterFactory.getConverter(MODEL_PROTOCOL_PREFIX.OPENAI_RESPONSES);
-    return converter.toOpenAIResponse(responsesResponse, model);
-}
-
-export function toOpenAIStreamChunkFromOpenAIResponses(responsesChunk, model) {
-    const converter = ConverterFactory.getConverter(MODEL_PROTOCOL_PREFIX.OPENAI_RESPONSES);
-    return converter.toOpenAIStreamChunk(responsesChunk, model);
 }
 
 // 辅助函数导出

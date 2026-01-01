@@ -92,20 +92,6 @@ function getFieldLabel(key) {
 function getProviderTypeFields(providerType) {
     const isEn = getCurrentLanguage() === 'en-US';
     const fieldConfigs = {
-        'openai-custom': [
-            {
-                id: 'OPENAI_API_KEY',
-                label: 'OpenAI API Key',
-                type: 'password',
-                placeholder: 'sk-...'
-            },
-            {
-                id: 'OPENAI_BASE_URL',
-                label: 'OpenAI Base URL',
-                type: 'text',
-                placeholder: 'https://api.openai.com/v1'
-            }
-        ],
         'openaiResponses-custom': [
             {
                 id: 'OPENAI_API_KEY',
@@ -118,20 +104,6 @@ function getProviderTypeFields(providerType) {
                 label: 'OpenAI Base URL',
                 type: 'text',
                 placeholder: 'https://api.openai.com/v1'
-            }
-        ],
-        'claude-custom': [
-            {
-                id: 'CLAUDE_API_KEY',
-                label: 'Claude API Key',
-                type: 'password',
-                placeholder: 'sk-ant-...'
-            },
-            {
-                id: 'CLAUDE_BASE_URL',
-                label: 'Claude Base URL',
-                type: 'text',
-                placeholder: 'https://api.anthropic.com'
             }
         ],
         'claude-kiro-oauth': [

@@ -134,18 +134,8 @@ async function saveConfiguration() {
 
     // 根据不同提供商保存不同的配置
     const provider = document.getElementById('modelProvider')?.value;
-    
+
     switch (provider) {
-        case 'openai-custom':
-            config.OPENAI_API_KEY = document.getElementById('openaiApiKey')?.value || '';
-            config.OPENAI_BASE_URL = document.getElementById('openaiBaseUrl')?.value || '';
-            break;
-            
-        case 'claude-custom':
-            config.CLAUDE_API_KEY = document.getElementById('claudeApiKey')?.value || '';
-            config.CLAUDE_BASE_URL = document.getElementById('claudeBaseUrl')?.value || '';
-            break;
-            
         case 'claude-kiro-oauth':
             const kiroCredsType = document.querySelector('input[name="kiroCredsType"]:checked')?.value;
             if (kiroCredsType === 'base64') {

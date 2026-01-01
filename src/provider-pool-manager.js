@@ -11,10 +11,7 @@ export class ProviderPoolManager {
     // 默认健康检查模型配置
     // 键名必须与 MODEL_PROVIDER 常量值一致
     static DEFAULT_HEALTH_CHECK_MODELS = {
-        'openai-custom': 'gpt-3.5-turbo',
-        'claude-custom': 'claude-3-7-sonnet-20250219',
-        'claude-kiro-oauth': 'claude-haiku-4-5',
-        'openaiResponses-custom': 'gpt-4o-mini'
+        'claude-kiro-oauth': 'claude-haiku-4-5'
     };
 
     constructor(providerPools, options = {}) {
@@ -104,7 +101,7 @@ export class ProviderPoolManager {
      * Selects a provider from the pool for a given provider type.
      * Currently uses a simple round-robin for healthy providers.
      * If requestedModel is provided, providers that don't support the model will be excluded.
-     * @param {string} providerType - The type of provider to select (e.g., 'openai-custom').
+     * @param {string} providerType - The type of provider to select (e.g., 'claude-kiro-oauth').
      * @param {string} [requestedModel] - Optional. The model name to filter providers by.
      * @returns {object|null} The selected provider's configuration, or null if no healthy provider is found.
      */

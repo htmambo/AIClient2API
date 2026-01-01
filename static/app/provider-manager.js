@@ -204,11 +204,9 @@ function renderProviders(providers) {
     
     // 始终显示统计卡片
     if (statsGrid) statsGrid.style.display = 'grid';
-    
+
     // 定义所有支持的提供商显示顺序
     const providerDisplayOrder = [
-        'openai-custom',
-        'claude-custom',
         'claude-kiro-oauth',
         'openaiResponses-custom'
     ];

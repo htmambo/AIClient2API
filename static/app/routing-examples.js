@@ -119,17 +119,6 @@ function initCardInteractions() {
 function getAvailableRoutes() {
     return [
         {
-            provider: 'claude-custom',
-            name: 'Claude Custom',
-            paths: {
-                openai: '/claude-custom/v1/chat/completions',
-                claude: '/claude-custom/v1/messages'
-            },
-            description: t('dashboard.routing.official'),
-            badge: t('dashboard.routing.official'),
-            badgeClass: 'official'
-        },
-        {
             provider: 'claude-kiro-oauth',
             name: 'Claude Kiro OAuth',
             paths: {
@@ -139,17 +128,6 @@ function getAvailableRoutes() {
             description: t('dashboard.routing.free'),
             badge: t('dashboard.routing.free'),
             badgeClass: 'oauth'
-        },
-        {
-            provider: 'openai-custom',
-            name: 'OpenAI Custom',
-            paths: {
-                openai: '/openai-custom/v1/chat/completions',
-                claude: '/openai-custom/v1/messages'
-            },
-            description: t('dashboard.routing.official'),
-            badge: t('dashboard.routing.official'),
-            badgeClass: 'official'
         },
         {
             provider: 'openaiResponses-custom',
@@ -211,38 +189,16 @@ async function copyCurlExample(provider, options = {}) {
     
     // 根据不同提供商和协议生成对应的curl命令
     switch (provider) {
-        case 'claude-custom':
         case 'claude-kiro-oauth':
-            if (protocol === 'openai') {
-                curlCommand = `curl http://localhost:3000${path} \\
-  -H "Content-Type: application/json" \\
-  -H "Authorization: Bearer YOUR_API_KEY" \\
-  -d '{
-    "model": "${model}",
-    "messages": [{"role": "user", "content": "${message}"}],
-    "max_tokens": 1000
-  }'`;
-            } else {
-                curlCommand = `curl http://localhost:3000${path} \\
+            curlCommand = `curl http://localhost:3000${path} \\
   -H "Content-Type: application/json" \\
   -d '{
     "model": "${model}",
     "max_tokens": 1000,
     "messages": [{"role": "user", "content": "${message}"}]
   }'`;
-            }
             break;
             
-        case 'openai-custom':
-            curlCommand = `curl http://localhost:3000${path} \\
-  -H "Content-Type: application/json" \\
-  -H "Authorization: Bearer YOUR_API_KEY" \\
-  -d '{
-    "model": "${model}",
-    "messages": [{"role": "user", "content": "${message}"}],
-    "max_tokens": 1000
-  }'`;
-            break;
             
         case 'openaiResponses-custom':
             if (protocol === 'openai') {

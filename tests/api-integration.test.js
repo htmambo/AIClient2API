@@ -19,8 +19,6 @@ const TEST_SERVER_BASE_URL = 'http://192.168.1.232:3000';
 const TEST_API_KEY = '123456'; // You may need to adjust this based on your server config
 const MODEL_PROVIDER = {
     // Model provider constants
-    OPENAI_CUSTOM: 'openai-custom',
-    CLAUDE_CUSTOM: 'claude-custom',
     KIRO_API: 'claude-kiro-oauth',
 }
 
