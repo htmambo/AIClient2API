@@ -11,8 +11,6 @@ export class ProviderPoolManager {
     // 默认健康检查模型配置
     // 键名必须与 MODEL_PROVIDER 常量值一致
     static DEFAULT_HEALTH_CHECK_MODELS = {
-        'gemini-cli-oauth': 'gemini-2.5-flash',
-        'gemini-antigravity': 'gemini-2.5-flash',
         'openai-custom': 'gpt-3.5-turbo',
         'claude-custom': 'claude-3-7-sonnet-20250219',
         'claude-kiro-oauth': 'claude-haiku-4-5',
@@ -107,7 +105,7 @@ export class ProviderPoolManager {
      * Selects a provider from the pool for a given provider type.
      * Currently uses a simple round-robin for healthy providers.
      * If requestedModel is provided, providers that don't support the model will be excluded.
-     * @param {string} providerType - The type of provider to select (e.g., 'gemini-cli', 'openai-custom').
+     * @param {string} providerType - The type of provider to select (e.g., 'openai-custom').
      * @param {string} [requestedModel] - Optional. The model name to filter providers by.
      * @returns {object|null} The selected provider's configuration, or null if no healthy provider is found.
      */
@@ -527,17 +525,6 @@ export class ProviderPoolManager {
         const baseMessage = { role: 'user', content: 'Hi' };
         const requests = [];
         
-        // Gemini 使用 contents 格式
-        if (providerType.startsWith('gemini')) {
-            requests.push({
-                contents: [{
-                    role: 'user',
-                    parts: [{ text: baseMessage.content }]
-                }]
-            });
-            return requests;
-        }
-        
         // Kiro OAuth 同时支持 messages 和 contents 格式
         if (providerType.startsWith('claude-kiro')) {
             // 优先使用 messages 格式
@@ -598,7 +585,7 @@ export class ProviderPoolManager {
         }
 
         // 使用内部服务适配器方式进行健康检查
-        const proxyKeys = ['GEMINI', 'OPENAI', 'CLAUDE', 'QWEN', 'KIRO'];
+        const proxyKeys = ['OPENAI', 'CLAUDE', 'QWEN', 'KIRO'];
         const tempConfig = {
             ...providerConfig,
             MODEL_PROVIDER: providerType

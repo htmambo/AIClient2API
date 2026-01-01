@@ -326,10 +326,14 @@ function generateMockConfigData() {
             modified: '2025-11-11T04:30:00.000Z',
             isUsed: true,
             content: JSON.stringify({
-                "gemini-cli-oauth": [
+                "claude-kiro-oauth": [
                     {
-                        "GEMINI_OAUTH_CREDS_FILE_PATH": "~/.gemini/oauth/creds.json",
-                        "PROJECT_ID": "test-project"
+                        "KIRO_OAUTH_CREDS_FILE_PATH": "~/.aws/sso/cache/kiro-auth-token.json"
+                    }
+                ],
+                "openai-qwen-oauth": [
+                    {
+                        "QWEN_OAUTH_CREDS_FILE_PATH": "~/.qwen/oauth_creds.json"
                     }
                 ]
             }, null, 2)
@@ -348,12 +352,12 @@ function generateMockConfigData() {
         },
         {
             name: 'oauth_creds.json',
-            path: '~/.gemini/oauth/creds.json',
+            path: '~/.aws/sso/cache/kiro-auth-token.json',
             type: 'oauth',
             size: 512,
             modified: '2025-11-09T08:30:00.000Z',
             isUsed: false,
-            content: '{"client_id": "test", "client_secret": "test"}'
+            content: '{"clientId": "test", "clientSecret": "test"}'
         },
         {
             name: 'input_system_prompt.txt',
@@ -795,22 +799,10 @@ function detectProviderFromPath(filePath) {
             shortName: 'kiro-oauth'
         },
         {
-            patterns: ['configs/gemini/', '/gemini/', 'configs/gemini-cli/'],
-            providerType: 'gemini-cli-oauth',
-            displayName: 'Gemini CLI OAuth',
-            shortName: 'gemini-oauth'
-        },
-        {
             patterns: ['configs/qwen/', '/qwen/'],
             providerType: 'openai-qwen-oauth',
             displayName: 'Qwen OAuth',
             shortName: 'qwen-oauth'
-        },
-        {
-            patterns: ['configs/antigravity/', '/antigravity/'],
-            providerType: 'gemini-antigravity',
-            displayName: 'Gemini Antigravity',
-            shortName: 'antigravity'
         }
     ];
 

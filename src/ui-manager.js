@@ -56,7 +56,7 @@ import { getAllProviderModels, getProviderModels } from './provider-models.js';
 import { CONFIG } from './config-manager.js';
 import { serviceInstances, getServiceAdapter } from './adapter.js';
 import { initApiService } from './service-manager.js';
-import { handleGeminiCliOAuth, handleGeminiAntigravityOAuth, handleQwenOAuth, handleKiroOAuth } from './oauth-handlers.js';
+import { handleQwenOAuth, handleKiroOAuth } from './oauth-handlers.js';
 import {
     generateUUID,
     normalizePath,
@@ -69,7 +69,7 @@ import {
     addToUsedPaths,
     formatSystemPath
 } from './provider-utils.js';
-import { formatKiroUsage, formatGeminiUsage, formatAntigravityUsage } from './usage-service.js';
+import { formatKiroUsage } from './usage-service.js';
 
 // Token存储到本地文件中
 const TOKEN_STORE_FILE = path.join(process.cwd(), 'configs', 'token-store.json');
@@ -695,8 +695,6 @@ export async function handleUIApiRequests(method, pathParam, req, res, currentCo
             if (newConfig.OPENAI_BASE_URL !== undefined) currentConfig.OPENAI_BASE_URL = newConfig.OPENAI_BASE_URL;
             if (newConfig.CLAUDE_API_KEY !== undefined) currentConfig.CLAUDE_API_KEY = newConfig.CLAUDE_API_KEY;
             if (newConfig.CLAUDE_BASE_URL !== undefined) currentConfig.CLAUDE_BASE_URL = newConfig.CLAUDE_BASE_URL;
-            if (newConfig.GEMINI_OAUTH_CREDS_BASE64 !== undefined) currentConfig.GEMINI_OAUTH_CREDS_BASE64 = newConfig.GEMINI_OAUTH_CREDS_BASE64;
-            if (newConfig.GEMINI_OAUTH_CREDS_FILE_PATH !== undefined) currentConfig.GEMINI_OAUTH_CREDS_FILE_PATH = newConfig.GEMINI_OAUTH_CREDS_FILE_PATH;
             if (newConfig.KIRO_OAUTH_CREDS_BASE64 !== undefined) currentConfig.KIRO_OAUTH_CREDS_BASE64 = newConfig.KIRO_OAUTH_CREDS_BASE64;
             if (newConfig.KIRO_OAUTH_CREDS_FILE_PATH !== undefined) currentConfig.KIRO_OAUTH_CREDS_FILE_PATH = newConfig.KIRO_OAUTH_CREDS_FILE_PATH;
             if (newConfig.QWEN_OAUTH_CREDS_FILE_PATH !== undefined) currentConfig.QWEN_OAUTH_CREDS_FILE_PATH = newConfig.QWEN_OAUTH_CREDS_FILE_PATH;
@@ -704,9 +702,6 @@ export async function handleUIApiRequests(method, pathParam, req, res, currentCo
             // New Provider URLs
             if (newConfig.QWEN_BASE_URL !== undefined) currentConfig.QWEN_BASE_URL = newConfig.QWEN_BASE_URL;
             if (newConfig.QWEN_OAUTH_BASE_URL !== undefined) currentConfig.QWEN_OAUTH_BASE_URL = newConfig.QWEN_OAUTH_BASE_URL;
-            if (newConfig.GEMINI_BASE_URL !== undefined) currentConfig.GEMINI_BASE_URL = newConfig.GEMINI_BASE_URL;
-            if (newConfig.ANTIGRAVITY_BASE_URL_DAILY !== undefined) currentConfig.ANTIGRAVITY_BASE_URL_DAILY = newConfig.ANTIGRAVITY_BASE_URL_DAILY;
-            if (newConfig.ANTIGRAVITY_BASE_URL_AUTOPUSH !== undefined) currentConfig.ANTIGRAVITY_BASE_URL_AUTOPUSH = newConfig.ANTIGRAVITY_BASE_URL_AUTOPUSH;
             if (newConfig.KIRO_REFRESH_URL !== undefined) currentConfig.KIRO_REFRESH_URL = newConfig.KIRO_REFRESH_URL;
             if (newConfig.KIRO_REFRESH_IDC_URL !== undefined) currentConfig.KIRO_REFRESH_IDC_URL = newConfig.KIRO_REFRESH_IDC_URL;
             if (newConfig.KIRO_BASE_URL !== undefined) currentConfig.KIRO_BASE_URL = newConfig.KIRO_BASE_URL;
@@ -758,17 +753,12 @@ export async function handleUIApiRequests(method, pathParam, req, res, currentCo
                     CLAUDE_API_KEY: currentConfig.CLAUDE_API_KEY,
                     CLAUDE_BASE_URL: currentConfig.CLAUDE_BASE_URL,
                     PROJECT_ID: currentConfig.PROJECT_ID,
-                    GEMINI_OAUTH_CREDS_BASE64: currentConfig.GEMINI_OAUTH_CREDS_BASE64,
-                    GEMINI_OAUTH_CREDS_FILE_PATH: currentConfig.GEMINI_OAUTH_CREDS_FILE_PATH,
                     KIRO_OAUTH_CREDS_BASE64: currentConfig.KIRO_OAUTH_CREDS_BASE64,
                     KIRO_OAUTH_CREDS_FILE_PATH: currentConfig.KIRO_OAUTH_CREDS_FILE_PATH,
                     QWEN_OAUTH_CREDS_FILE_PATH: currentConfig.QWEN_OAUTH_CREDS_FILE_PATH,
                     // Provider URLs
                     QWEN_BASE_URL: currentConfig.QWEN_BASE_URL,
                     QWEN_OAUTH_BASE_URL: currentConfig.QWEN_OAUTH_BASE_URL,
-                    GEMINI_BASE_URL: currentConfig.GEMINI_BASE_URL,
-                    ANTIGRAVITY_BASE_URL_DAILY: currentConfig.ANTIGRAVITY_BASE_URL_DAILY,
-                    ANTIGRAVITY_BASE_URL_AUTOPUSH: currentConfig.ANTIGRAVITY_BASE_URL_AUTOPUSH,
                     KIRO_REFRESH_URL: currentConfig.KIRO_REFRESH_URL,
                     KIRO_REFRESH_IDC_URL: currentConfig.KIRO_REFRESH_IDC_URL,
                     KIRO_BASE_URL: currentConfig.KIRO_BASE_URL,
@@ -1549,15 +1539,7 @@ export async function handleUIApiRequests(method, pathParam, req, res, currentCo
             }
 
             // 根据提供商类型生成授权链接并启动回调服务器
-            if (providerType === 'gemini-cli-oauth') {
-                const result = await handleGeminiCliOAuth(currentConfig, options);
-                authUrl = result.authUrl;
-                authInfo = result.authInfo;
-            } else if (providerType === 'gemini-antigravity') {
-                const result = await handleGeminiAntigravityOAuth(currentConfig, options);
-                authUrl = result.authUrl;
-                authInfo = result.authInfo;
-            } else if (providerType === 'openai-qwen-oauth') {
+            if (providerType === 'openai-qwen-oauth') {
                 const result = await handleQwenOAuth(currentConfig, options);
                 authUrl = result.authUrl;
                 authInfo = result.authInfo;
@@ -1838,7 +1820,7 @@ export async function handleUIApiRequests(method, pathParam, req, res, currentCo
                 res.writeHead(400, { 'Content-Type': 'application/json' });
                 res.end(JSON.stringify({
                     error: {
-                        message: 'Unable to identify provider type for config file, please ensure file is in configs/kiro/, configs/gemini/, configs/qwen/ or configs/antigravity/ directory'
+                        message: 'Unable to identify provider type for config file, please ensure file is in configs/kiro/ or configs/qwen/ directory'
                     }
                 }));
                 return true;
@@ -2273,7 +2255,6 @@ async function scanConfigFiles(currentConfig, providerPoolManager) {
     const usedPaths = new Set(); // 存储已使用的路径，用于判断关联状态
 
     // 从配置中提取所有OAuth凭据文件路径 - 标准化路径格式
-    addToUsedPaths(usedPaths, currentConfig.GEMINI_OAUTH_CREDS_FILE_PATH);
     addToUsedPaths(usedPaths, currentConfig.KIRO_OAUTH_CREDS_FILE_PATH);
     addToUsedPaths(usedPaths, currentConfig.QWEN_OAUTH_CREDS_FILE_PATH);
 
@@ -2287,10 +2268,8 @@ async function scanConfigFiles(currentConfig, providerPoolManager) {
     if (providerPools) {
         for (const [providerType, providers] of Object.entries(providerPools)) {
             for (const provider of providers) {
-                addToUsedPaths(usedPaths, provider.GEMINI_OAUTH_CREDS_FILE_PATH);
                 addToUsedPaths(usedPaths, provider.KIRO_OAUTH_CREDS_FILE_PATH);
                 addToUsedPaths(usedPaths, provider.QWEN_OAUTH_CREDS_FILE_PATH);
-                addToUsedPaths(usedPaths, provider.ANTIGRAVITY_OAUTH_CREDS_FILE_PATH);
             }
         }
     }
@@ -2349,8 +2328,6 @@ async function analyzeOAuthFile(filePath, usedPaths, currentConfig) {
                         oauthProvider = 'openai';
                     } else if (jsonData.base_url.includes('anthropic.com')) {
                         oauthProvider = 'claude';
-                    } else if (jsonData.base_url.includes('googleapis.com')) {
-                        oauthProvider = 'gemini';
                     }
                 }
             } else {
@@ -2417,17 +2394,6 @@ function getFileUsageInfo(relativePath, fileName, usedPaths, currentConfig) {
     usageInfo.isUsed = true;
 
     // 检查主要配置中的使用情况
-    if (currentConfig.GEMINI_OAUTH_CREDS_FILE_PATH &&
-        (pathsEqual(relativePath, currentConfig.GEMINI_OAUTH_CREDS_FILE_PATH) ||
-         pathsEqual(relativePath, currentConfig.GEMINI_OAUTH_CREDS_FILE_PATH.replace(/\\/g, '/')))) {
-        usageInfo.usageType = 'main_config';
-        usageInfo.usageDetails.push({
-            type: 'Main Config',
-            location: 'Gemini OAuth credentials file path',
-            configKey: 'GEMINI_OAUTH_CREDS_FILE_PATH'
-        });
-    }
-
     if (currentConfig.KIRO_OAUTH_CREDS_FILE_PATH &&
         (pathsEqual(relativePath, currentConfig.KIRO_OAUTH_CREDS_FILE_PATH) ||
          pathsEqual(relativePath, currentConfig.KIRO_OAUTH_CREDS_FILE_PATH.replace(/\\/g, '/')))) {
@@ -2461,18 +2427,6 @@ function getFileUsageInfo(relativePath, fileName, usedPaths, currentConfig) {
         for (const { provider, providerType, index } of allProviders) {
             const providerUsages = [];
 
-            if (provider.GEMINI_OAUTH_CREDS_FILE_PATH &&
-                (pathsEqual(relativePath, provider.GEMINI_OAUTH_CREDS_FILE_PATH) ||
-                 pathsEqual(relativePath, provider.GEMINI_OAUTH_CREDS_FILE_PATH.replace(/\\/g, '/')))) {
-                providerUsages.push({
-                    type: 'Provider Pool',
-                    location: `Gemini OAuth credentials (node ${index + 1})`,
-                    providerType: providerType,
-                    providerIndex: index,
-                    configKey: 'GEMINI_OAUTH_CREDS_FILE_PATH'
-                });
-            }
-
             if (provider.KIRO_OAUTH_CREDS_FILE_PATH &&
                 (pathsEqual(relativePath, provider.KIRO_OAUTH_CREDS_FILE_PATH) ||
                  pathsEqual(relativePath, provider.KIRO_OAUTH_CREDS_FILE_PATH.replace(/\\/g, '/')))) {
@@ -2497,18 +2451,6 @@ function getFileUsageInfo(relativePath, fileName, usedPaths, currentConfig) {
                 });
             }
 
-            if (provider.ANTIGRAVITY_OAUTH_CREDS_FILE_PATH &&
-                (pathsEqual(relativePath, provider.ANTIGRAVITY_OAUTH_CREDS_FILE_PATH) ||
-                 pathsEqual(relativePath, provider.ANTIGRAVITY_OAUTH_CREDS_FILE_PATH.replace(/\\/g, '/')))) {
-                providerUsages.push({
-                    type: 'Provider Pool',
-                    location: `Antigravity OAuth credentials (node ${index + 1})`,
-                    providerType: providerType,
-                    providerIndex: index,
-                    configKey: 'ANTIGRAVITY_OAUTH_CREDS_FILE_PATH'
-                });
-            }
-            
             if (providerUsages.length > 0) {
                 usageInfo.usageType = 'provider_pool';
                 usageInfo.usageDetails.push(...providerUsages);
@@ -2583,7 +2525,7 @@ async function getAllProvidersUsage(currentConfig, providerPoolManager) {
     };
 
     // 支持用量查询的提供商列表
-    const supportedProviders = ['claude-kiro-oauth', 'gemini-cli-oauth', 'gemini-antigravity'];
+    const supportedProviders = ['claude-kiro-oauth'];
 
     // 并发获取所有提供商的用量数据
     const usagePromises = supportedProviders.map(async (providerType) => {
@@ -2713,28 +2655,6 @@ async function getAdapterUsage(adapter, providerType) {
         throw new Error('This adapter does not support usage query');
     }
     
-    if (providerType === 'gemini-cli-oauth') {
-        if (typeof adapter.getUsageLimits === 'function') {
-            const rawUsage = await adapter.getUsageLimits();
-            return formatGeminiUsage(rawUsage);
-        } else if (adapter.geminiApiService && typeof adapter.geminiApiService.getUsageLimits === 'function') {
-            const rawUsage = await adapter.geminiApiService.getUsageLimits();
-            return formatGeminiUsage(rawUsage);
-        }
-        throw new Error('This adapter does not support usage query');
-    }
-    
-    if (providerType === 'gemini-antigravity') {
-        if (typeof adapter.getUsageLimits === 'function') {
-            const rawUsage = await adapter.getUsageLimits();
-            return formatAntigravityUsage(rawUsage);
-        } else if (adapter.antigravityApiService && typeof adapter.antigravityApiService.getUsageLimits === 'function') {
-            const rawUsage = await adapter.antigravityApiService.getUsageLimits();
-            return formatAntigravityUsage(rawUsage);
-        }
-        throw new Error('This adapter does not support usage query');
-    }
-    
     throw new Error(`Unsupported provider type: ${providerType}`);
 }
 
@@ -2748,8 +2668,6 @@ function getProviderDisplayName(provider, providerType) {
     // 尝试从凭据文件路径提取名称
     const credPathKey = {
         'claude-kiro-oauth': 'KIRO_OAUTH_CREDS_FILE_PATH',
-        'gemini-cli-oauth': 'GEMINI_OAUTH_CREDS_FILE_PATH',
-        'gemini-antigravity': 'ANTIGRAVITY_OAUTH_CREDS_FILE_PATH',
         'openai-qwen-oauth': 'QWEN_OAUTH_CREDS_FILE_PATH'
     }[providerType];
 

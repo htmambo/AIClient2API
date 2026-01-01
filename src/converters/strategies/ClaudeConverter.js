@@ -11,12 +11,7 @@ import {
     determineReasoningEffortFromBudget,
     OPENAI_DEFAULT_MAX_TOKENS,
     OPENAI_DEFAULT_TEMPERATURE,
-    OPENAI_DEFAULT_TOP_P,
-    GEMINI_DEFAULT_MAX_TOKENS,
-    GEMINI_DEFAULT_TEMPERATURE,
-    GEMINI_DEFAULT_TOP_P,
-    GEMINI_DEFAULT_INPUT_TOKEN_LIMIT,
-    GEMINI_DEFAULT_OUTPUT_TOKEN_LIMIT
+    OPENAI_DEFAULT_TOP_P
 } from '../utils.js';
 import { MODEL_PROTOCOL_PREFIX } from '../../common.js';
 import {
@@ -46,8 +41,6 @@ export class ClaudeConverter extends BaseConverter {
         switch (targetProtocol) {
             case MODEL_PROTOCOL_PREFIX.OPENAI:
                 return this.toOpenAIRequest(data);
-            case MODEL_PROTOCOL_PREFIX.GEMINI:
-                return this.toGeminiRequest(data);
             case MODEL_PROTOCOL_PREFIX.OPENAI_RESPONSES:
                 return this.toOpenAIResponsesRequest(data);
             default:
@@ -62,8 +55,6 @@ export class ClaudeConverter extends BaseConverter {
         switch (targetProtocol) {
             case MODEL_PROTOCOL_PREFIX.OPENAI:
                 return this.toOpenAIResponse(data, model);
-            case MODEL_PROTOCOL_PREFIX.GEMINI:
-                return this.toGeminiResponse(data, model);
             case MODEL_PROTOCOL_PREFIX.OPENAI_RESPONSES:
                 return this.toOpenAIResponsesResponse(data, model);
             default:
@@ -78,8 +69,6 @@ export class ClaudeConverter extends BaseConverter {
         switch (targetProtocol) {
             case MODEL_PROTOCOL_PREFIX.OPENAI:
                 return this.toOpenAIStreamChunk(chunk, model);
-            case MODEL_PROTOCOL_PREFIX.GEMINI:
-                return this.toGeminiStreamChunk(chunk, model);
             case MODEL_PROTOCOL_PREFIX.OPENAI_RESPONSES:
                 return this.toOpenAIResponsesStreamChunk(chunk, model);
             default:
@@ -94,8 +83,6 @@ export class ClaudeConverter extends BaseConverter {
         switch (targetProtocol) {
             case MODEL_PROTOCOL_PREFIX.OPENAI:
                 return this.toOpenAIModelList(data);
-            case MODEL_PROTOCOL_PREFIX.GEMINI:
-                return this.toGeminiModelList(data);
             default:
                 return data;
         }
@@ -617,24 +604,6 @@ export class ClaudeConverter extends BaseConverter {
     }
 
     /**
-     * 将 Claude 模型列表转换为 Gemini 模型列表
-     */
-    toGeminiModelList(claudeModels) {
-        const models = claudeModels.models || [];
-        return {
-            models: models.map(m => ({
-                name: `models/${m.id || m.name}`,
-                version: m.version || "1.0.0",
-                displayName: m.displayName || m.id || m.name,
-                description: m.description || `A generative model for text and chat generation. ID: ${m.id || m.name}`,
-                inputTokenLimit: m.inputTokenLimit || GEMINI_DEFAULT_INPUT_TOKEN_LIMIT,
-                outputTokenLimit: m.outputTokenLimit || GEMINI_DEFAULT_OUTPUT_TOKEN_LIMIT,
-                supportedGenerationMethods: m.supportedGenerationMethods || ["generateContent", "streamGenerateContent"]
-            }))
-        };
-    }
-
-    /**
      * 处理Claude内容到OpenAI格式
      */
     processClaudeContentToOpenAIContent(content) {
@@ -736,384 +705,6 @@ export class ClaudeConverter extends BaseConverter {
         return contentArray.length === 1 && contentArray[0].type === 'text'
             ? contentArray[0].text
             : contentArray;
-    }
-
-    // =========================================================================
-    // Claude -> Gemini 转换
-    // =========================================================================
-
-    /**
-     * Claude请求 -> Gemini请求
-     */
-    toGeminiRequest(claudeRequest) {
-        if (!claudeRequest || typeof claudeRequest !== 'object') {
-            console.warn("Invalid claudeRequest provided to toGeminiRequest.");
-            return { contents: [] };
-        }
-
-        const geminiRequest = {
-            contents: []
-        };
-
-        // 处理系统指令
-        if (claudeRequest.system) {
-            let incomingSystemText = null;
-            if (typeof claudeRequest.system === 'string') {
-                incomingSystemText = claudeRequest.system;
-            } else if (typeof claudeRequest.system === 'object') {
-                incomingSystemText = JSON.stringify(claudeRequest.system);
-            }
-            geminiRequest.systemInstruction = {
-                parts: [{ text: incomingSystemText }]
-            };
-        }
-
-        // 处理消息
-        if (Array.isArray(claudeRequest.messages)) {
-            claudeRequest.messages.forEach(message => {
-                if (!message || typeof message !== 'object' || !message.role || !message.content) {
-                    console.warn("Skipping invalid message in claudeRequest.messages.");
-                    return;
-                }
-
-                const geminiRole = message.role === 'assistant' ? 'model' : 'user';
-                const processedParts = this.processClaudeContentToGeminiParts(message.content);
-
-                const functionResponsePart = processedParts.find(part => part.functionResponse);
-                if (functionResponsePart) {
-                    geminiRequest.contents.push({
-                        role: 'function',
-                        parts: [functionResponsePart]
-                    });
-                } else if (processedParts.length > 0) {
-                    geminiRequest.contents.push({
-                        role: geminiRole,
-                        parts: processedParts
-                    });
-                }
-            });
-        }
-
-        // 添加生成配置
-        const generationConfig = {};
-        generationConfig.maxOutputTokens = checkAndAssignOrDefault(claudeRequest.max_tokens, GEMINI_DEFAULT_MAX_TOKENS);
-        generationConfig.temperature = checkAndAssignOrDefault(claudeRequest.temperature, GEMINI_DEFAULT_TEMPERATURE);
-        generationConfig.topP = checkAndAssignOrDefault(claudeRequest.top_p, GEMINI_DEFAULT_TOP_P);
-        
-        if (Object.keys(generationConfig).length > 0) {
-            geminiRequest.generationConfig = generationConfig;
-        }
-
-        // 处理工具
-        if (Array.isArray(claudeRequest.tools)) {
-            geminiRequest.tools = [{
-                functionDeclarations: claudeRequest.tools.map(tool => {
-                    if (!tool || typeof tool !== 'object' || !tool.name) {
-                        console.warn("Skipping invalid tool declaration in claudeRequest.tools.");
-                        return null;
-                    }
-
-                    delete tool.input_schema.$schema;
-                    return {
-                        name: String(tool.name),
-                        description: String(tool.description || ''),
-                        parameters: tool.input_schema && typeof tool.input_schema === 'object' 
-                            ? tool.input_schema 
-                            : { type: 'object', properties: {} }
-                    };
-                }).filter(Boolean)
-            }];
-            
-            if (geminiRequest.tools[0].functionDeclarations.length === 0) {
-                delete geminiRequest.tools;
-            }
-        }
-
-        // 处理tool_choice
-        if (claudeRequest.tool_choice) {
-            geminiRequest.toolConfig = this.buildGeminiToolConfigFromClaude(claudeRequest.tool_choice);
-        }
-
-        return geminiRequest;
-    }
-
-    /**
-     * Claude响应 -> Gemini响应
-     */
-    toGeminiResponse(claudeResponse, model) {
-        if (!claudeResponse || !claudeResponse.content || claudeResponse.content.length === 0) {
-            return { candidates: [], usageMetadata: {} };
-        }
-
-        const parts = [];
-
-        // 处理内容块
-        for (const block of claudeResponse.content) {
-            if (!block) continue;
-
-            switch (block.type) {
-                case 'text':
-                    if (block.text) {
-                        parts.push({ text: block.text });
-                    }
-                    break;
-
-                case 'tool_use':
-                    parts.push({
-                        functionCall: {
-                            name: block.name,
-                            args: block.input || {}
-                        }
-                    });
-                    break;
-
-                case 'image':
-                    if (block.source && block.source.type === 'base64') {
-                        parts.push({
-                            inlineData: {
-                                mimeType: block.source.media_type,
-                                data: block.source.data
-                            }
-                        });
-                    }
-                    break;
-
-                default:
-                    if (block.text) {
-                        parts.push({ text: block.text });
-                    }
-            }
-        }
-
-        // 映射finish_reason
-        const finishReasonMap = {
-            'end_turn': 'STOP',
-            'max_tokens': 'MAX_TOKENS',
-            'tool_use': 'STOP',
-            'stop_sequence': 'STOP'
-        };
-
-        return {
-            candidates: [{
-                content: {
-                    role: 'model',
-                    parts: parts
-                },
-                finishReason: finishReasonMap[claudeResponse.stop_reason] || 'STOP'
-            }],
-            usageMetadata: claudeResponse.usage ? {
-                promptTokenCount: claudeResponse.usage.input_tokens || 0,
-                candidatesTokenCount: claudeResponse.usage.output_tokens || 0,
-                totalTokenCount: (claudeResponse.usage.input_tokens || 0) + (claudeResponse.usage.output_tokens || 0),
-                cachedContentTokenCount: claudeResponse.usage.cache_read_input_tokens || 0,
-                promptTokensDetails: [{
-                    modality: "TEXT",
-                    tokenCount: claudeResponse.usage.input_tokens || 0
-                }],
-                candidatesTokensDetails: [{
-                    modality: "TEXT",
-                    tokenCount: claudeResponse.usage.output_tokens || 0
-                }]
-            } : {}
-        };
-    }
-
-    /**
-     * Claude流式响应 -> Gemini流式响应
-     */
-    toGeminiStreamChunk(claudeChunk, model) {
-        if (!claudeChunk) return null;
-
-        // 处理Claude流式事件
-        if (typeof claudeChunk === 'object' && !Array.isArray(claudeChunk)) {
-            // content_block_delta 事件
-            if (claudeChunk.type === 'content_block_delta') {
-                const delta = claudeChunk.delta;
-                
-                // 处理 text_delta
-                if (delta && delta.type === 'text_delta') {
-                    return {
-                        candidates: [{
-                            content: {
-                                role: "model",
-                                parts: [{
-                                    text: delta.text || ""
-                                }]
-                            }
-                        }]
-                    };
-                }
-                
-                // 处理 thinking_delta - 映射为文本
-                if (delta && delta.type === 'thinking_delta') {
-                    return {
-                        candidates: [{
-                            content: {
-                                role: "model",
-                                parts: [{
-                                    text: delta.thinking || ""
-                                }]
-                            }
-                        }]
-                    };
-                }
-            }
-            
-            // message_delta 事件 - 流结束
-            if (claudeChunk.type === 'message_delta') {
-                const stopReason = claudeChunk.delta?.stop_reason;
-                const result = {
-                    candidates: [{
-                        finishReason: stopReason === 'end_turn' ? 'STOP' :
-                                    stopReason === 'max_tokens' ? 'MAX_TOKENS' :
-                                    'OTHER'
-                    }]
-                };
-                
-                // 添加 usage 信息
-                if (claudeChunk.usage) {
-                    result.usageMetadata = {
-                        promptTokenCount: claudeChunk.usage.input_tokens || 0,
-                        candidatesTokenCount: claudeChunk.usage.output_tokens || 0,
-                        totalTokenCount: (claudeChunk.usage.input_tokens || 0) + (claudeChunk.usage.output_tokens || 0),
-                        cachedContentTokenCount: claudeChunk.usage.cache_read_input_tokens || 0,
-                        promptTokensDetails: [{
-                            modality: "TEXT",
-                            tokenCount: claudeChunk.usage.input_tokens || 0
-                        }],
-                        candidatesTokensDetails: [{
-                            modality: "TEXT",
-                            tokenCount: claudeChunk.usage.output_tokens || 0
-                        }]
-                    };
-                }
-                
-                return result;
-            }
-        }
-
-        // 向后兼容：处理字符串格式
-        if (typeof claudeChunk === 'string') {
-            return {
-                candidates: [{
-                    content: {
-                        role: "model",
-                        parts: [{
-                            text: claudeChunk
-                        }]
-                    }
-                }]
-            };
-        }
-
-        return null;
-    }
-
-    /**
-     * 处理Claude内容到Gemini parts
-     */
-    processClaudeContentToGeminiParts(content) {
-        if (!content) return [];
-
-        if (typeof content === 'string') {
-            return [{ text: content }];
-        }
-
-        if (Array.isArray(content)) {
-            const parts = [];
-
-            content.forEach(block => {
-                if (!block || typeof block !== 'object' || !block.type) {
-                    console.warn("Skipping invalid content block.");
-                    return;
-                }
-
-                switch (block.type) {
-                    case 'text':
-                        if (typeof block.text === 'string') {
-                            parts.push({ text: block.text });
-                        }
-                        break;
-
-                    case 'image':
-                        if (block.source && typeof block.source === 'object' && 
-                            block.source.type === 'base64' &&
-                            typeof block.source.media_type === 'string' && 
-                            typeof block.source.data === 'string') {
-                            parts.push({
-                                inlineData: {
-                                    mimeType: block.source.media_type,
-                                    data: block.source.data
-                                }
-                            });
-                        }
-                        break;
-
-                    case 'tool_use':
-                        if (typeof block.name === 'string' && 
-                            block.input && typeof block.input === 'object') {
-                            parts.push({
-                                functionCall: {
-                                    name: block.name,
-                                    args: block.input
-                                }
-                            });
-                        }
-                        break;
-
-                    case 'tool_result':
-                        if (typeof block.tool_use_id === 'string') {
-                            parts.push({
-                                functionResponse: {
-                                    name: block.tool_use_id,
-                                    response: { content: block.content }
-                                }
-                            });
-                        }
-                        break;
-
-                    default:
-                        if (typeof block.text === 'string') {
-                            parts.push({ text: block.text });
-                        }
-                }
-            });
-
-            return parts;
-        }
-
-        return [];
-    }
-
-    /**
-     * 构建Gemini工具配置
-     */
-    buildGeminiToolConfigFromClaude(claudeToolChoice) {
-        if (!claudeToolChoice || typeof claudeToolChoice !== 'object' || !claudeToolChoice.type) {
-            console.warn("Invalid claudeToolChoice provided.");
-            return undefined;
-        }
-
-        switch (claudeToolChoice.type) {
-            case 'auto':
-                return { functionCallingConfig: { mode: 'AUTO' } };
-            case 'none':
-                return { functionCallingConfig: { mode: 'NONE' } };
-            case 'tool':
-                if (claudeToolChoice.name && typeof claudeToolChoice.name === 'string') {
-                    return { 
-                        functionCallingConfig: { 
-                            mode: 'ANY', 
-                            allowedFunctionNames: [claudeToolChoice.name] 
-                        } 
-                    };
-                }
-                console.warn("Invalid tool name in claudeToolChoice of type 'tool'.");
-                return undefined;
-            default:
-                console.warn(`Unsupported claudeToolChoice type: ${claudeToolChoice.type}`);
-                return undefined;
-        }
     }
 
     // =========================================================================

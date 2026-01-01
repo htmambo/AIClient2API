@@ -55,11 +55,6 @@ function initEventListeners() {
         elements.modelProvider.addEventListener('change', handleProviderChange);
     }
 
-    // Gemini凭据类型切换
-    document.querySelectorAll('input[name="geminiCredsType"]').forEach(radio => {
-        radio.addEventListener('change', handleGeminiCredsTypeChange);
-    });
-
     // Kiro凭据类型切换
     document.querySelectorAll('input[name="kiroCredsType"]').forEach(radio => {
         radio.addEventListener('change', handleKiroCredsTypeChange);
@@ -130,24 +125,6 @@ function handleProviderChange() {
     const targetConfig = document.querySelector(`[data-provider="${selectedProvider}"]`);
     if (targetConfig) {
         targetConfig.style.display = 'block';
-    }
-}
-
-/**
- * Gemini凭据类型切换
- * @param {Event} event - 事件对象
- */
-function handleGeminiCredsTypeChange(event) {
-    const selectedType = event.target.value;
-    const base64Group = document.getElementById('geminiCredsBase64Group');
-    const fileGroup = document.getElementById('geminiCredsFileGroup');
-    
-    if (selectedType === 'base64') {
-        if (base64Group) base64Group.style.display = 'block';
-        if (fileGroup) fileGroup.style.display = 'none';
-    } else {
-        if (base64Group) base64Group.style.display = 'none';
-        if (fileGroup) fileGroup.style.display = 'block';
     }
 }
 
@@ -448,7 +425,6 @@ export function setReloadConfig(configReloader) {
 export {
     initEventListeners,
     handleProviderChange,
-    handleGeminiCredsTypeChange,
     handleKiroCredsTypeChange,
     handlePasswordToggle,
     handleProviderPoolsConfigChange,

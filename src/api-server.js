@@ -12,15 +12,15 @@ import { createRequestHandler } from './request-handler.js';
  *
  * 描述 / Description:
  * (最终生产就绪版本 / Final Production Ready Version)
- * 此脚本创建一个独立的 Node.js HTTP 服务器，作为 Google Cloud Code Assist API 的本地代理。
+ * 此脚本创建一个独立的 Node.js HTTP 服务器，作为 AI 模型 API 的本地代理。
  * 此版本包含所有功能和错误修复，设计为健壮、灵活且易于通过全面可控的日志系统进行监控。
  * 
- * This script creates a standalone Node.js HTTP server that acts as a local proxy for the Google Cloud Code Assist API.
+ * This script creates a standalone Node.js HTTP server that acts as a local proxy for AI model APIs.
  * This version includes all features and bug fixes, designed to be robust, flexible, and easy to monitor through a comprehensive and controllable logging system.
  *
  * 主要功能 / Key Features:
- * - OpenAI & Gemini & Claude 多重兼容性：无缝桥接使用 OpenAI API 格式的客户端与 Google Gemini API。支持原生 Gemini API (`/v1beta`) 和 OpenAI 兼容 (`/v1`) 端点。
- *   OpenAI & Gemini & Claude Dual Compatibility: Seamlessly bridges clients using the OpenAI API format with the Google Gemini API. Supports both native Gemini API (`/v1beta`) and OpenAI-compatible (`/v1`) endpoints.
+ * - OpenAI & Claude 多重兼容性：无缝桥接使用不同 API 格式的客户端与后端服务。支持 OpenAI 兼容 (`/v1`) 端点、Claude Messages (`/v1/messages`) 以及 OpenAI Responses (`/v1/responses`)。
+ *   OpenAI & Claude Compatibility: Seamlessly bridges clients using different API formats with backend services. Supports OpenAI-compatible (`/v1`), Claude Messages (`/v1/messages`), and OpenAI Responses (`/v1/responses`) endpoints.
  * 
  * - 强大的身份验证管理：支持多种身份验证方法，包括通过 Base64 字符串、文件路径或自动发现本地凭据的 OAuth 2.0 配置。能够自动刷新过期令牌以确保服务持续运行。
  *   Robust Authentication Management: Supports multiple authentication methods, including OAuth 2.0 configuration via Base64 strings, file paths, or automatic discovery of local credentials. Capable of automatically refreshing expired tokens to ensure continuous service operation.
@@ -34,8 +34,8 @@ import { createRequestHandler } from './request-handler.js';
  *   - 实时同步：能够将请求中包含的系统提示实时写入 `configs/fetch_system_prompt.txt` 文件，便于开发者观察和调试。
  *     Real-time Synchronization: Capable of writing system prompts included in requests to the `fetch_system_prompt.txt` file in real-time, facilitating developer observation and debugging.
  * 
- * - 智能请求转换和修复：自动将 OpenAI 格式的请求转换为 Gemini 格式，包括角色映射（`assistant` -> `model`）、合并来自同一角色的连续消息以及修复缺失的 `role` 字段。
- *   Intelligent Request Conversion and Repair: Automatically converts OpenAI-formatted requests to Gemini format, including role mapping (`assistant` -> `model`), merging consecutive messages from the same role, and fixing missing `role` fields.
+ * - 智能请求转换和修复：根据客户端与后端的协议差异自动转换请求与响应，并修复常见字段缺失/格式差异问题。
+ *   Intelligent Request Conversion and Repair: Automatically converts requests/responses across supported protocols and fixes common shape issues.
  * 
  * - 全面可控的日志系统：提供两种日志模式（控制台或文件），详细记录每个请求的输入和输出、剩余令牌有效性等信息，用于监控和调试。
  *   Comprehensive and Controllable Logging System: Provides two logging modes (console or file), detailing input and output of each request, remaining token validity, and other information for monitoring and debugging.
@@ -57,11 +57,8 @@ import { createRequestHandler } from './request-handler.js';
  * Claude 提供商 / Claude Provider:
  * node src/api-server.js --model-provider claude-custom --claude-api-key sk-ant-xxx --claude-base-url https://api.anthropic.com
  * 
- * Gemini 提供商（使用 Base64 凭据的 OAuth）/ Gemini Provider (OAuth with Base64 credentials):
- * node src/api-server.js --model-provider gemini-cli --gemini-oauth-creds-base64 eyJ0eXBlIjoi... --project-id your-project-id
- * 
- * Gemini 提供商（使用凭据文件的 OAuth）/ Gemini Provider (OAuth with credentials file):
- * node src/api-server.js --model-provider gemini-cli --gemini-oauth-creds-file /path/to/credentials.json --project-id your-project-id
+ * Kiro 提供商（OAuth）/ Kiro Provider (OAuth):
+ * node src/api-server.js --model-provider claude-kiro-oauth --kiro-oauth-creds-file /path/to/credentials.json
  * 
  * 系统提示管理 / System Prompt Management:
  * node src/api-server.js --system-prompt-file custom-prompt.txt --system-prompt-mode append
@@ -75,9 +72,8 @@ import { createRequestHandler } from './request-handler.js';
  *   --host 0.0.0.0 \
  *   --port 3000 \
  *   --api-key my-secret-key \
- *   --model-provider gemini-cli-oauth \
- *   --project-id my-gcp-project \
- *   --gemini-oauth-creds-file ./credentials.json \
+ *   --model-provider claude-kiro-oauth \
+ *   --kiro-oauth-creds-file ./credentials.json \
  *   --system-prompt-file ./custom-system-prompt.txt \
  *   --system-prompt-mode overwrite \
  *   --log-prompts file \
@@ -87,17 +83,15 @@ import { createRequestHandler } from './request-handler.js';
  * --host <address>                    服务器监听地址 / Server listening address (default: 0.0.0.0)
  * --port <number>                     服务器监听端口 / Server listening port (default: 3000)
  * --api-key <key>                     身份验证所需的 API 密钥 / Required API key for authentication (default: 123456)
- * --model-provider <provider[,provider...]> AI 模型提供商 / AI model provider: openai-custom, claude-custom, gemini-cli-oauth, claude-kiro-oauth
+ * --model-provider <provider[,provider...]> AI 模型提供商 / AI model provider: openai-custom, claude-custom, openaiResponses-custom, openai-qwen-oauth, claude-kiro-oauth
  * --openai-api-key <key>             OpenAI API 密钥 / OpenAI API key (for openai-custom provider)
  * --openai-base-url <url>            OpenAI API 基础 URL / OpenAI API base URL (for openai-custom provider)
  * --claude-api-key <key>             Claude API 密钥 / Claude API key (for claude-custom provider)
  * --claude-base-url <url>            Claude API 基础 URL / Claude API base URL (for claude-custom provider)
- * --gemini-oauth-creds-base64 <b64>  Gemini OAuth 凭据的 Base64 字符串 / Gemini OAuth credentials as Base64 string
- * --gemini-oauth-creds-file <path>   Gemini OAuth 凭据 JSON 文件路径 / Path to Gemini OAuth credentials JSON file
  * --kiro-oauth-creds-base64 <b64>    Kiro OAuth 凭据的 Base64 字符串 / Kiro OAuth credentials as Base64 string
  * --kiro-oauth-creds-file <path>     Kiro OAuth 凭据 JSON 文件路径 / Path to Kiro OAuth credentials JSON file
  * --qwen-oauth-creds-file <path>     Qwen OAuth 凭据 JSON 文件路径 / Path to Qwen OAuth credentials JSON file
- * --project-id <id>                  Google Cloud 项目 ID / Google Cloud Project ID (for gemini-cli provider)
+ * --project-id <id>                  项目 ID（按需）/ Project ID (optional)
  * --system-prompt-file <path>        系统提示文件路径 / Path to system prompt file (default: configs/input_system_prompt.txt)
  * --system-prompt-mode <mode>        系统提示模式 / System prompt mode: overwrite or append (default: overwrite)
  * --log-prompts <mode>               提示日志模式 / Prompt logging mode: console, file, or none (default: none)
@@ -258,7 +252,6 @@ async function startServer() {
         console.log(`\nUnified API Server running on http://${CONFIG.HOST}:${CONFIG.SERVER_PORT}`);
         console.log(`Supports multiple API formats:`);
         console.log(`  • OpenAI-compatible: /v1/chat/completions, /v1/responses, /v1/models`);
-        console.log(`  • Gemini-compatible: /v1beta/models, /v1beta/models/{model}:generateContent`);
         console.log(`  • Claude-compatible: /v1/messages`);
         console.log(`  • Health check: /health`);
         console.log(`  • UI Management Console: http://${CONFIG.HOST}:${CONFIG.SERVER_PORT}/`);

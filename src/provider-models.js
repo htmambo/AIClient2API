@@ -4,25 +4,6 @@
  */
 
 export const PROVIDER_MODELS = {
-    'gemini-cli-oauth': [
-        'gemini-2.5-flash',
-        'gemini-2.5-flash-lite',
-        'gemini-2.5-pro',
-        'gemini-2.5-pro-preview-06-05',
-        'gemini-2.5-flash-preview-09-2025',
-        'gemini-3-pro-preview',
-        'gemini-3-flash-preview'
-    ],
-    'gemini-antigravity': [
-        'gemini-2.5-computer-use-preview-10-2025',
-        'gemini-3-pro-image-preview',
-        'gemini-3-pro-preview',
-        'gemini-3-flash-preview',
-        'gemini-2.5-flash',
-        'gemini-claude-sonnet-4-5',
-        'gemini-claude-sonnet-4-5-thinking',
-        'gemini-claude-opus-4-5-thinking'
-    ],
     'claude-custom': [],
     'claude-kiro-oauth': [
         'claude-opus-4-5',

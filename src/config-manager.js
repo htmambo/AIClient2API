@@ -8,7 +8,7 @@ export let PROMPT_LOG_FILENAME = ''; // Make PROMPT_LOG_FILENAME exportable
 const ALL_MODEL_PROVIDERS = Object.values(MODEL_PROVIDER);
 
 function normalizeConfiguredProviders(config) {
-    const fallbackProvider = MODEL_PROVIDER.GEMINI_CLI;
+    const fallbackProvider = MODEL_PROVIDER.KIRO_API;
     const dedupedProviders = [];
 
     const addProvider = (value) => {
@@ -66,13 +66,11 @@ export async function initializeConfig(args = process.argv.slice(2), configFileP
             REQUIRED_API_KEY: "123456",
             SERVER_PORT: 3000,
             HOST: '0.0.0.0',
-            MODEL_PROVIDER: MODEL_PROVIDER.GEMINI_CLI,
+            MODEL_PROVIDER: MODEL_PROVIDER.KIRO_API,
             OPENAI_API_KEY: null,
             OPENAI_BASE_URL: null,
             CLAUDE_API_KEY: null,
             CLAUDE_BASE_URL: null,
-            GEMINI_OAUTH_CREDS_BASE64: null,
-            GEMINI_OAUTH_CREDS_FILE_PATH: null,
             KIRO_OAUTH_CREDS_BASE64: null,
             KIRO_OAUTH_CREDS_FILE_PATH: null,
             QWEN_OAUTH_CREDS_FILE_PATH: null,
@@ -80,9 +78,6 @@ export async function initializeConfig(args = process.argv.slice(2), configFileP
             // Provider URLs
             QWEN_BASE_URL: null,
             QWEN_OAUTH_BASE_URL: null,
-            GEMINI_BASE_URL: null,
-            ANTIGRAVITY_BASE_URL_DAILY: null,
-            ANTIGRAVITY_BASE_URL_AUTOPUSH: null,
             KIRO_REFRESH_URL: null,
             KIRO_REFRESH_IDC_URL: null,
             KIRO_BASE_URL: null,
@@ -176,21 +171,6 @@ export async function initializeConfig(args = process.argv.slice(2), configFileP
                 currentConfig.QWEN_OAUTH_BASE_URL = args[i + 1];
                 i++;
             }
-        } else if (args[i] === '--gemini-base-url') {
-            if (i + 1 < args.length) {
-                currentConfig.GEMINI_BASE_URL = args[i + 1];
-                i++;
-            }
-        } else if (args[i] === '--antigravity-base-url-daily') {
-            if (i + 1 < args.length) {
-                currentConfig.ANTIGRAVITY_BASE_URL_DAILY = args[i + 1];
-                i++;
-            }
-        } else if (args[i] === '--antigravity-base-url-autopush') {
-            if (i + 1 < args.length) {
-                currentConfig.ANTIGRAVITY_BASE_URL_AUTOPUSH = args[i + 1];
-                i++;
-            }
         } else if (args[i] === '--kiro-refresh-url') {
             if (i + 1 < args.length) {
                 currentConfig.KIRO_REFRESH_URL = args[i + 1];
@@ -207,22 +187,7 @@ export async function initializeConfig(args = process.argv.slice(2), configFileP
                 i++;
             }
         }
-        // Gemini-specific arguments
-        else if (args[i] === '--gemini-oauth-creds-base64') {
-            if (i + 1 < args.length) {
-                currentConfig.GEMINI_OAUTH_CREDS_BASE64 = args[i + 1];
-                i++;
-            } else {
-                console.warn(`[Config Warning] --gemini-oauth-creds-base64 flag requires a value.`);
-            }
-        } else if (args[i] === '--gemini-oauth-creds-file') {
-            if (i + 1 < args.length) {
-                currentConfig.GEMINI_OAUTH_CREDS_FILE_PATH = args[i + 1];
-                i++;
-            } else {
-                console.warn(`[Config Warning] --gemini-oauth-creds-file flag requires a value.`);
-            }
-        } else if (args[i] === '--project-id') {
+        else if (args[i] === '--project-id') {
             if (i + 1 < args.length) {
                 currentConfig.PROJECT_ID = args[i + 1];
                 i++;
@@ -397,16 +362,6 @@ export function logProviderSpecificDetails(provider, config) {
         case MODEL_PROVIDER.CLAUDE_CUSTOM:
             console.log(`  [claude-custom] API Key: ${config.CLAUDE_API_KEY ? '******' : 'Not Set'}`);
             console.log(`  [claude-custom] Base URL: ${config.CLAUDE_BASE_URL || 'Default'}`);
-            break;
-        case MODEL_PROVIDER.GEMINI_CLI:
-            if (config.GEMINI_OAUTH_CREDS_FILE_PATH) {
-                console.log(`  [gemini-cli-oauth] OAuth Creds File Path: ${config.GEMINI_OAUTH_CREDS_FILE_PATH}`);
-            } else if (config.GEMINI_OAUTH_CREDS_BASE64) {
-                console.log(`  [gemini-cli-oauth] OAuth Creds Source: Provided via Base64 string`);
-            } else {
-                console.log(`  [gemini-cli-oauth] OAuth Creds: Default discovery`);
-            }
-            // console.log(`  [gemini-cli-oauth] Project ID: ${config.PROJECT_ID || 'Auto-discovered'}`);
             break;
         case MODEL_PROVIDER.KIRO_API:
             if (config.KIRO_OAUTH_CREDS_FILE_PATH) {

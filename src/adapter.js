@@ -1,6 +1,4 @@
 import { OpenAIResponsesApiService } from './openai/openai-responses-core.js'; // 导入OpenAIResponsesApiService
-import { GeminiApiService } from './gemini/gemini-core.js'; // 导入geminiApiService
-import { AntigravityApiService } from './gemini/antigravity-core.js'; // 导入AntigravityApiService
 import { OpenAIApiService } from './openai/openai-core.js'; // 导入OpenAIApiService
 import { ClaudeApiService } from './claude/claude-core.js'; // 导入ClaudeApiService
 import { KiroApiService } from './claude/claude-kiro.js'; // 导入KiroApiService
@@ -50,114 +48,6 @@ export class ApiServiceAdapter {
      */
     async refreshToken() {
         throw new Error("Method 'refreshToken()' must be implemented.");
-    }
-}
-
-// Gemini API 服务适配器
-export class GeminiApiServiceAdapter extends ApiServiceAdapter {
-    constructor(config) {
-        super();
-        this.geminiApiService = new GeminiApiService(config);
-        // this.geminiApiService.initialize().catch(error => {
-        //     console.error("Failed to initialize geminiApiService:", error);
-        // });
-    }
-
-    async generateContent(model, requestBody) {
-        if (!this.geminiApiService.isInitialized) {
-            console.warn("geminiApiService not initialized, attempting to re-initialize...");
-            await this.geminiApiService.initialize();
-        }
-        return this.geminiApiService.generateContent(model, requestBody);
-    }
-
-    async *generateContentStream(model, requestBody) {
-        if (!this.geminiApiService.isInitialized) {
-            console.warn("geminiApiService not initialized, attempting to re-initialize...");
-            await this.geminiApiService.initialize();
-        }
-        yield* this.geminiApiService.generateContentStream(model, requestBody);
-    }
-
-    async listModels() {
-        if (!this.geminiApiService.isInitialized) {
-            console.warn("geminiApiService not initialized, attempting to re-initialize...");
-            await this.geminiApiService.initialize();
-        }
-        // Gemini Core API 的 listModels 已经返回符合 Gemini 格式的数据，所以不需要额外转换
-        return this.geminiApiService.listModels();
-    }
-
-    async refreshToken() {
-        if(this.geminiApiService.isExpiryDateNear()===true){
-            console.log(`[Gemini] Expiry date is near, refreshing token...`);
-            return this.geminiApiService.initializeAuth(true);
-        }
-        return Promise.resolve();
-    }
-
-    /**
-     * 获取用量限制信息
-     * @returns {Promise<Object>} 用量限制信息
-     */
-    async getUsageLimits() {
-        if (!this.geminiApiService.isInitialized) {
-            console.warn("geminiApiService not initialized, attempting to re-initialize...");
-            await this.geminiApiService.initialize();
-        }
-        return this.geminiApiService.getUsageLimits();
-    }
-}
-
-// Antigravity API 服务适配器
-export class AntigravityApiServiceAdapter extends ApiServiceAdapter {
-    constructor(config) {
-        super();
-        this.antigravityApiService = new AntigravityApiService(config);
-    }
-
-    async generateContent(model, requestBody) {
-        if (!this.antigravityApiService.isInitialized) {
-            console.warn("antigravityApiService not initialized, attempting to re-initialize...");
-            await this.antigravityApiService.initialize();
-        }
-        return this.antigravityApiService.generateContent(model, requestBody);
-    }
-
-    async *generateContentStream(model, requestBody) {
-        if (!this.antigravityApiService.isInitialized) {
-            console.warn("antigravityApiService not initialized, attempting to re-initialize...");
-            await this.antigravityApiService.initialize();
-        }
-        yield* this.antigravityApiService.generateContentStream(model, requestBody);
-    }
-
-    async listModels() {
-        if (!this.antigravityApiService.isInitialized) {
-            console.warn("antigravityApiService not initialized, attempting to re-initialize...");
-            await this.antigravityApiService.initialize();
-        }
-        return this.antigravityApiService.listModels();
-    }
-
-    async refreshToken() {
-        if (this.antigravityApiService.isExpiryDateNear() === true) {
-            console.log(`[Antigravity] Expiry date is near, refreshing token...`);
-            return this.antigravityApiService.initializeAuth(true);
-        }
-        return Promise.resolve();
-    }
-
-    /**
-     * 获取用量限制信息
-     * @returns {Promise<Object>} 用量限制信息
-     */
-    async getUsageLimits() {
-        if (!this.antigravityApiService.isInitialized) {
-            console.warn("antigravityApiService not initialized, attempting to re-initialize...");
-            await this.antigravityApiService.initialize();
-        }
-        return this.antigravityApiService.getUsageLimits();
     }
 }
 
@@ -372,12 +262,6 @@ export function getServiceAdapter(config) {
                 break;
             case MODEL_PROVIDER.OPENAI_CUSTOM_RESPONSES:
                 serviceInstances[providerKey] = new OpenAIResponsesApiServiceAdapter(config);
-                break;
-            case MODEL_PROVIDER.GEMINI_CLI:
-                serviceInstances[providerKey] = new GeminiApiServiceAdapter(config);
-                break;
-            case MODEL_PROVIDER.ANTIGRAVITY:
-                serviceInstances[providerKey] = new AntigravityApiServiceAdapter(config);
                 break;
             case MODEL_PROVIDER.CLAUDE_CUSTOM:
                 serviceInstances[providerKey] = new ClaudeApiServiceAdapter(config);

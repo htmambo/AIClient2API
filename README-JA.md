@@ -4,7 +4,7 @@
 
 # AIClient-2-API 🚀
 
-**複数のクライアント専用大規模言語モデルAPI（Gemini CLI、Antigravity、Qwen Code、Kiro ...）を模擬リクエストし、ローカルのOpenAI互換インターフェースに統一的にラッピングする強力なプロキシ。**
+**複数のクライアント専用大規模言語モデルAPI（Qwen Code、Kiro ...）を模擬リクエストし、ローカルのOpenAI互換インターフェースに統一的にラッピングする強力なプロキシ。**
 
 </div>
 
@@ -22,7 +22,7 @@
 
 </div>
 
-`AIClient2API` はクライアント制限を突破するAPIプロキシサービスで、Gemini、Antigravity、Qwen Code、Kiroなど、元々クライアント内でのみ使用可能な無料大規模モデルを、あらゆるアプリケーションから呼び出せる標準OpenAI互換インターフェースに変換します。Node.jsをベースに構築され、OpenAI、Claude、Geminiの3大プロトコル間のインテリジェント変換をサポートし、Cherry-Studio、NextChat、Clineなどのツールで、Claude Opus 4.5、Gemini 3.0 Pro、Qwen3 Coder Plusなどの高度なモデルを大規模に無料で使用できるようにします。プロジェクトはストラテジーパターンとアダプターパターンに基づくモジュラーアーキテクチャを採用し、アカウントプール管理、インテリジェントポーリング、自動フェイルオーバー、ヘルスチェック機構を内蔵し、99.9%のサービス可用性を保証します。
+`AIClient2API` はクライアント制限を突破するAPIプロキシサービスで、Qwen Code、Kiroなど、元々クライアント内でのみ使用可能なモデル機能を、あらゆるアプリケーションから呼び出せる標準OpenAI互換インターフェースに変換します。Node.jsをベースに構築され、OpenAI互換およびClaude互換のエンドポイントを提供し、Cherry-Studio、NextChat、Clineなどのツールから統一インターフェースで利用できます。プロジェクトはストラテジーパターンとアダプターパターンに基づくモジュラーアーキテクチャを採用し、アカウントプール管理、インテリジェントポーリング、自動フェイルオーバー、ヘルスチェック機構を内蔵します。
 
 > [!NOTE]
 > **🎉 重要なマイルストーン**
@@ -33,31 +33,29 @@
 >
 > - **2025.12.25** - 設定ファイル統一管理：すべての設定を `configs/` ディレクトリに集約。Dockerユーザーはマウントパスを `-v "ローカルパス:/app/configs"` に更新が必要
 > - **2025.12.11** - Dockerイメージが自動的にビルドされ、Docker Hubで公開されました: [justlikemaki/aiclient-2-api](https://hub.docker.com/r/justlikemaki/aiclient-2-api)
-> - **2025.11.30** - Antigravityプロトコルサポートの追加、Google内部インターフェース経由でGemini 3 Pro、Claude Sonnet 4.5などのモデルへのアクセスをサポート
-> - **2025.11.16** - Ollamaプロトコルサポートの追加、統一インターフェースでサポートされるすべてのモデルにアクセス
+> - **2025.11.16** - Ollamaプロトコルサポートの追加、統一インターフェースでサポート対象モデル（Claude、Qwen、OpenAIなど）にアクセス
 > - **2025.11.11** - Web UI管理コントロールコンソールの追加、リアルタイム設定管理と健康状態モニタリングをサポート
-> - **2025.11.06** - Gemini 3 プレビュー版のサポートを追加、モデル互換性とパフォーマンス最適化を向上
 > - **2025.10.18** - Kiroオープン登録、新規アカウントに500クレジット付与、Claude Sonnet 4.5を完全サポート
 > - **2025.09.01** - Qwen Code CLIを統合、`qwen3-coder-plus`モデルサポートを追加
 > - **2025.08.29** - アカウントプール管理機能をリリース、マルチアカウントポーリング、自動フェイルオーバー、自動ダウングレード戦略をサポート
 >   - 設定方法：config.jsonに`PROVIDER_POOLS_FILE_PATH`パラメータを追加
 >   - 参考設定：[provider_pools.json](./configs/provider_pools.json.example)
 > - **開発済み履歴**
->   - Gemini CLI、Kiroなどのクライアント2APIをサポート
->   - OpenAI、Claude、Geminiの3つのプロトコル相互変換、自動インテリジェント切り替え
+>   - Kiroなどのクライアント2APIをサポート
+>   - OpenAI / Claude 互換エンドポイント
 
 ---
 
 ## 💡 コアアドバンテージ
 
 ### 🎯 統一アクセス、ワンストップ管理
-*   **マルチモデル統一インターフェース**：標準OpenAI互換プロトコルを通じて、一度の設定でGemini、Claude、Qwen Code、Kimi K2、MiniMax M2などの主流大規模モデルにアクセス
+*   **マルチモデル統一インターフェース**：標準OpenAI互換プロトコルを通じて、一度の設定でClaude、Qwen Code、Kimi K2、MiniMax M2などの主流大規模モデルにアクセス
 *   **柔軟な切り替えメカニズム**：Pathルーティング、起動パラメータ、環境変数の3つの方法で動的にモデルを切り替え、異なるシナリオのニーズに対応
 *   **ゼロコスト移行**：OpenAI API仕様と完全互換、Cherry-Studio、NextChat、Clineなどのツールを変更なしで使用可能
-*   **マルチプロトコルインテリジェント変換**：OpenAI、Claude、Geminiの3大プロトコル間のインテリジェント変換をサポートし、クロスプロトコルモデル呼び出しを実現
+*   **マルチプロトコルインテリジェント変換**：OpenAI互換およびClaude互換エンドポイントを提供し、クロスクライアント呼び出しを実現
 
 ### 🚀 制限を突破、効率を向上
-*   **公式制限の回避**：OAuth認証メカニズムを利用して、Gemini、Antigravityなどの無料APIのレート制限と割り当て制限を効果的に突破
+*   **公式制限の回避**：OAuth認証メカニズムを利用して、Qwen、KiroなどのOAuth系プロバイダーに接続
 *   **無料高度モデル**：Kiro APIモードでClaude Opus 4.5を無料使用、Qwen OAuthモードでQwen3 Coder Plusを使用し、使用コストを削減
 *   **インテリジェントアカウントプールスケジューリング**：マルチアカウントポーリング、自動フェイルオーバー、設定ダウングレードをサポートし、99.9%のサービス可用性を保証
 
@@ -94,12 +92,12 @@ AIClient-2-APIを使い始める最も推奨される方法は、自動起動ス
 #### 🐳 Docker クイックスタート (推奨)
 
 ```bash
-docker run -d -p 3000:3000 -p 8085:8085 -p 8086:8086 -p 19876-19880:19876-19880 --restart=always -v "指定パス:/app/configs" --name aiclient2api justlikemaki/aiclient-2-api
+docker run -d -p 3000:3000 -p 19876-19880:19876-19880 --restart=always -v "指定パス:/app/configs" --name aiclient2api justlikemaki/aiclient-2-api
 ```
 
 **パラメータ説明**：
 - `-d`：バックグラウンドでコンテナを実行
-- `-p 3000:3000 ...`：ポートマッピング。3000はWeb UI用、その他はOAuthコールバック用（Gemini: 8085, Antigravity: 8086, Kiro: 19876-19880）
+- `-p 3000:3000 ...`：ポートマッピング。3000はWeb UI用、その他はOAuthコールバック用（Kiro: 19876-19880）
 - `--restart=always`：コンテナ自動再起動ポリシー
 - `-v "指定パス:/app/configs"`：設定ディレクトリをマウント（「指定パス」を実際のパスに置き換えてください、例：`/home/user/aiclient-configs`）
 - `--name aiclient2api`：コンテナ名
@@ -155,7 +153,7 @@ docker run -d -p 3000:3000 -p 8085:8085 -p 8086:8086 -p 19876-19880:19876-19880 
 
 **📊 ダッシュボード**：システム概要、インタラクティブなルーティング例、クライアント設定ガイド
 
-**⚙️ 設定管理**：全プロバイダー（Gemini、Antigravity、OpenAI、Claude、Kiro、Qwen）のリアルタイムパラメータ修正、高度設定、ファイルアップロード対応
+**⚙️ 設定管理**：リアルタイムパラメータ修正、高度設定、ファイルアップロード対応
 
 **🔗 プロバイダープール**：アクティブ接続監視、プロバイダー健全性統計、有効化/無効化管理
 
@@ -172,8 +170,7 @@ docker run -d -p 3000:3000 -p 8085:8085 -p 8086:8086 -p 19876-19880:19876-19880 
 
 #### 最新モデルサポート
 以下の最新大規模モデルをシームレスにサポート、Web UIまたは[`config.json`](./configs/config.json)で対応するエンドポイントを設定するだけで使用可能：
-*   **Claude 4.5 Opus** - Anthropic史上最強モデル、Kiro、Antigravity経由でサポート
-*   **Gemini 3 Pro** - Google次世代アーキテクチャプレビュー版、Gemini、Antigravity経由でサポート
+*   **Claude 4.5 Opus** - Anthropic史上最強モデル、Kiro経由でサポート
 *   **Qwen3 Coder Plus** - アリババ通義千問の最新コード専用モデル、Qwen Code経由でサポート
 *   **Kimi K2 / MiniMax M2** - 国内トップフラッグシップモデルの同期サポート、カスタムOpenAI、Claude経由でサポート
 
@@ -185,20 +182,10 @@ docker run -d -p 3000:3000 -p 8085:8085 -p 8086:8086 -p 19876-19880:19876-19880 
 
 #### 🌐 Web UI クイック認証 (推奨)
 Web UI管理インターフェースでは、極めて迅速に認証設定を完了できます：
-1. **認証の生成**：**「プロバイダープール」** ページまたは **「設定管理」** ページで、対応するプロバイダー（Gemini、Qwenなど）の右上にある **「認証生成」** ボタンをクリックします。
-2. **スキャン/ログイン**：認証ダイアログが表示されるので、**「ブラウザで開く」** をクリックしてログイン検証を行います。Qwenの場合はウェブログインを完了するだけ、Gemini、Antigravityの場合はGoogleアカウントの認証を完了させます。
+1. **認証の生成**：**「プロバイダープール」** ページまたは **「設定管理」** ページで、対応するプロバイダー（Qwen、Kiroなど）の右上にある **「認証生成」** ボタンをクリックします。
+2. **スキャン/ログイン**：認証ダイアログが表示されるので、**「ブラウザで開く」** をクリックしてログイン検証を行います。
 3. **自動保存**：認証成功後、システムは自動的に資格情報を取得し、`configs/` の対応するディレクトリに保存します。**「設定ファイル」** ページで新しく生成された資格情報を確認できます。
 4. **ビジュアル管理**：Web UIでいつでも資格情報のアップロードや削除、または **「クイック関連付け」** 機能を使用して既存の資格情報ファイルをワンクリックでプロバイダーにバインドできます。
-
-#### Gemini CLI OAuth設定
-1. **OAuth認証情報の取得**：[Google Cloud Console](https://console.cloud.google.com/)にアクセスしてプロジェクトを作成し、Gemini APIを有効化
-2. **プロジェクト設定**：有効なGoogle CloudプロジェクトIDを提供する必要があり、起動パラメータ`--project-id`で指定可能
-3. **プロジェクトIDの確認**：Web UIで設定する際、入力したプロジェクトIDが Google Cloud Console および Gemini CLI で表示されるプロジェクトIDと一致していることを確認してください。
-
-#### Antigravity OAuth設定
-1. **個人アカウント**：個人アカウントは個別に認証が必要ですが、申請チャンネルは閉鎖されています。
-2. **Pro会員**：Antigravity は一時的に Pro 会員に開放されています。まず Pro 会員を購入する必要があります。
-3. **組織アカウント**：組織アカウントは個別に認証が必要です。管理者に連絡して認証を取得してください。
 
 #### Qwen Code OAuth設定
 1. **初回認証**：Qwenサービス設定後、システムが自動的にブラウザで認証ページを開きます
@@ -232,10 +219,10 @@ Web UI管理インターフェースでは、極めて迅速に認証設定を�
 
 ```json
 {
-  "gemini-cli-oauth": [
+  "claude-kiro-oauth": [
     {
       "uuid": "provider-1",
-      "notSupportedModels": ["gemini-3.0-pro", "gemini-3.5-flash"],
+      "notSupportedModels": ["claude-opus-4-5"],
       "checkHealth": true
     }
   ]
@@ -252,15 +239,13 @@ Web UI管理インターフェースでは、極めて迅速に認証設定を�
 
 ##### 2. クロスタイプフォールバック設定
 
-あるProvider Type（例：`gemini-cli-oauth`）のすべてのアカウントが429割り当て制限により枯渇したり、unhealthyとマークされた場合、システムは直接エラーを返すのではなく、互換性のある別のProvider Type（例：`gemini-antigravity`）に自動的にフォールバックできます。
+あるProvider Type（例：`claude-kiro-oauth`）のすべてのアカウントが429割り当て制限により枯渇したり、unhealthyとマークされた場合、システムは直接エラーを返すのではなく、互換性のある別のProvider Type（例：`claude-custom`）に自動的にフォールバックできます。
 
 **設定方法**：`configs/config.json` に `providerFallbackChain` 設定を追加：
 
 ```json
 {
   "providerFallbackChain": {
-    "gemini-cli-oauth": ["gemini-antigravity"],
-    "gemini-antigravity": ["gemini-cli-oauth"],
     "claude-kiro-oauth": ["claude-custom"],
     "claude-custom": ["claude-kiro-oauth"]
   }
@@ -273,7 +258,7 @@ Web UI管理インターフェースでは、極めて迅速に認証設定を�
    - 設定されたフォールバックタイプを検索
    - フォールバックタイプがリクエストされたモデルをサポートしているか確認（プロトコル互換性チェック）
    - フォールバックタイプのプールからhealthyなアカウントを選択
-3. 多段階降格チェーンをサポート：`gemini-cli-oauth → gemini-antigravity → openai-custom`
+3. 多段階降格チェーンをサポート：`claude-kiro-oauth → claude-custom`
 4. すべてのフォールバックタイプも利用できない場合のみエラーを返します
 
 **使用シナリオ**：
@@ -281,7 +266,7 @@ Web UI管理インターフェースでは、極めて迅速に認証設定を�
 - クロスタイプフォールバックを通じて、複数のProviderの独立した割り当てを十分に活用し、全体的な可用性とスループットを向上させることができます
 
 **注意事項**：
-- フォールバックはプロトコル互換タイプ間でのみ発生します（例：`gemini-*` 間、`claude-*` 間）
+- フォールバックはプロトコル互換タイプ間でのみ発生します（例：`claude-*` 間）
 - システムは自動的にターゲットProvider Typeがリクエストされたモデルをサポートしているか確認します
 
 ---
@@ -292,10 +277,8 @@ Web UI管理インターフェースでは、極めて迅速に認証設定を�
 
 | サービス | デフォルトパス | 説明 |
 |------|---------|------|
-| **Gemini** | `~/.gemini/oauth_creds.json` | OAuth認証情報 |
 | **Kiro** | `~/.aws/sso/cache/kiro-auth-token.json` | Kiro認証トークン |
 | **Qwen** | `~/.qwen/oauth_creds.json` | Qwen OAuth認証情報 |
-| **Antigravity** | `~/.antigravity/oauth_creds.json` | Antigravity OAuth認証情報 (Claude 4.5 Opus サポート) |
 
 > **説明**：`~`はユーザーホームディレクトリを表します（Windows: `C:\Users\ユーザー名`、Linux/macOS: `/home/ユーザー名`または`/Users/ユーザー名`）
 >
@@ -329,7 +312,6 @@ curl http://localhost:3000/ollama/api/chat \
 3. **モデルプレフィックスを使用してプロバイダーを指定**：
 - `[Kiro]` - Kiro APIを使用してClaudeモデルにアクセス
 - `[Claude]` - 公式Claude APIを使用
-- `[Gemini CLI]` - Gemini CLI OAuth経由でアクセス
 - `[OpenAI]` - 公式OpenAI APIを使用
 - `[Qwen CLI]` - Qwen OAuth経由でアクセス
 
@@ -342,8 +324,8 @@ curl http://localhost:3000/ollama/api/chat \
 **問題の説明**：「認証生成」をクリックした後、ブラウザで認証ページが開きますが、認証が失敗するか完了できません。
 
 **解決策**：
-- **ネットワーク接続を確認**：Google、アリババクラウドなどのサービスに正常にアクセスできることを確認
-- **ポート占有を確認**：OAuthコールバックには特定のポートが必要です（Gemini: 8085, Antigravity: 8086, Kiro: 19876-19880）、これらのポートが占有されていないことを確認
+- **ネットワーク接続を確認**：AWS、アリババクラウドなどのサービスに正常にアクセスできることを確認
+- **ポート占有を確認**：OAuthコールバックには特定のポートが必要です（Kiro: 19876-19880）、これらのポートが占有されていないことを確認
 - **ブラウザキャッシュをクリア**：シークレットモードを使用するか、ブラウザキャッシュをクリアして再試行
 - **ファイアウォール設定を確認**：ファイアウォールがローカルコールバックポートへのアクセスを許可していることを確認
 - **Dockerユーザー**：すべてのOAuthコールバックポートが正しくマッピングされていることを確認
@@ -462,9 +444,6 @@ kill -9 <PID>
 本プロジェクトは [**GNU General Public License v3 (GPLv3)**](https://www.gnu.org/licenses/gpl-3.0) オープンソースライセンスに従います。詳細はルートディレクトリの `LICENSE` ファイルをご覧ください。
 
 ## 🙏 謝辞
-
-本プロジェクトの開発は公式Google Gemini CLIから大きなインスピレーションを受け、Cline 3.18.0版 `gemini-cli.ts` の一部のコード実装を参考にしました。ここにGoogle公式チームとCline開発チームの優れた仕事に心より感謝申し上げます！
-
 ### 貢献者リスト
 
 AIClient-2-APIプロジェクトに貢献してくれたすべての開発者に感謝します：

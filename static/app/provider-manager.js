@@ -207,8 +207,6 @@ function renderProviders(providers) {
     
     // 定义所有支持的提供商显示顺序
     const providerDisplayOrder = [
-        'gemini-cli-oauth',
-        'gemini-antigravity',
         'openai-custom',
         'claude-custom',
         'claude-kiro-oauth',
@@ -422,7 +420,7 @@ async function openProviderManager(providerType) {
  */
 function generateAuthButton(providerType) {
     // 只为支持OAuth的提供商显示授权按钮
-    const oauthProviders = ['gemini-cli-oauth', 'gemini-antigravity', 'openai-qwen-oauth', 'claude-kiro-oauth'];
+    const oauthProviders = ['openai-qwen-oauth', 'claude-kiro-oauth'];
     
     if (!oauthProviders.includes(providerType)) {
         return '';
@@ -584,8 +582,6 @@ async function executeGenerateAuthUrl(providerType, extraOptions = {}) {
  */
 function getAuthFilePath(provider) {
     const authFilePaths = {
-        'gemini-cli-oauth': '~/.gemini/oauth_creds.json',
-        'gemini-antigravity': '~/.antigravity/oauth_creds.json',
         'openai-qwen-oauth': '~/.qwen/oauth_creds.json',
         'claude-kiro-oauth': '~/.aws/sso/cache/kiro-auth-token.json'
     };
@@ -660,18 +656,6 @@ function showAuthModal(authUrl, authInfo) {
                     <li data-i18n="oauth.kiro.step2" data-i18n-params='{"method":"${methodAccount}"}'>${t('oauth.kiro.step2', { method: methodAccount })}</li>
                     <li data-i18n="oauth.kiro.step3">${t('oauth.kiro.step3')}</li>
                     <li data-i18n="oauth.kiro.step4">${t('oauth.kiro.step4')}</li>
-                </ol>
-            </div>
-        `;
-    } else {
-        instructionsHtml = `
-            <div class="auth-instructions">
-                <h4 data-i18n="oauth.modal.steps">${t('oauth.modal.steps')}</h4>
-                <ol>
-                    <li data-i18n="oauth.modal.step1">${t('oauth.modal.step1')}</li>
-                    <li data-i18n="oauth.modal.step2.google">${t('oauth.modal.step2.google')}</li>
-                    <li data-i18n="oauth.modal.step4.google">${t('oauth.modal.step4.google')}</li>
-                    <li data-i18n="oauth.modal.step3">${t('oauth.modal.step3')}</li>
                 </ol>
             </div>
         `;

@@ -12,7 +12,6 @@ export const API_ACTIONS = {
 
 export const MODEL_PROTOCOL_PREFIX = {
     // Model provider constants
-    GEMINI: 'gemini',
     OPENAI: 'openai',
     OPENAI_RESPONSES: 'openaiResponses',
     CLAUDE: 'claude',
@@ -21,8 +20,6 @@ export const MODEL_PROTOCOL_PREFIX = {
 
 export const MODEL_PROVIDER = {
     // Model provider constants
-    GEMINI_CLI: 'gemini-cli-oauth',
-    ANTIGRAVITY: 'gemini-antigravity',
     OPENAI_CUSTOM: 'openai-custom',
     OPENAI_CUSTOM_RESPONSES: 'openaiResponses-custom',
     CLAUDE_CUSTOM: 'claude-custom',
@@ -32,9 +29,9 @@ export const MODEL_PROVIDER = {
 
 /**
  * Extracts the protocol prefix from a given model provider string.
- * This is used to determine if two providers belong to the same underlying protocol (e.g., gemini, openai, claude).
- * @param {string} provider - The model provider string (e.g., 'gemini-cli', 'openai-custom').
- * @returns {string} The protocol prefix (e.g., 'gemini', 'openai', 'claude').
+ * This is used to determine if two providers belong to the same underlying protocol (e.g., openai, claude).
+ * @param {string} provider - The model provider string (e.g., 'claude-kiro-oauth', 'openai-custom').
+ * @returns {string} The protocol prefix (e.g., 'openai', 'claude').
  */
 export function getProtocolPrefix(provider) {
     const hyphenIndex = provider.indexOf('-');
@@ -47,10 +44,8 @@ export function getProtocolPrefix(provider) {
 export const ENDPOINT_TYPE = {
     OPENAI_CHAT: 'openai_chat',
     OPENAI_RESPONSES: 'openai_responses',
-    GEMINI_CONTENT: 'gemini_content',
     CLAUDE_MESSAGE: 'claude_message',
     OPENAI_MODEL_LIST: 'openai_model_list',
-    GEMINI_MODEL_LIST: 'gemini_model_list',
 };
 
 export const FETCH_SYSTEM_PROMPT_FILE = path.join(process.cwd(), 'configs', 'fetch_system_prompt.txt');
@@ -137,12 +132,12 @@ export function isAuthorized(req, requestUrl, REQUIRED_API_KEY) {
         }
     }
 
-    // Check for API key in URL query parameter (Gemini style)
+    // Check for API key in URL query parameter (legacy support)
     if (queryKey === REQUIRED_API_KEY) {
         return true;
     }
 
-    // Check for API key in x-goog-api-key header (Gemini style)
+    // Check for API key in x-goog-api-key header (legacy support)
     if (googApiKey === REQUIRED_API_KEY) {
         return true;
     }
@@ -323,7 +318,6 @@ export async function handleModelListRequest(req, res, service, endpointType, CO
     try{
         const clientProviderMap = {
             [ENDPOINT_TYPE.OPENAI_MODEL_LIST]: MODEL_PROTOCOL_PREFIX.OPENAI,
-            [ENDPOINT_TYPE.GEMINI_MODEL_LIST]: MODEL_PROTOCOL_PREFIX.GEMINI,
         };
 
 
@@ -362,7 +356,7 @@ export async function handleModelListRequest(req, res, service, endpointType, CO
 
 /**
  * Handles requests for content generation (both unary and streaming). This function
- * orchestrates request body parsing, conversion to the internal Gemini format,
+ * orchestrates request body parsing, conversion to the backend protocol format,
  * logging, and dispatching to the appropriate stream or unary handler.
  * @param {http.IncomingMessage} req The HTTP request object.
  * @param {http.ServerResponse} res The HTTP response object.
@@ -380,7 +374,6 @@ export async function handleContentGenerationRequest(req, res, service, endpoint
         [ENDPOINT_TYPE.OPENAI_CHAT]: MODEL_PROTOCOL_PREFIX.OPENAI,
         [ENDPOINT_TYPE.OPENAI_RESPONSES]: MODEL_PROTOCOL_PREFIX.OPENAI_RESPONSES,
         [ENDPOINT_TYPE.CLAUDE_MESSAGE]: MODEL_PROTOCOL_PREFIX.CLAUDE,
-        [ENDPOINT_TYPE.GEMINI_CONTENT]: MODEL_PROTOCOL_PREFIX.GEMINI,
     };
 
     const fromProvider = clientProviderMap[endpointType];
@@ -555,7 +548,7 @@ export function handleError(res, error) {
 /**
  * 从请求体中提取系统提示词。
  * @param {Object} requestBody - 请求体对象。
- * @param {string} provider - 提供商类型（'openai', 'gemini', 'claude'）。
+ * @param {string} provider - 提供商类型（'openai', 'claude'）。
  * @returns {string} 提取到的系统提示词字符串。
  */
 export function extractSystemPromptFromRequestBody(requestBody, provider) {
@@ -570,24 +563,6 @@ export function extractSystemPromptFromRequestBody(requestBody, provider) {
                 const userMessage = requestBody.messages.find(m => m.role === 'user');
                 if (userMessage) {
                     incomingSystemText = userMessage.content;
-                }
-            }
-            break;
-        case MODEL_PROTOCOL_PREFIX.GEMINI:
-            const geminiSystemInstruction = requestBody.system_instruction || requestBody.systemInstruction;
-            if (geminiSystemInstruction?.parts) {
-                incomingSystemText = geminiSystemInstruction.parts
-                    .filter(p => p?.text)
-                    .map(p => p.text)
-                    .join('\n');
-            } else if (requestBody.contents?.length > 0) {
-                // Fallback to first user content if no system instruction
-                const userContent = requestBody.contents[0];
-                if (userContent?.parts) {
-                    incomingSystemText = userContent.parts
-                        .filter(p => p?.text)
-                        .map(p => p.text)
-                        .join('\n');
                 }
             }
             break;
@@ -646,17 +621,6 @@ function createErrorResponse(error, fromProvider) {
         return 'invalid_request_error';
     };
     
-    // 根据 HTTP 状态码映射 Gemini 的 status
-    const getGeminiStatus = (code) => {
-        if (code === 400) return 'INVALID_ARGUMENT';
-        if (code === 401) return 'UNAUTHENTICATED';
-        if (code === 403) return 'PERMISSION_DENIED';
-        if (code === 404) return 'NOT_FOUND';
-        if (code === 429) return 'RESOURCE_EXHAUSTED';
-        if (code >= 500) return 'INTERNAL';
-        return 'UNKNOWN';
-    };
-    
     switch (protocolPrefix) {
         case MODEL_PROTOCOL_PREFIX.OPENAI:
             // OpenAI 非流式错误格式
@@ -685,16 +649,6 @@ function createErrorResponse(error, fromProvider) {
                 error: {
                     type: getErrorType(statusCode),  // Claude 使用 error.type 作为核心判断
                     message: errorMessage
-                }
-            };
-            
-        case MODEL_PROTOCOL_PREFIX.GEMINI:
-            // Gemini 非流式错误格式（遵循 Google Cloud 标准）
-            return {
-                error: {
-                    code: statusCode,
-                    message: errorMessage,
-                    status: getGeminiStatus(statusCode)  // Gemini 使用 status 作为核心判断
                 }
             };
             
@@ -728,17 +682,6 @@ function createStreamErrorResponse(error, fromProvider) {
         if (code === 429) return 'rate_limit_error';
         if (code >= 500) return 'server_error';
         return 'invalid_request_error';
-    };
-    
-    // 根据 HTTP 状态码映射 Gemini 的 status
-    const getGeminiStatus = (code) => {
-        if (code === 400) return 'INVALID_ARGUMENT';
-        if (code === 401) return 'UNAUTHENTICATED';
-        if (code === 403) return 'PERMISSION_DENIED';
-        if (code === 404) return 'NOT_FOUND';
-        if (code === 429) return 'RESOURCE_EXHAUSTED';
-        if (code >= 500) return 'INTERNAL';
-        return 'UNKNOWN';
     };
     
     switch (protocolPrefix) {
@@ -777,19 +720,6 @@ function createStreamErrorResponse(error, fromProvider) {
                 }
             };
             return `event: error\ndata: ${JSON.stringify(claudeError)}\n\n`;
-            
-        case MODEL_PROTOCOL_PREFIX.GEMINI:
-            // Gemini 流式错误格式
-            // 注意：虽然 Gemini 原生使用 JSON 数组，但在我们的实现中已经转换为 SSE 格式
-            // 所以这里也需要使用 data: 前缀，保持与正常流式响应一致
-            const geminiError = {
-                error: {
-                    code: statusCode,
-                    message: errorMessage,
-                    status: getGeminiStatus(statusCode)
-                }
-            };
-            return `data: ${JSON.stringify(geminiError)}\n\n`;
             
         default:
             // 默认使用 OpenAI SSE 格式

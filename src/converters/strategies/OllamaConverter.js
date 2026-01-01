@@ -31,26 +31,6 @@ import {
     OLLAMA_CLAUDE_SONNET_35_MAX_OUTPUT_TOKENS,
     OLLAMA_CLAUDE_OPUS_30_CONTEXT_LENGTH,
     OLLAMA_CLAUDE_OPUS_30_MAX_OUTPUT_TOKENS,
-    OLLAMA_GEMINI_25_PRO_CONTEXT_LENGTH,
-    OLLAMA_GEMINI_25_PRO_MAX_OUTPUT_TOKENS,
-    OLLAMA_GEMINI_25_FLASH_CONTEXT_LENGTH,
-    OLLAMA_GEMINI_25_FLASH_MAX_OUTPUT_TOKENS,
-    OLLAMA_GEMINI_25_IMAGE_CONTEXT_LENGTH,
-    OLLAMA_GEMINI_25_IMAGE_MAX_OUTPUT_TOKENS,
-    OLLAMA_GEMINI_25_LIVE_CONTEXT_LENGTH,
-    OLLAMA_GEMINI_25_LIVE_MAX_OUTPUT_TOKENS,
-    OLLAMA_GEMINI_25_TTS_CONTEXT_LENGTH,
-    OLLAMA_GEMINI_25_TTS_MAX_OUTPUT_TOKENS,
-    OLLAMA_GEMINI_20_FLASH_CONTEXT_LENGTH,
-    OLLAMA_GEMINI_20_FLASH_MAX_OUTPUT_TOKENS,
-    OLLAMA_GEMINI_20_IMAGE_CONTEXT_LENGTH,
-    OLLAMA_GEMINI_20_IMAGE_MAX_OUTPUT_TOKENS,
-    OLLAMA_GEMINI_15_PRO_CONTEXT_LENGTH,
-    OLLAMA_GEMINI_15_PRO_MAX_OUTPUT_TOKENS,
-    OLLAMA_GEMINI_15_FLASH_CONTEXT_LENGTH,
-    OLLAMA_GEMINI_15_FLASH_MAX_OUTPUT_TOKENS,
-    OLLAMA_GEMINI_DEFAULT_CONTEXT_LENGTH,
-    OLLAMA_GEMINI_DEFAULT_MAX_OUTPUT_TOKENS,
     OLLAMA_GPT4_TURBO_CONTEXT_LENGTH,
     OLLAMA_GPT4_TURBO_MAX_OUTPUT_TOKENS,
     OLLAMA_GPT4_32K_CONTEXT_LENGTH,
@@ -96,7 +76,6 @@ export class OllamaConverter extends BaseConverter {
         switch (targetProtocol) {
             case MODEL_PROTOCOL_PREFIX.OPENAI:
             case MODEL_PROTOCOL_PREFIX.CLAUDE:
-            case MODEL_PROTOCOL_PREFIX.GEMINI:
                 return this.toOpenAIRequest(data);
             default:
                 throw new Error(`Unsupported target protocol: ${targetProtocol}`);
@@ -184,11 +163,11 @@ export class OllamaConverter extends BaseConverter {
     }
 
     // =========================================================================
-    // OpenAI/Claude/Gemini -> Ollama 转换
+    // OpenAI/Claude -> Ollama 转换
     // =========================================================================
 
     /**
-     * OpenAI/Claude/Gemini响应 -> Ollama chat响应
+     * OpenAI/Claude响应 -> Ollama chat响应
      */
     toOllamaChatResponse(response, model) {
         const ollamaResponse = {
@@ -243,7 +222,7 @@ export class OllamaConverter extends BaseConverter {
     }
 
     /**
-     * OpenAI/Claude/Gemini generate响应 -> Ollama generate响应
+     * OpenAI/Claude generate响应 -> Ollama generate响应
      */
     toOllamaGenerateResponse(response, model) {
         const ollamaResponse = {
@@ -290,7 +269,7 @@ export class OllamaConverter extends BaseConverter {
     }
 
     /**
-     * OpenAI/Claude/Gemini流式块 -> Ollama流式块
+     * OpenAI/Claude流式块 -> Ollama流式块
      */
     toOllamaStreamChunk(chunk, model, isDone = false) {
         const ollamaChunk = {
@@ -320,21 +299,6 @@ export class OllamaConverter extends BaseConverter {
                 };
             }
         }
-        // Handle Gemini format
-        else if (!isDone && chunk.candidates && chunk.candidates.length > 0) {
-            const candidate = chunk.candidates[0];
-            let content = '';
-            if (candidate.content && candidate.content.parts) {
-                content = candidate.content.parts
-                    .filter(part => part.text)
-                    .map(part => part.text)
-                    .join('');
-            }
-            ollamaChunk.message = {
-                role: 'assistant',
-                content: content
-            };
-        }
         // Handle OpenAI format
         else if (!isDone && chunk.choices && chunk.choices.length > 0) {
             const delta = chunk.choices[0].delta;
@@ -356,7 +320,7 @@ export class OllamaConverter extends BaseConverter {
     }
 
     /**
-     * OpenAI/Claude/Gemini流式块 -> Ollama generate流式块
+     * OpenAI/Claude流式块 -> Ollama generate流式块
      */
     toOllamaGenerateStreamChunk(chunk, model, isDone = false) {
         const ollamaChunk = {
@@ -392,23 +356,18 @@ export class OllamaConverter extends BaseConverter {
     }
 
     /**
-     * OpenAI/Claude/Gemini模型列表 -> Ollama tags
+     * OpenAI/Claude模型列表 -> Ollama tags
      */
     toOllamaTags(modelList, sourceProtocol = null) {
         const models = [];
 
-        // Handle both OpenAI format (data array) and Gemini format (models array)
+        // 兼容不同来源的模型列表字段（data/models）
         const sourceModels = modelList.data || modelList.models || [];
         
         if (Array.isArray(sourceModels)) {
             sourceModels.forEach(model => {
                 // Get model name
                 let modelName = model.id || model.name || model.displayName || 'unknown';
-                
-                // Remove "models/" prefix if present (for Gemini)
-                if (modelName.startsWith('models/')) {
-                    modelName = modelName.substring(7); // Remove "models/"
-                }
                 
                 // Skip models with invalid names
                 if (modelName === 'unknown' || !modelName) {
@@ -511,61 +470,6 @@ export class OllamaConverter extends BaseConverter {
             else {
                 contextLength = OLLAMA_CLAUDE_DEFAULT_CONTEXT_LENGTH; // 200K
                 maxOutputTokens = OLLAMA_CLAUDE_HAIKU_35_MAX_OUTPUT_TOKENS; // 8K output
-            }
-        }
-        // Gemini models
-        else if (lowerName.includes('gemini')) {
-            architecture = 'gemini';
-            
-            // Gemini 2.5 Pro
-            if (lowerName.includes('2.5') && lowerName.includes('pro')) {
-                contextLength = OLLAMA_GEMINI_25_PRO_CONTEXT_LENGTH; // 1M input tokens
-                maxOutputTokens = OLLAMA_GEMINI_25_PRO_MAX_OUTPUT_TOKENS; // 65K output tokens
-            }
-            // Gemini 2.5 Flash / Flash-Lite
-            else if (lowerName.includes('2.5') && (lowerName.includes('flash') || lowerName.includes('lite'))) {
-                contextLength = OLLAMA_GEMINI_25_FLASH_CONTEXT_LENGTH; // 1M input tokens
-                maxOutputTokens = OLLAMA_GEMINI_25_FLASH_MAX_OUTPUT_TOKENS; // 65K output tokens
-            }
-            // Gemini 2.5 Flash Image
-            else if (lowerName.includes('2.5') && lowerName.includes('image')) {
-                contextLength = OLLAMA_GEMINI_25_IMAGE_CONTEXT_LENGTH; // 65K input tokens
-                maxOutputTokens = OLLAMA_GEMINI_25_IMAGE_MAX_OUTPUT_TOKENS; // 32K output tokens
-            }
-            // Gemini 2.5 Flash Live / Native Audio
-            else if (lowerName.includes('2.5') && (lowerName.includes('live') || lowerName.includes('native-audio'))) {
-                contextLength = OLLAMA_GEMINI_25_LIVE_CONTEXT_LENGTH; // 131K input tokens
-                maxOutputTokens = OLLAMA_GEMINI_25_LIVE_MAX_OUTPUT_TOKENS; // 8K output tokens
-            }
-            // Gemini 2.5 TTS
-            else if (lowerName.includes('2.5') && lowerName.includes('tts')) {
-                contextLength = OLLAMA_GEMINI_25_TTS_CONTEXT_LENGTH; // 8K input tokens
-                maxOutputTokens = OLLAMA_GEMINI_25_TTS_MAX_OUTPUT_TOKENS; // 16K output tokens
-            }
-            // Gemini 2.0 Flash
-            else if (lowerName.includes('2.0') && lowerName.includes('flash')) {
-                contextLength = OLLAMA_GEMINI_20_FLASH_CONTEXT_LENGTH; // 1M input tokens
-                maxOutputTokens = OLLAMA_GEMINI_20_FLASH_MAX_OUTPUT_TOKENS; // 8K output tokens
-            }
-            // Gemini 2.0 Flash Image
-            else if (lowerName.includes('2.0') && lowerName.includes('image')) {
-                contextLength = OLLAMA_GEMINI_20_IMAGE_CONTEXT_LENGTH; // 32K input tokens
-                maxOutputTokens = OLLAMA_GEMINI_20_IMAGE_MAX_OUTPUT_TOKENS; // 8K output tokens
-            }
-            // Gemini 1.5 Pro (legacy)
-            else if (lowerName.includes('1.5') && lowerName.includes('pro')) {
-                contextLength = OLLAMA_GEMINI_15_PRO_CONTEXT_LENGTH; // 2M tokens
-                maxOutputTokens = OLLAMA_GEMINI_15_PRO_MAX_OUTPUT_TOKENS;
-            }
-            // Gemini 1.5 Flash (legacy)
-            else if (lowerName.includes('1.5') && lowerName.includes('flash')) {
-                contextLength = OLLAMA_GEMINI_15_FLASH_CONTEXT_LENGTH; // 1M tokens
-                maxOutputTokens = OLLAMA_GEMINI_15_FLASH_MAX_OUTPUT_TOKENS;
-            }
-            // Default for Gemini
-            else {
-                contextLength = OLLAMA_GEMINI_DEFAULT_CONTEXT_LENGTH; // 1M tokens
-                maxOutputTokens = OLLAMA_GEMINI_DEFAULT_MAX_OUTPUT_TOKENS;
             }
         }
         // GPT-4 models

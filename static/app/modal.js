@@ -672,10 +672,8 @@ function getFieldOrder(provider) {
         'openai-custom': ['OPENAI_API_KEY', 'OPENAI_BASE_URL'],
         'openaiResponses-custom': ['OPENAI_API_KEY', 'OPENAI_BASE_URL'],
         'claude-custom': ['CLAUDE_API_KEY', 'CLAUDE_BASE_URL'],
-        'gemini-cli-oauth': ['PROJECT_ID', 'GEMINI_OAUTH_CREDS_FILE_PATH', 'GEMINI_BASE_URL'],
         'claude-kiro-oauth': ['KIRO_OAUTH_CREDS_FILE_PATH', 'KIRO_BASE_URL', 'KIRO_REFRESH_URL'],
-        'openai-qwen-oauth': ['QWEN_OAUTH_CREDS_FILE_PATH', 'QWEN_BASE_URL', 'QWEN_OAUTH_BASE_URL'],
-        'gemini-antigravity': ['PROJECT_ID', 'ANTIGRAVITY_OAUTH_CREDS_FILE_PATH', 'ANTIGRAVITY_BASE_URL_DAILY', 'ANTIGRAVITY_BASE_URL_AUTOPUSH']
+        'openai-qwen-oauth': ['QWEN_OAUTH_CREDS_FILE_PATH', 'QWEN_BASE_URL', 'QWEN_OAUTH_BASE_URL']
     };
     
     // 尝试从全局或当前模态框上下文中推断提供商类型
@@ -685,14 +683,10 @@ function getFieldOrder(provider) {
             providerType = 'openai-custom';
         } else if (provider.CLAUDE_API_KEY && provider.CLAUDE_BASE_URL) {
             providerType = 'claude-custom';
-        } else if (provider.GEMINI_OAUTH_CREDS_FILE_PATH) {
-            providerType = 'gemini-cli-oauth';
         } else if (provider.KIRO_OAUTH_CREDS_FILE_PATH) {
             providerType = 'claude-kiro-oauth';
         } else if (provider.QWEN_OAUTH_CREDS_FILE_PATH) {
             providerType = 'openai-qwen-oauth';
-        } else if (provider.ANTIGRAVITY_OAUTH_CREDS_FILE_PATH) {
-            providerType = 'gemini-antigravity';
         }
     }
 

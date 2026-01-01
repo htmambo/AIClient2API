@@ -19,7 +19,6 @@ const TEST_SERVER_BASE_URL = 'http://192.168.1.232:3000';
 const TEST_API_KEY = '123456'; // You may need to adjust this based on your server config
 const MODEL_PROVIDER = {
     // Model provider constants
-    GEMINI_CLI: 'gemini-cli-oauth',
     OPENAI_CUSTOM: 'openai-custom',
     CLAUDE_CUSTOM: 'claude-custom',
     KIRO_API: 'claude-kiro-oauth',
@@ -29,35 +28,17 @@ const MODEL_PROVIDER = {
 const REAL_TEST_DATA = {
     openai: {
         nonStreamRequest: {
-            model: "gemini-2.5-flash",
+            model: "deepseek-ai/DeepSeek-V3",
             messages: [
                 { role: "user", content: "Hello, what is 2+2?" }
             ]
         },
         streamRequest: {
-            model: "gemini-2.5-flash", 
+            model: "deepseek-ai/DeepSeek-V3", 
             messages: [
                 { role: "user", content: "Hello, what is 2+2?" }
             ],
             stream: true
-        }
-    },
-    gemini: {
-        nonStreamRequest: {
-            contents: [
-                { 
-                    role: "user",
-                    parts: [{ text: "Hello, what is 2+2?" }] 
-                }
-            ]
-        },
-        streamRequest: {
-            contents: [
-                { 
-                    role: "user",
-                    parts: [{ text: "Hello, what is 2+2?" }] 
-                }
-            ]
         }
     },
     claude: {
@@ -99,66 +80,6 @@ describe('API Integration Tests with HTTP Requests', () => {
     // To run all OpenAI Compatible Endpoints tests:
     // npx jest ./tests/api-integration.test.js -t "OpenAI Compatible Endpoints"
     describe('OpenAI Compatible Endpoints', () => {
-        // To run this test:
-        // npx jest ./tests/api-integration.test.js -t "OpenAI /v1/chat/completions non-streaming Gemini"
-        test('OpenAI /v1/chat/completions non-streaming Gemini', async () => {
-            const response = await makeRequest(
-                `${TEST_SERVER_BASE_URL}/v1/chat/completions`,
-                'POST',
-                'bearer',
-                { 'model-provider': MODEL_PROVIDER.GEMINI_CLI },
-                REAL_TEST_DATA.openai.nonStreamRequest
-            );
-
-            expect(response.status).toBe(200);
-            expect(response.headers.get('content-type')).toContain('application/json');
-            
-            const responseData = await response.json();
-            expect(responseData).toHaveProperty('choices');
-            expect(Array.isArray(responseData.choices)).toBe(true);
-            expect(responseData.choices.length).toBeGreaterThan(0);
-            expect(responseData.choices[0]).toHaveProperty('message');
-            expect(responseData.choices[0].message).toHaveProperty('content');
-        });
-
-        // To run this test:
-        // npx jest ./tests/api-integration.test.js -t "OpenAI /v1/chat/completions streaming Gemini"
-        test('OpenAI /v1/chat/completions streaming Gemini', async () => {
-            const response = await makeRequest(
-                `${TEST_SERVER_BASE_URL}/v1/chat/completions`,
-                'POST',
-                'bearer',
-                { 'model-provider': MODEL_PROVIDER.GEMINI_CLI },
-                REAL_TEST_DATA.openai.streamRequest
-            );
-
-            expect(response.status).toBe(200);
-            expect(response.headers.get('content-type')).toContain('text/event-stream');
-            expect(response.headers.get('cache-control')).toBe('no-cache');
-            expect(response.headers.get('connection')).toBe('keep-alive');
-            
-            // Read some of the streaming response
-            const reader = response.body.getReader();
-            const decoder = new TextDecoder();
-            let chunks = [];
-            let chunkCount = 0;
-            
-            try {
-                while (chunkCount < 3) { // Read first few chunks
-                    const { done, value } = await reader.read();
-                    if (done) break;
-                    
-                    const chunk = decoder.decode(value);
-                    chunks.push(chunk);
-                    chunkCount++;
-                }
-            } finally {
-                reader.releaseLock();
-            }
-            
-            expect(chunks.length).toBeGreaterThan(0);
-        });
-
         // To run this test:
         // npx jest ./tests/api-integration.test.js -t "OpenAI /v1/chat/completions non-streaming with OpenAI provider"
         test('OpenAI /v1/chat/completions non-streaming with OpenAI provider', async () => {
@@ -413,88 +334,9 @@ describe('API Integration Tests with HTTP Requests', () => {
     });
 
 
-    // To run all Gemini Native Endpoints tests:
-    // npx jest ./tests/api-integration.test.js -t "Gemini Native Endpoints"
-    describe('Gemini Native Endpoints', () => {
-        // To run this test:
-        // npx jest ./tests/api-integration.test.js -t "Gemini /v1beta/models/{model}:generateContent"
-        test('Gemini /v1beta/models/{model}:generateContent', async () => {
-            const response = await makeRequest(
-                `${TEST_SERVER_BASE_URL}/v1beta/models/gemini-2.5-flash:generateContent`,
-                'POST',
-                'goog',
-                { 'model-provider': MODEL_PROVIDER.GEMINI_CLI },
-                REAL_TEST_DATA.gemini.nonStreamRequest
-            );
-
-            expect(response.status).toBe(200);
-            expect(response.headers.get('content-type')).toContain('application/json');
-            
-            const responseData = await response.json();
-            expect(responseData).toHaveProperty('candidates');
-            expect(Array.isArray(responseData.candidates)).toBe(true);
-        });
-
-        // To run this test:
-        // npx jest ./tests/api-integration.test.js -t "Gemini /v1beta/models/{model}:streamGenerateContent"
-        test('Gemini /v1beta/models/{model}:streamGenerateContent', async () => {
-            const response = await makeRequest(
-                `${TEST_SERVER_BASE_URL}/v1beta/models/gemini-2.5-flash:streamGenerateContent`,
-                'POST',
-                'goog',
-                { 'model-provider': MODEL_PROVIDER.GEMINI_CLI },
-                REAL_TEST_DATA.gemini.streamRequest
-            );
-
-            expect(response.status).toBe(200);
-            expect(response.headers.get('content-type')).toContain('text/event-stream');
-            expect(response.headers.get('cache-control')).toBe('no-cache');
-            expect(response.headers.get('connection')).toBe('keep-alive');
-            
-            // Read some of the streaming response
-            const reader = response.body.getReader();
-            const decoder = new TextDecoder();
-            let chunks = [];
-            let chunkCount = 0;
-            
-            try {
-                while (chunkCount < 3) { // Read first few chunks
-                    const { done, value } = await reader.read();
-                    if (done) break;
-                    
-                    const chunk = decoder.decode(value);
-                    chunks.push(chunk);
-                    chunkCount++;
-                }
-            } finally {
-                reader.releaseLock();
-            }
-            
-            expect(chunks.length).toBeGreaterThan(0);
-        });
-    });
-
     // To run all Model List Endpoints tests:
     // npx jest ./tests/api-integration.test.js -t "Model List Endpoints"
     describe('Model List Endpoints', () => {
-        // To run this test:
-        // npx jest ./tests/api-integration.test.js -t "OpenAI /v1/models Gemini"
-        test('OpenAI /v1/models Gemini', async () => {
-            const response = await makeRequest(
-                `${TEST_SERVER_BASE_URL}/v1/models`,
-                'GET',
-                'bearer',
-                { 'model-provider': MODEL_PROVIDER.GEMINI_CLI }
-            );
-
-            expect(response.status).toBe(200);
-            expect(response.headers.get('content-type')).toContain('application/json');
-            
-            const responseData = await response.json();
-            expect(responseData).toHaveProperty('data');
-            expect(Array.isArray(responseData.data)).toBe(true);
-        });
-
         // npx jest ./tests/api-integration.test.js -t "OpenAI /v1/models OpenAI"
         test('OpenAI /v1/models OpenAI', async () => {
             const response = await makeRequest(
@@ -529,23 +371,6 @@ describe('API Integration Tests with HTTP Requests', () => {
             expect(Array.isArray(responseData.data)).toBe(true);
         });
 
-        // To run this test:
-        // npx jest ./tests/api-integration.test.js -t "Gemini /v1beta/models modelList"
-        test('Gemini /v1beta/models modelList', async () => {
-            const response = await makeRequest(
-                `${TEST_SERVER_BASE_URL}/v1beta/models`,
-                'GET',
-                'goog',
-                { 'model-provider': MODEL_PROVIDER.GEMINI_CLI }
-            );
-
-            expect(response.status).toBe(200);
-            expect(response.headers.get('content-type')).toContain('application/json');
-            
-            const responseData = await response.json();
-            expect(responseData).toHaveProperty('models');
-            expect(Array.isArray(responseData.models)).toBe(true);
-        });
     });
 
     // To run all Authentication Tests:

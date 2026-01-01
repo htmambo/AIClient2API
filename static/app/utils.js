@@ -76,18 +76,12 @@ function getFieldLabel(key) {
         'OPENAI_BASE_URL': 'OpenAI Base URL',
         'CLAUDE_API_KEY': 'Claude API Key',
         'CLAUDE_BASE_URL': 'Claude Base URL',
-        'PROJECT_ID': isEn ? 'Project ID' : '项目ID',
-        'GEMINI_OAUTH_CREDS_FILE_PATH': isEn ? 'OAuth Credentials File Path' : 'OAuth凭据文件路径',
         'KIRO_OAUTH_CREDS_FILE_PATH': isEn ? 'OAuth Credentials File Path' : 'OAuth凭据文件路径',
         'QWEN_OAUTH_CREDS_FILE_PATH': isEn ? 'OAuth Credentials File Path' : 'OAuth凭据文件路径',
-        'ANTIGRAVITY_OAUTH_CREDS_FILE_PATH': isEn ? 'OAuth Credentials File Path' : 'OAuth凭据文件路径',
-        'GEMINI_BASE_URL': 'Gemini Base URL',
         'KIRO_BASE_URL': 'Base URL',
         'KIRO_REFRESH_URL': 'Refresh URL',
         'QWEN_BASE_URL': 'Qwen Base URL',
-        'QWEN_OAUTH_BASE_URL': 'OAuth Base URL',
-        'ANTIGRAVITY_BASE_URL_DAILY': 'Daily Base URL',
-        'ANTIGRAVITY_BASE_URL_AUTOPUSH': 'Autopush Base URL'
+        'QWEN_OAUTH_BASE_URL': 'OAuth Base URL'
     };
     
     return labelMap[key] || key;
@@ -143,26 +137,6 @@ function getProviderTypeFields(providerType) {
                 placeholder: 'https://api.anthropic.com'
             }
         ],
-        'gemini-cli-oauth': [
-            {
-                id: 'PROJECT_ID',
-                label: isEn ? 'Project ID' : '项目ID',
-                type: 'text',
-                placeholder: isEn ? 'Google Cloud Project ID' : 'Google Cloud项目ID'
-            },
-            {
-                id: 'GEMINI_OAUTH_CREDS_FILE_PATH',
-                label: isEn ? 'OAuth Credentials File Path' : 'OAuth凭据文件路径',
-                type: 'text',
-                placeholder: isEn ? 'e.g.: ~/.gemini/oauth_creds.json' : '例如: ~/.gemini/oauth_creds.json'
-            },
-            {
-                id: 'GEMINI_BASE_URL',
-                label: `Gemini Base URL <span class="optional-tag">${t('config.optional')}</span>`,
-                type: 'text',
-                placeholder: 'https://cloudcode-pa.googleapis.com'
-            }
-        ],
         'claude-kiro-oauth': [
             {
                 id: 'KIRO_OAUTH_CREDS_FILE_PATH',
@@ -207,32 +181,6 @@ function getProviderTypeFields(providerType) {
                 label: `OAuth Base URL <span class="optional-tag">${t('config.optional')}</span>`,
                 type: 'text',
                 placeholder: 'https://chat.qwen.ai'
-            }
-        ],
-        'gemini-antigravity': [
-            {
-                id: 'PROJECT_ID',
-                label: isEn ? 'Project ID (Optional)' : '项目ID (选填)',
-                type: 'text',
-                placeholder: isEn ? 'Google Cloud Project ID (Leave blank for discovery)' : 'Google Cloud项目ID (留空自动发现)'
-            },
-            {
-                id: 'ANTIGRAVITY_OAUTH_CREDS_FILE_PATH',
-                label: isEn ? 'OAuth Credentials File Path' : 'OAuth凭据文件路径',
-                type: 'text',
-                placeholder: isEn ? 'e.g.: ~/.antigravity/oauth_creds.json' : '例如: ~/.antigravity/oauth_creds.json'
-            },
-            {
-                id: 'ANTIGRAVITY_BASE_URL_DAILY',
-                label: `Daily Base URL <span class="optional-tag">${t('config.optional')}</span>`,
-                type: 'text',
-                placeholder: 'https://daily-cloudcode-pa.sandbox.googleapis.com'
-            },
-            {
-                id: 'ANTIGRAVITY_BASE_URL_AUTOPUSH',
-                label: `Autopush Base URL <span class="optional-tag">${t('config.optional')}</span>`,
-                type: 'text',
-                placeholder: 'https://autopush-cloudcode-pa.sandbox.googleapis.com'
             }
         ]
     };

@@ -31,15 +31,6 @@ export const CLAUDE_DEFAULT_TEMPERATURE = 1;
 export const CLAUDE_DEFAULT_TOP_P = 0.95;
 
 // =============================================================================
-// Gemini 相关常量
-// =============================================================================
-export const GEMINI_DEFAULT_MAX_TOKENS = 65534;
-export const GEMINI_DEFAULT_TEMPERATURE = 1;
-export const GEMINI_DEFAULT_TOP_P = 0.95;
-export const GEMINI_DEFAULT_INPUT_TOKEN_LIMIT = 32768;
-export const GEMINI_DEFAULT_OUTPUT_TOKEN_LIMIT = 65534;
-
-// =============================================================================
 // OpenAI Responses 相关常量
 // =============================================================================
 export const OPENAI_RESPONSES_DEFAULT_MAX_TOKENS = 128000;
@@ -76,28 +67,6 @@ export const OLLAMA_CLAUDE_SONNET_35_CONTEXT_LENGTH = 200000;
 export const OLLAMA_CLAUDE_SONNET_35_MAX_OUTPUT_TOKENS = 200000;
 export const OLLAMA_CLAUDE_OPUS_30_CONTEXT_LENGTH = 200000;
 export const OLLAMA_CLAUDE_OPUS_30_MAX_OUTPUT_TOKENS = 8192;
-
-// Gemini 模型上下文长度
-export const OLLAMA_GEMINI_25_PRO_CONTEXT_LENGTH = 1048576;
-export const OLLAMA_GEMINI_25_PRO_MAX_OUTPUT_TOKENS = 65534;
-export const OLLAMA_GEMINI_25_FLASH_CONTEXT_LENGTH = 1048576;
-export const OLLAMA_GEMINI_25_FLASH_MAX_OUTPUT_TOKENS = 65534;
-export const OLLAMA_GEMINI_25_IMAGE_CONTEXT_LENGTH = 65534;
-export const OLLAMA_GEMINI_25_IMAGE_MAX_OUTPUT_TOKENS = 32768;
-export const OLLAMA_GEMINI_25_LIVE_CONTEXT_LENGTH = 131072;
-export const OLLAMA_GEMINI_25_LIVE_MAX_OUTPUT_TOKENS = 65534;
-export const OLLAMA_GEMINI_25_TTS_CONTEXT_LENGTH = 65534;
-export const OLLAMA_GEMINI_25_TTS_MAX_OUTPUT_TOKENS = 16384;
-export const OLLAMA_GEMINI_20_FLASH_CONTEXT_LENGTH = 1048576;
-export const OLLAMA_GEMINI_20_FLASH_MAX_OUTPUT_TOKENS = 65534;
-export const OLLAMA_GEMINI_20_IMAGE_CONTEXT_LENGTH = 32768;
-export const OLLAMA_GEMINI_20_IMAGE_MAX_OUTPUT_TOKENS = 65534;
-export const OLLAMA_GEMINI_15_PRO_CONTEXT_LENGTH = 2097152;
-export const OLLAMA_GEMINI_15_PRO_MAX_OUTPUT_TOKENS = 65534;
-export const OLLAMA_GEMINI_15_FLASH_CONTEXT_LENGTH = 1048576;
-export const OLLAMA_GEMINI_15_FLASH_MAX_OUTPUT_TOKENS = 65534;
-export const OLLAMA_GEMINI_DEFAULT_CONTEXT_LENGTH = 1048576;
-export const OLLAMA_GEMINI_DEFAULT_MAX_OUTPUT_TOKENS = 65534;
 
 // GPT 模型上下文长度
 export const OLLAMA_GPT4_TURBO_CONTEXT_LENGTH = 128000;
@@ -228,7 +197,7 @@ export function extractAndProcessSystemMessages(messages) {
 }
 
 /**
- * 清理JSON Schema属性（移除Gemini不支持的属性）
+ * 清理JSON Schema属性（移除非标准/不支持的属性）
  * @param {Object} schema - JSON Schema
  * @returns {Object} 清理后的JSON Schema
  */
@@ -274,19 +243,6 @@ export function mapFinishReason(reason, sourceFormat, targetFormat) {
                 length: "max_tokens",
                 content_filter: "stop_sequence",
                 tool_calls: "tool_use"
-            }
-        },
-        gemini: {
-            anthropic: {
-                STOP: "end_turn",
-                MAX_TOKENS: "max_tokens",
-                SAFETY: "stop_sequence",
-                RECITATION: "stop_sequence",
-                stop: "end_turn",
-                length: "max_tokens",
-                safety: "stop_sequence",
-                recitation: "stop_sequence",
-                other: "end_turn"
             }
         }
     };

@@ -1,7 +1,7 @@
 // 配置管理模块
 
 import { showToast, formatUptime } from './utils.js';
-import { handleProviderChange, handleGeminiCredsTypeChange, handleKiroCredsTypeChange } from './event-handlers.js';
+import { handleProviderChange, handleKiroCredsTypeChange } from './event-handlers.js';
 import { loadProviders } from './provider-manager.js';
 import { t } from './i18n.js';
 
@@ -22,23 +22,8 @@ async function loadConfiguration() {
         if (apiKeyEl) apiKeyEl.value = data.REQUIRED_API_KEY || '';
         if (hostEl) hostEl.value = data.HOST || '127.0.0.1';
         if (portEl) portEl.value = data.SERVER_PORT || 3000;
-        if (modelProviderEl) modelProviderEl.value = data.MODEL_PROVIDER || 'gemini-cli-oauth';
+        if (modelProviderEl) modelProviderEl.value = data.MODEL_PROVIDER || 'claude-kiro-oauth';
         if (systemPromptEl) systemPromptEl.value = data.systemPrompt || '';
-        
-        // Gemini CLI OAuth
-        const projectIdEl = document.getElementById('projectId');
-        const geminiOauthCredsBase64El = document.getElementById('geminiOauthCredsBase64');
-        const geminiOauthCredsFilePathEl = document.getElementById('geminiOauthCredsFilePath');
-        
-        if (projectIdEl) projectIdEl.value = data.PROJECT_ID || '';
-        if (geminiOauthCredsBase64El) geminiOauthCredsBase64El.value = data.GEMINI_OAUTH_CREDS_BASE64 || '';
-        if (geminiOauthCredsFilePathEl) geminiOauthCredsFilePathEl.value = data.GEMINI_OAUTH_CREDS_FILE_PATH || '';
-        const geminiBaseUrlEl = document.getElementById('geminiBaseUrl');
-        if (geminiBaseUrlEl) geminiBaseUrlEl.value = data.GEMINI_BASE_URL || '';
-        const antigravityBaseUrlDailyEl = document.getElementById('antigravityBaseUrlDaily');
-        if (antigravityBaseUrlDailyEl) antigravityBaseUrlDailyEl.value = data.ANTIGRAVITY_BASE_URL_DAILY || '';
-        const antigravityBaseUrlAutopushEl = document.getElementById('antigravityBaseUrlAutopush');
-        if (antigravityBaseUrlAutopushEl) antigravityBaseUrlAutopushEl.value = data.ANTIGRAVITY_BASE_URL_AUTOPUSH || '';
         
         // OpenAI Custom
         const openaiApiKeyEl = document.getElementById('openaiApiKey');
@@ -118,14 +103,6 @@ async function loadConfiguration() {
         // 触发提供商配置显示
         handleProviderChange();
         
-        // 根据Gemini凭据类型设置显示
-        const geminiCredsType = data.GEMINI_OAUTH_CREDS_BASE64 ? 'base64' : 'file';
-        const geminiRadio = document.querySelector(`input[name="geminiCredsType"][value="${geminiCredsType}"]`);
-        if (geminiRadio) {
-            geminiRadio.checked = true;
-            handleGeminiCredsTypeChange({ target: geminiRadio });
-        }
-        
         // 根据Kiro凭据类型设置显示
         const kiroCredsType = data.KIRO_OAUTH_CREDS_BASE64 ? 'base64' : 'file';
         const kiroRadio = document.querySelector(`input[name="kiroCredsType"][value="${kiroCredsType}"]`);
@@ -156,7 +133,7 @@ async function saveConfiguration() {
         REQUIRED_API_KEY: document.getElementById('apiKey')?.value || '',
         HOST: document.getElementById('host')?.value || '127.0.0.1',
         SERVER_PORT: parseInt(document.getElementById('port')?.value || 3000),
-        MODEL_PROVIDER: document.getElementById('modelProvider')?.value || 'gemini-cli-oauth',
+        MODEL_PROVIDER: document.getElementById('modelProvider')?.value || 'claude-kiro-oauth',
         systemPrompt: document.getElementById('systemPrompt')?.value || '',
     };
 
@@ -167,25 +144,6 @@ async function saveConfiguration() {
     const provider = document.getElementById('modelProvider')?.value;
     
     switch (provider) {
-        case 'gemini-cli-oauth':
-            config.PROJECT_ID = document.getElementById('projectId')?.value || '';
-            const geminiCredsType = document.querySelector('input[name="geminiCredsType"]:checked')?.value;
-            if (geminiCredsType === 'base64') {
-                config.GEMINI_OAUTH_CREDS_BASE64 = document.getElementById('geminiOauthCredsBase64')?.value || '';
-                config.GEMINI_OAUTH_CREDS_FILE_PATH = null;
-            } else {
-                config.GEMINI_OAUTH_CREDS_BASE64 = null;
-                config.GEMINI_OAUTH_CREDS_FILE_PATH = document.getElementById('geminiOauthCredsFilePath')?.value || '';
-            }
-            config.GEMINI_BASE_URL = document.getElementById('geminiBaseUrl')?.value || null;
-            break;
-
-        case 'gemini-antigravity':
-            config.ANTIGRAVITY_BASE_URL_DAILY = document.getElementById('antigravityBaseUrlDaily')?.value || null;
-            config.ANTIGRAVITY_BASE_URL_AUTOPUSH = document.getElementById('antigravityBaseUrlAutopush')?.value || null;
-            config.ANTIGRAVITY_OAUTH_CREDS_FILE_PATH = document.getElementById('antigravityOauthCredsFilePath')?.value || '';
-            break;
-            
         case 'openai-custom':
             config.OPENAI_API_KEY = document.getElementById('openaiApiKey')?.value || '';
             config.OPENAI_BASE_URL = document.getElementById('openaiBaseUrl')?.value || '';

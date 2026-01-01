@@ -626,8 +626,6 @@ function calculateTotalUsage(usageBreakdown) {
 function getProviderDisplayName(providerType) {
     const names = {
         'claude-kiro-oauth': 'Claude Kiro OAuth',
-        'gemini-cli-oauth': 'Gemini CLI OAuth',
-        'gemini-antigravity': 'Gemini Antigravity',
         'openai-qwen-oauth': 'Qwen OAuth'
     };
     return names[providerType] || providerType;
@@ -641,8 +639,6 @@ function getProviderDisplayName(providerType) {
 function getProviderIcon(providerType) {
     const icons = {
         'claude-kiro-oauth': 'fas fa-robot',
-        'gemini-cli-oauth': 'fas fa-gem',
-        'gemini-antigravity': 'fas fa-rocket',
         'openai-qwen-oauth': 'fas fa-code'
     };
     return icons[providerType] || 'fas fa-server';

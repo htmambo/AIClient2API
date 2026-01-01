@@ -8,7 +8,7 @@ import { t } from './i18n.js';
  */
 class FileUploadHandler {
     constructor() {
-        this.currentProvider = 'gemini'; // 默认提供商
+        this.currentProvider = 'kiro'; // 默认提供商
         this.initEventListeners();
     }
 
@@ -54,12 +54,10 @@ class FileUploadHandler {
      */
     getProviderKey(provider) {
         const providerMap = {
-            'gemini-cli-oauth': 'gemini',
-            'gemini-antigravity': 'antigravity',
             'claude-kiro-oauth': 'kiro',
             'openai-qwen-oauth': 'qwen'
         };
-        return providerMap[provider] || 'gemini';
+        return providerMap[provider] || 'kiro';
     }
 
     /**

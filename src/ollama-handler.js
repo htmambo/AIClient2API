@@ -16,7 +16,6 @@ import { ConverterFactory } from './converters/ConverterFactory.js';
 export const MODEL_PREFIX_MAP = {
     [MODEL_PROVIDER.KIRO_API]: '[Kiro]',
     [MODEL_PROVIDER.CLAUDE_CUSTOM]: '[Claude]',
-    [MODEL_PROVIDER.GEMINI_CLI]: '[Gemini CLI]',
     [MODEL_PROVIDER.OPENAI_CUSTOM]: '[OpenAI]',
     [MODEL_PROVIDER.QWEN_API]: '[Qwen CLI]',
     [MODEL_PROVIDER.OPENAI_CUSTOM_RESPONSES]: '[OpenAI Responses]',
@@ -89,7 +88,7 @@ export function getProviderFromPrefix(modelName) {
  * Adds provider prefix to array of models (works with any format)
  * @param {Array} models - Array of model objects
  * @param {string} provider - Provider type
- * @param {string} format - Format type ('openai', 'gemini', 'ollama')
+ * @param {string} format - Format type ('openai', 'ollama', 'other')
  * @returns {Array} Models with prefixed names
  */
 export function addPrefixToModels(models, provider, format = 'openai') {
@@ -105,7 +104,7 @@ export function addPrefixToModels(models, provider, format = 'openai') {
                 model: addModelPrefix(model.model || model.name, provider)
             };
         } else {
-            // gemini/claude format
+            // other formats
             return {
                 ...model,
                 name: addModelPrefix(model.name, provider),
@@ -143,19 +142,6 @@ export function getProviderByModelName(modelName, providerPoolManager, defaultPr
         // Find available Claude provider
         for (const [providerType, providers] of Object.entries(providerPoolManager.providerPools)) {
             if (providerType.includes('claude') || providerType.includes('kiro')) {
-                const healthyProvider = providers.find(p => p.isHealthy);
-                if (healthyProvider) {
-                    return providerType;
-                }
-            }
-        }
-    }
-    
-    // Check if it's a Gemini model
-    if (lowerModelName.includes('gemini')) {
-        // Find available Gemini provider
-        for (const [providerType, providers] of Object.entries(providerPoolManager.providerPools)) {
-            if (providerType.includes('gemini')) {
                 const healthyProvider = providers.find(p => p.isHealthy);
                 if (healthyProvider) {
                     return providerType;
@@ -220,11 +206,6 @@ export function getProviderForModel(modelName, defaultProvider) {
     // Remove prefix for further analysis
     const cleanModelName = removeModelPrefix(modelName);
     const lowerModel = cleanModelName.toLowerCase();
-
-    // Gemini models
-    if (lowerModel.includes('gemini')) {
-        return MODEL_PROVIDER.GEMINI_CLI;
-    }
 
     // Claude models (excluding Warp's claude models)
     if (lowerModel.includes('claude')) {
@@ -673,4 +654,3 @@ export async function handleOllamaGenerate(req, res, apiService, currentConfig, 
         handleError(res, error);
     }
 }
-

@@ -20,7 +20,6 @@ AIClient2API 现在包含一个功能完整的可视化 Web UI 管理控制台�
 ### ⚙️ 配置管理
 - 在线修改 API 密钥、监听地址、端口
 - 支持多种模型提供商：
-  - **Gemini CLI OAuth** - 支持突破限制的Gemini访问
   - **OpenAI Custom** - 自定义OpenAI API配置
   - **Claude Custom** - 自定义Claude API配置
   - **Claude Kiro OAuth** - 突破限制/免费使用的Claude服务
@@ -49,8 +48,6 @@ AIClient2API 现在包含一个功能完整的可视化 Web UI 管理控制台�
 - 一键复制端点路径功能
 
 支持的路由路径示例：
-- `/gemini-cli-oauth/v1/chat/completions` - Gemini CLI OAuth (OpenAI协议)
-- `/gemini-cli-oauth/v1/messages` - Gemini CLI OAuth (Claude协议)
 - `/openai-qwen-oauth/v1/chat/completions` - Qwen OAuth (OpenAI协议)
 - `/openai-qwen-oauth/v1/messages` - Qwen OAuth (Claude协议)
 - `/claude-custom/v1/chat/completions` - Claude Custom (OpenAI协议)
@@ -172,7 +169,6 @@ static/
 ## 支持的提供商
 
 ### 突破限制类型
-- **Gemini CLI OAuth** - 通过OAuth突破Gemini API限制
 - **Claude Kiro OAuth** - 免费使用的Claude服务
 - **Qwen OAuth** - 通义千问OAuth认证
 

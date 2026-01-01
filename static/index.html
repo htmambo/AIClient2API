@@ -166,112 +166,6 @@
                         <p class="routing-description" data-i18n="dashboard.routing.description">通过不同路径路由访问不同的AI模型提供商，支持灵活的模型切换</p>
                         
                         <div class="routing-examples-grid">
-                            <div class="routing-example-card" data-provider="gemini-cli-oauth-card">
-                                <div class="routing-card-header">
-                                    <i class="fas fa-gem"></i>
-                                    <h4 data-i18n="dashboard.routing.nodeName.gemini">Gemini CLI OAuth</h4>
-                                    <span class="provider-badge oauth" data-i18n="dashboard.routing.oauth">突破限制</span>
-                                </div>
-                                <div class="routing-card-content">
-                                    <!-- 协议标签切换 -->
-                                    <div class="protocol-tabs">
-                                        <button class="protocol-tab" data-protocol="openai" data-i18n="dashboard.routing.openai">OpenAI协议</button>
-                                        <button class="protocol-tab active" data-protocol="claude" data-i18n="dashboard.routing.claude">Claude协议</button>
-                                    </div>
-                                    
-                                    <!-- OpenAI协议示例 -->
-                                    <div class="protocol-content" data-protocol="openai">
-                                        <div class="endpoint-info">
-                                            <label data-i18n="dashboard.routing.endpoint">端点路径:</label>
-                                            <code class="endpoint-path">/gemini-cli-oauth/v1/chat/completions</code>
-                                        </div>
-                                        <div class="usage-example">
-                                            <label data-i18n="dashboard.routing.exampleOpenAI">使用示例 (OpenAI格式):</label>
-                                            <pre><code>curl http://localhost:3000/gemini-cli-oauth/v1/chat/completions \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer YOUR_API_KEY" \
-  -d '{
-    "model": "gemini-2.0-flash-exp",
-    "messages": [{"role": "user", "content": "Hello!"}],
-    "max_tokens": 1000
-  }'</code></pre>
-                                        </div>
-                                    </div>
-                                    
-                                    <!-- Claude协议示例 -->
-                                    <div class="protocol-content active" data-protocol="claude">
-                                        <div class="endpoint-info">
-                                            <label data-i18n="dashboard.routing.endpoint">端点路径:</label>
-                                            <code class="endpoint-path">/gemini-cli-oauth/v1/messages</code>
-                                        </div>
-                                        <div class="usage-example">
-                                            <label data-i18n="dashboard.routing.exampleClaude">使用示例 (Claude格式):</label>
-                                            <pre><code>curl http://localhost:3000/gemini-cli-oauth/v1/messages \
-  -H "Content-Type: application/json" \
-  -H "X-API-Key: YOUR_API_KEY" \
-  -d '{
-    "model": "gemini-2.0-flash-exp",
-    "max_tokens": 1000,
-    "messages": [{"role": "user", "content": "Hello!"}]
-  }'</code></pre>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="routing-example-card" data-provider="gemini-antigravity-card">
-                                <div class="routing-card-header">
-                                    <i class="fas fa-rocket"></i>
-                                    <h4 data-i18n="dashboard.routing.nodeName.antigravity">Gemini Antigravity</h4>
-                                    <span class="provider-badge oauth" data-i18n="dashboard.routing.experimental">突破限制/实验性</span>
-                                </div>
-                                <div class="routing-card-content">
-                                    <!-- 协议标签切换 -->
-                                    <div class="protocol-tabs">
-                                        <button class="protocol-tab" data-protocol="openai" data-i18n="dashboard.routing.openai">OpenAI协议</button>
-                                        <button class="protocol-tab active" data-protocol="claude" data-i18n="dashboard.routing.claude">Claude协议</button>
-                                    </div>
-                                    
-                                    <!-- OpenAI协议示例 -->
-                                    <div class="protocol-content" data-protocol="openai">
-                                        <div class="endpoint-info">
-                                            <label data-i18n="dashboard.routing.endpoint">端点路径:</label>
-                                            <code class="endpoint-path">/gemini-antigravity/v1/chat/completions</code>
-                                        </div>
-                                        <div class="usage-example">
-                                            <label data-i18n="dashboard.routing.exampleOpenAI">使用示例 (OpenAI格式):</label>
-                                            <pre><code>curl http://localhost:3000/gemini-antigravity/v1/chat/completions \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer YOUR_API_KEY" \
-  -d '{
-    "model": "gemini-3-pro-preview",
-    "messages": [{"role": "user", "content": "Hello!"}],
-    "max_tokens": 1000
-  }'</code></pre>
-                                        </div>
-                                    </div>
-                                    
-                                    <!-- Claude协议示例 -->
-                                    <div class="protocol-content active" data-protocol="claude">
-                                        <div class="endpoint-info">
-                                            <label data-i18n="dashboard.routing.endpoint">端点路径:</label>
-                                            <code class="endpoint-path">/gemini-antigravity/v1/messages</code>
-                                        </div>
-                                        <div class="usage-example">
-                                            <label data-i18n="dashboard.routing.exampleClaude">使用示例 (Claude格式):</label>
-                                            <pre><code>curl http://localhost:3000/gemini-antigravity/v1/messages \
-  -H "Content-Type: application/json" \
-  -H "X-API-Key: YOUR_API_KEY" \
-  -d '{
-    "model": "gemini-3-pro-preview",
-    "max_tokens": 1000,
-    "messages": [{"role": "user", "content": "Hello!"}]
-  }'</code></pre>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
                             <div class="routing-example-card" data-provider="claude-custom-card">
                                 <div class="routing-card-header">
                                     <i class="fas fa-brain"></i>
@@ -525,80 +419,12 @@
                             <div class="form-group">
                                 <label for="modelProvider" data-i18n="config.modelProvider">模型提供商</label>
                                 <select id="modelProvider" class="form-control">
-                                    <option value="gemini-cli-oauth">Gemini CLI OAuth</option>
-                                    <option value="gemini-antigravity">Gemini Antigravity</option>
                                     <option value="openai-custom">OpenAI Custom</option>
                                     <option value="claude-custom">Claude Custom</option>
                                     <option value="claude-kiro-oauth">Claude Kiro OAuth</option>
                                     <option value="openai-qwen-oauth">Qwen OAuth</option>
                                     <option value="openaiResponses-custom">OpenAI Responses</option>
                                 </select>
-                            </div>
-                            
-                            <!-- Gemini CLI OAuth 配置 -->
-                            <div class="provider-config" data-provider="gemini-cli-oauth">
-                                <div class="form-group">
-                                    <label for="geminiBaseUrl"><span data-i18n="config.gemini.baseUrl">Gemini Base URL</span> <span class="optional-tag" data-i18n="config.optional">(选填)</span></label>
-                                    <input type="text" id="geminiBaseUrl" class="form-control" data-i18n-placeholder="config.gemini.baseUrlPlaceholder" placeholder="https://cloudcode-pa.googleapis.com">
-                                </div>
-                                <div class="form-group">
-                                    <label for="projectId"><span data-i18n="config.gemini.projectId">项目ID</span> <span class="optional-tag" data-i18n="config.optional">(选填)</span></label>
-                                    <input type="text" id="projectId" class="form-control" data-i18n-placeholder="config.gemini.projectIdPlaceholder" placeholder="Google Cloud项目ID">
-                                </div>
-                                <div class="form-group">
-                                    <label data-i18n="config.gemini.oauthCreds">OAuth凭据</label>
-                                    <div class="radio-group">
-                                        <label class="radio-label">
-                                            <input type="radio" name="geminiCredsType" value="file" checked>
-                                            <span data-i18n="config.gemini.credsType.file">文件路径</span>
-                                        </label>
-                                        <label class="radio-label">
-                                            <input type="radio" name="geminiCredsType" value="base64">
-                                            <span data-i18n="config.gemini.credsType.base64">Base64编码</span>
-                                        </label>
-                                    </div>
-                                </div>
-                                <div class="form-group" id="geminiCredsBase64Group">
-                                    <label for="geminiOauthCredsBase64" data-i18n="config.gemini.credsBase64">OAuth凭据 (Base64)</label>
-                                    <textarea id="geminiOauthCredsBase64" class="form-control" rows="3" data-i18n-placeholder="config.gemini.credsBase64Placeholder" placeholder="请输入Base64编码的OAuth凭据"></textarea>
-                                </div>
-                                <div class="form-group" id="geminiCredsFileGroup" style="display: none;">
-                                    <label for="geminiOauthCredsFilePath" data-i18n="config.gemini.credsFilePath">OAuth凭据文件路径</label>
-                                    <div class="file-input-group">
-                                        <input type="text" id="geminiOauthCredsFilePath" class="form-control" data-i18n-placeholder="config.gemini.credsFilePathPlaceholder" placeholder="例如: ~/.gemini/oauth_creds.json">
-                                        <button type="button" class="btn btn-outline upload-btn" data-target="geminiOauthCredsFilePath" data-i18n-title="common.upload" title="上传文件" aria-label="上传文件" data-i18n-aria-label="common.upload">
-                                            <i class="fas fa-upload"></i>
-                                        </button>
-                                        <button type="button" class="btn btn-outline generate-creds-btn" data-target="geminiOauthCredsFilePath" data-provider="gemini-cli-oauth" data-i18n-title="common.generate" title="生成凭据文件">
-                                            <i class="fas fa-magic"></i>
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <!-- Gemini Antigravity 配置 -->
-                            <div class="provider-config" data-provider="gemini-antigravity" style="display: none;">
-                                <div class="form-group">
-                                    <label for="antigravityBaseUrlDaily"><span data-i18n="config.antigravity.dailyUrl">Daily Base URL</span> <span class="optional-tag" data-i18n="config.optional">(选填)</span></label>
-                                    <input type="text" id="antigravityBaseUrlDaily" class="form-control" data-i18n-placeholder="config.antigravity.dailyUrlPlaceholder" placeholder="https://daily-cloudcode-pa.sandbox.googleapis.com">
-                                </div>
-                                <div class="form-group">
-                                    <label for="antigravityBaseUrlAutopush"><span data-i18n="config.antigravity.autopushUrl">Autopush Base URL</span> <span class="optional-tag" data-i18n="config.optional">(选填)</span></label>
-                                    <input type="text" id="antigravityBaseUrlAutopush" class="form-control" data-i18n-placeholder="config.antigravity.autopushUrlPlaceholder" placeholder="https://autopush-cloudcode-pa.sandbox.googleapis.com">
-                                </div>
-                                <div class="form-group">
-                                    <label for="antigravityOauthCredsFilePath" data-i18n="config.antigravity.credsFilePath">OAuth凭据文件路径</label>
-                                    <div class="file-input-group">
-                                        <input type="text" id="antigravityOauthCredsFilePath" class="form-control" data-i18n-placeholder="config.antigravity.credsFilePathPlaceholder" placeholder="例如: ~/.antigravity/oauth_creds.json">
-                                        <button type="button" class="btn btn-outline upload-btn" data-target="antigravityOauthCredsFilePath" data-i18n-title="common.upload" title="上传文件" aria-label="上传文件" data-i18n-aria-label="common.upload">
-                                            <i class="fas fa-upload"></i>
-                                        </button>
-                                        <button type="button" class="btn btn-outline generate-creds-btn" data-target="antigravityOauthCredsFilePath" data-provider="gemini-antigravity" data-i18n-title="common.generate" title="生成凭据文件">
-                                            <i class="fas fa-magic"></i>
-                                        </button>
-                                    </div>
-                                    <small class="form-text" data-i18n="config.antigravity.note">Antigravity 使用 Google OAuth 认证，需要提供凭据文件路径</small>
-                                </div>
                             </div>
                             
                             <!-- OpenAI Custom 配置 -->
@@ -652,21 +478,21 @@
                                     </div>
                                 </div>
                                 <div class="form-group">
-                                    <label data-i18n="config.gemini.oauthCreds">OAuth凭据</label>
+                                    <label data-i18n="config.oauthCreds">OAuth凭据</label>
                                     <div class="radio-group">
                                         <label class="radio-label">
                                             <input type="radio" name="kiroCredsType" value="file" checked>
-                                            <span data-i18n="config.gemini.credsType.file">文件路径</span>
+                                            <span data-i18n="config.credsType.file">文件路径</span>
                                         </label>
                                         <label class="radio-label">
                                             <input type="radio" name="kiroCredsType" value="base64">
-                                            <span data-i18n="config.gemini.credsType.base64">Base64编码</span>
+                                            <span data-i18n="config.credsType.base64">Base64编码</span>
                                         </label>
                                     </div>
                                 </div>
                                 <div class="form-group" id="kiroCredsBase64Group">
-                                    <label for="kiroOauthCredsBase64" data-i18n="config.gemini.credsBase64">OAuth凭据 (Base64)</label>
-                                    <textarea id="kiroOauthCredsBase64" class="form-control" rows="3" data-i18n="config.gemini.credsBase64Placeholder" placeholder="请输入Base64编码的OAuth凭据"></textarea>
+                                    <label for="kiroOauthCredsBase64" data-i18n="config.credsBase64">OAuth凭据 (Base64)</label>
+                                    <textarea id="kiroOauthCredsBase64" class="form-control" rows="3" data-i18n-placeholder="config.credsBase64Placeholder" placeholder="请输入Base64编码的OAuth凭据"></textarea>
                                 </div>
                                 <div class="form-group" id="kiroCredsFileGroup" style="display: none;">
                                     <label for="kiroOauthCredsFilePath" data-i18n="config.kiro.credsFilePath">OAuth凭据文件路径</label>
@@ -801,9 +627,8 @@
                                     <label for="providerFallbackChain" data-i18n="config.advanced.fallbackChain">跨类型 Fallback 链配置</label>
                                     <textarea id="providerFallbackChain" class="form-control" rows="6" data-i18n-placeholder="config.advanced.fallbackChainPlaceholder" placeholder='例如:
 {
-  "gemini-cli-oauth": ["gemini-antigravity"],
-  "gemini-antigravity": ["gemini-cli-oauth"],
-  "claude-kiro-oauth": ["claude-custom"]
+  "claude-kiro-oauth": ["claude-custom"],
+  "claude-custom": ["claude-kiro-oauth"]
 }'></textarea>
                                     <small class="form-text" data-i18n="config.advanced.fallbackChainNote">当某一 Provider Type 所有账号都不健康时，自动切换到配置的 Fallback 类型。JSON 格式，键为主类型，值为 Fallback 类型数组（按优先级排序）</small>
                                 </div>
@@ -1077,4 +902,3 @@
     <script type="module" src="app/app.js"></script>
 </body>
 </html>
-

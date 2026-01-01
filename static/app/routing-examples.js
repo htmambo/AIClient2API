@@ -152,17 +152,6 @@ function getAvailableRoutes() {
             badgeClass: 'official'
         },
         {
-            provider: 'gemini-cli-oauth',
-            name: 'Gemini CLI OAuth',
-            paths: {
-                openai: '/gemini-cli-oauth/v1/chat/completions',
-                claude: '/gemini-cli-oauth/v1/messages'
-            },
-            description: t('dashboard.routing.oauth'),
-            badge: t('dashboard.routing.oauth'),
-            badgeClass: 'oauth'
-        },
-        {
             provider: 'openai-qwen-oauth',
             name: 'Qwen OAuth',
             paths: {
@@ -272,26 +261,6 @@ async function copyCurlExample(provider, options = {}) {
   -H "X-API-Key: YOUR_API_KEY" \\
   -d '{
     "model": "${model}",
-    "max_tokens": 1000,
-    "messages": [{"role": "user", "content": "${message}"}]
-  }'`;
-            }
-            break;
-            
-        case 'gemini-cli-oauth':
-            if (protocol === 'openai') {
-                curlCommand = `curl http://localhost:3000${path} \\
-  -H "Content-Type: application/json" \\
-  -d '{
-    "model": "gemini-2.0-flash-exp",
-    "messages": [{"role": "user", "content": "${message}"}],
-    "max_tokens": 1000
-  }'`;
-            } else {
-                curlCommand = `curl http://localhost:3000${path} \\
-  -H "Content-Type: application/json" \\
-  -d '{
-    "model": "gemini-2.0-flash-exp",
     "max_tokens": 1000,
     "messages": [{"role": "user", "content": "${message}"}]
   }'`;

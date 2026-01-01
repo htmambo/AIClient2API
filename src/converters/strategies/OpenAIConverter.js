@@ -15,12 +15,7 @@ import {
     cleanJsonSchemaProperties as cleanJsonSchema,
     CLAUDE_DEFAULT_MAX_TOKENS,
     CLAUDE_DEFAULT_TEMPERATURE,
-    CLAUDE_DEFAULT_TOP_P,
-    GEMINI_DEFAULT_MAX_TOKENS,
-    GEMINI_DEFAULT_TEMPERATURE,
-    GEMINI_DEFAULT_TOP_P,
-    OPENAI_DEFAULT_INPUT_TOKEN_LIMIT,
-    OPENAI_DEFAULT_OUTPUT_TOKEN_LIMIT
+    CLAUDE_DEFAULT_TOP_P
 } from '../utils.js';
 import { MODEL_PROTOCOL_PREFIX } from '../../common.js';
 import {
@@ -50,8 +45,6 @@ export class OpenAIConverter extends BaseConverter {
         switch (targetProtocol) {
             case MODEL_PROTOCOL_PREFIX.CLAUDE:
                 return this.toClaudeRequest(data);
-            case MODEL_PROTOCOL_PREFIX.GEMINI:
-                return this.toGeminiRequest(data);
             case MODEL_PROTOCOL_PREFIX.OPENAI_RESPONSES:
                 return this.toOpenAIResponsesRequest(data);
             default:
@@ -68,8 +61,6 @@ export class OpenAIConverter extends BaseConverter {
         switch (targetProtocol) {
             case MODEL_PROTOCOL_PREFIX.CLAUDE:
                 return this.toClaudeResponse(data, model);
-            case MODEL_PROTOCOL_PREFIX.GEMINI:
-                return this.toGeminiResponse(data, model);
             case MODEL_PROTOCOL_PREFIX.OPENAI_RESPONSES:
                 return this.toOpenAIResponsesResponse(data, model);
             default:
@@ -84,8 +75,6 @@ export class OpenAIConverter extends BaseConverter {
         switch (targetProtocol) {
             case MODEL_PROTOCOL_PREFIX.CLAUDE:
                 return this.toClaudeStreamChunk(chunk, model);
-            case MODEL_PROTOCOL_PREFIX.GEMINI:
-                return this.toGeminiStreamChunk(chunk, model);
             case MODEL_PROTOCOL_PREFIX.OPENAI_RESPONSES:
                 return this.toOpenAIResponsesStreamChunk(chunk, model);
             default:
@@ -100,8 +89,6 @@ export class OpenAIConverter extends BaseConverter {
         switch (targetProtocol) {
             case MODEL_PROTOCOL_PREFIX.CLAUDE:
                 return this.toClaudeModelList(data);
-            case MODEL_PROTOCOL_PREFIX.GEMINI:
-                return this.toGeminiModelList(data);
             default:
                 return data;
         }
@@ -512,24 +499,6 @@ export class OpenAIConverter extends BaseConverter {
     }
 
     /**
-     * 将 OpenAI 模型列表转换为 Gemini 模型列表
-     */
-    toGeminiModelList(openaiModels) {
-        const models = openaiModels.data || [];
-        return {
-            models: models.map(m => ({
-                name: `models/${m.id}`,
-                version: m.version || "1.0.0",
-                displayName: m.displayName || m.id,
-                description: m.description || `A generative model for text and chat generation. ID: ${m.id}`,
-                inputTokenLimit: m.inputTokenLimit || OPENAI_DEFAULT_INPUT_TOKEN_LIMIT,
-                outputTokenLimit: m.outputTokenLimit || OPENAI_DEFAULT_OUTPUT_TOKEN_LIMIT,
-                supportedGenerationMethods: m.supportedGenerationMethods || ["generateContent", "streamGenerateContent"]
-            }))
-        };
-    }
-
-    /**
      * 构建Claude工具选择
      */
     buildClaudeToolChoice(toolChoice) {
@@ -541,364 +510,6 @@ export class OpenAIConverter extends BaseConverter {
             return { type: 'tool', name: toolChoice.function.name };
         }
         return undefined;
-    }
-
-    // =========================================================================
-    // OpenAI -> Gemini 转换
-    // =========================================================================
-
-    /**
-     * OpenAI请求 -> Gemini请求
-     */
-    toGeminiRequest(openaiRequest) {
-        const messages = openaiRequest.messages || [];
-        const { systemInstruction, nonSystemMessages } = extractSystemMessages(messages);
-
-        const processedMessages = [];
-        let lastMessage = null;
-
-        for (const message of nonSystemMessages) {
-            const geminiRole = message.role === 'assistant' ? 'model' : message.role;
-
-            if (geminiRole === 'tool') {
-                // Save previous model response with functionCall
-                if (lastMessage) {
-                    processedMessages.push(lastMessage);
-                    lastMessage = null;
-                }
-
-                // Get function name from message.name or via tool_call_id
-                let functionName = message.name;
-                if (!functionName && message.tool_call_id) {
-                    const currentIndex = nonSystemMessages.indexOf(message);
-                    for (let i = currentIndex - 1; i >= 0; i--) {
-                        const prevMsg = nonSystemMessages[i];
-                        if (prevMsg.role === 'assistant' && prevMsg.tool_calls) {
-                            const toolCall = prevMsg.tool_calls.find(tc => tc.id === message.tool_call_id);
-                            if (toolCall?.function?.name) {
-                                functionName = toolCall.function.name;
-                                break;
-                            }
-                        }
-                    }
-                }
-
-                // Build functionResponse according to Gemini API spec
-                const parsedContent = safeParseJSON(message.content);
-                const contentStr = typeof parsedContent === 'string' ? parsedContent : JSON.stringify(parsedContent);
-
-                processedMessages.push({
-                    role: 'user',
-                    parts: [{
-                        functionResponse: {
-                            name: functionName || 'unknown',
-                            response: {
-                                name: functionName || 'unknown',
-                                content: contentStr
-                            }
-                        }
-                    }]
-                });
-                lastMessage = null;
-                continue;
-            }
-
-            let processedContent = this.processOpenAIContentToGeminiParts(message.content);
-
-            // Add tool_calls as functionCall to parts
-            if (message.tool_calls && Array.isArray(message.tool_calls)) {
-                for (const toolCall of message.tool_calls) {
-                    if (toolCall.function) {
-                        processedContent.push({
-                            functionCall: {
-                                name: toolCall.function.name,
-                                args: safeParseJSON(toolCall.function.arguments)
-                            }
-                        });
-                    }
-                }
-            }
-
-            if (lastMessage && lastMessage.role === geminiRole && !message.tool_calls &&
-                Array.isArray(processedContent) && processedContent.every(p => p.text) &&
-                Array.isArray(lastMessage.parts) && lastMessage.parts.every(p => p.text)) {
-                lastMessage.parts.push(...processedContent);
-                continue;
-            }
-
-            if (lastMessage) processedMessages.push(lastMessage);
-            lastMessage = { role: geminiRole, parts: processedContent };
-        }
-        if (lastMessage) processedMessages.push(lastMessage);
-
-        const geminiRequest = {
-            contents: processedMessages.filter(item => item.parts && item.parts.length > 0)
-        };
-
-        if (systemInstruction) geminiRequest.systemInstruction = systemInstruction;
-
-        if (openaiRequest.tools?.length) {
-            geminiRequest.tools = [{
-                functionDeclarations: openaiRequest.tools.map(t => {
-                    if (!t || typeof t !== 'object' || !t.function) return null;
-                    const func = t.function;
-                    const parameters = cleanJsonSchema(func.parameters || {});
-                    return {
-                        name: String(func.name || ''),
-                        description: String(func.description || ''),
-                        parameters: parameters
-                    };
-                }).filter(Boolean)
-            }];
-            if (geminiRequest.tools[0].functionDeclarations.length === 0) {
-                delete geminiRequest.tools;
-            }
-        }
-
-        if (openaiRequest.tool_choice) {
-            geminiRequest.toolConfig = this.buildGeminiToolConfig(openaiRequest.tool_choice);
-        }
-
-        const config = this.buildGeminiGenerationConfig(openaiRequest, openaiRequest.model);
-        if (Object.keys(config).length) geminiRequest.generationConfig = config;
-
-        return geminiRequest;
-    }
-
-    /**
-     * 处理OpenAI内容到Gemini parts
-     */
-    processOpenAIContentToGeminiParts(content) {
-        if (!content) return [];
-        if (typeof content === 'string') return [{ text: content }];
-
-        if (Array.isArray(content)) {
-            const parts = [];
-
-            for (const item of content) {
-                if (!item) continue;
-
-                if (item.type === 'text' && item.text) {
-                    parts.push({ text: item.text });
-                } else if (item.type === 'image_url' && item.image_url) {
-                    const imageUrl = typeof item.image_url === 'string'
-                        ? item.image_url
-                        : item.image_url.url;
-
-                    if (imageUrl.startsWith('data:')) {
-                        const [header, data] = imageUrl.split(',');
-                        const mimeType = header.match(/data:([^;]+)/)?.[1] || 'image/jpeg';
-                        parts.push({ inlineData: { mimeType, data } });
-                    } else {
-                        parts.push({
-                            fileData: { mimeType: 'image/jpeg', fileUri: imageUrl }
-                        });
-                    }
-                }
-            }
-
-            return parts;
-        }
-
-        return [];
-    }
-
-    /**
-     * 构建Gemini工具配置
-     */
-    buildGeminiToolConfig(toolChoice) {
-        if (typeof toolChoice === 'string' && ['none', 'auto'].includes(toolChoice)) {
-            return { functionCallingConfig: { mode: toolChoice.toUpperCase() } };
-        }
-        if (typeof toolChoice === 'object' && toolChoice.function) {
-            return { functionCallingConfig: { mode: 'ANY', allowedFunctionNames: [toolChoice.function.name] } };
-        }
-        return null;
-    }
-
-    /**
-     * 构建Gemini生成配置
-     */
-    buildGeminiGenerationConfig({ temperature, max_tokens, top_p, stop, tools, response_format }, model) {
-        const config = {};
-        config.temperature = checkAndAssignOrDefault(temperature, GEMINI_DEFAULT_TEMPERATURE);
-        config.maxOutputTokens = checkAndAssignOrDefault(max_tokens, GEMINI_DEFAULT_MAX_TOKENS);
-        config.topP = checkAndAssignOrDefault(top_p, GEMINI_DEFAULT_TOP_P);
-        if (stop !== undefined) config.stopSequences = Array.isArray(stop) ? stop : [stop];
-
-        // Handle response_format
-        if (response_format) {
-            if (response_format.type === 'json_object') {
-                config.responseMimeType = 'application/json';
-            } else if (response_format.type === 'json_schema' && response_format.json_schema) {
-                config.responseMimeType = 'application/json';
-                if (response_format.json_schema.schema) {
-                    config.responseSchema = response_format.json_schema.schema;
-                }
-            }
-        }
-
-        // Gemini 2.5 and thinking models require responseModalities: ["TEXT"]
-        // But this parameter cannot be added when using tools (causes 400 error)
-        const hasTools = tools && Array.isArray(tools) && tools.length > 0;
-        if (!hasTools && model && (model.includes('2.5') || model.includes('thinking') || model.includes('2.0-flash-thinking'))) {
-            console.log(`[OpenAI->Gemini] Adding responseModalities: ["TEXT"] for model: ${model}`);
-            config.responseModalities = ["TEXT"];
-        } else if (hasTools && model && (model.includes('2.5') || model.includes('thinking') || model.includes('2.0-flash-thinking'))) {
-            console.log(`[OpenAI->Gemini] Skipping responseModalities for model ${model} because tools are present`);
-        }
-
-        return config;
-    }
-    /**
-     * 将OpenAI响应转换为Gemini响应格式
-     */
-    toGeminiResponse(openaiResponse, model) {
-        if (!openaiResponse || !openaiResponse.choices || !openaiResponse.choices[0]) {
-            return { candidates: [], usageMetadata: {} };
-        }
-
-        const choice = openaiResponse.choices[0];
-        const message = choice.message || {};
-        const parts = [];
-
-        // 处理文本内容
-        if (message.content) {
-            parts.push({ text: message.content });
-        }
-
-        // 处理工具调用
-        if (message.tool_calls && message.tool_calls.length > 0) {
-            for (const toolCall of message.tool_calls) {
-                if (toolCall.type === 'function') {
-                    parts.push({
-                        functionCall: {
-                            name: toolCall.function.name,
-                            args: typeof toolCall.function.arguments === 'string'
-                                ? JSON.parse(toolCall.function.arguments)
-                                : toolCall.function.arguments
-                        }
-                    });
-                }
-            }
-        }
-
-        // 映射finish_reason
-        const finishReasonMap = {
-            'stop': 'STOP',
-            'length': 'MAX_TOKENS',
-            'tool_calls': 'STOP',
-            'content_filter': 'SAFETY'
-        };
-
-        return {
-            candidates: [{
-                content: {
-                    role: 'model',
-                    parts: parts
-                },
-                finishReason: finishReasonMap[choice.finish_reason] || 'STOP'
-            }],
-            usageMetadata: openaiResponse.usage ? {
-                promptTokenCount: openaiResponse.usage.prompt_tokens || 0,
-                candidatesTokenCount: openaiResponse.usage.completion_tokens || 0,
-                totalTokenCount: openaiResponse.usage.total_tokens || 0,
-                cachedContentTokenCount: openaiResponse.usage.prompt_tokens_details?.cached_tokens || 0,
-                promptTokensDetails: [{
-                    modality: "TEXT",
-                    tokenCount: openaiResponse.usage.prompt_tokens || 0
-                }],
-                candidatesTokensDetails: [{
-                    modality: "TEXT",
-                    tokenCount: openaiResponse.usage.completion_tokens || 0
-                }],
-                thoughtsTokenCount: openaiResponse.usage.completion_tokens_details?.reasoning_tokens || 0
-            } : {}
-        };
-    }
-
-    /**
-     * 将OpenAI流式响应块转换为Gemini流式响应格式
-     */
-    toGeminiStreamChunk(openaiChunk, model) {
-        if (!openaiChunk || !openaiChunk.choices || !openaiChunk.choices[0]) {
-            return null;
-        }
-
-        const choice = openaiChunk.choices[0];
-        const delta = choice.delta || {};
-        const parts = [];
-
-        // 处理文本内容
-        if (delta.content) {
-            parts.push({ text: delta.content });
-        }
-
-        // 处理工具调用
-        if (delta.tool_calls && delta.tool_calls.length > 0) {
-            for (const toolCall of delta.tool_calls) {
-                if (toolCall.function) {
-                    const functionCall = {
-                        name: toolCall.function.name || '',
-                        args: {}
-                    };
-
-                    if (toolCall.function.arguments) {
-                        try {
-                            functionCall.args = typeof toolCall.function.arguments === 'string'
-                                ? JSON.parse(toolCall.function.arguments)
-                                : toolCall.function.arguments;
-                        } catch (e) {
-                            // 部分参数，保持为字符串
-                            functionCall.args = { partial: toolCall.function.arguments };
-                        }
-                    }
-
-                    parts.push({ functionCall });
-                }
-            }
-        }
-
-        const result = {
-            candidates: [{
-                content: {
-                    role: 'model',
-                    parts: parts
-                }
-            }]
-        };
-
-        // 添加finish_reason（如果存在）
-        if (choice.finish_reason) {
-            const finishReasonMap = {
-                'stop': 'STOP',
-                'length': 'MAX_TOKENS',
-                'tool_calls': 'STOP',
-                'content_filter': 'SAFETY'
-            };
-            result.candidates[0].finishReason = finishReasonMap[choice.finish_reason] || 'STOP';
-        }
-
-        // 添加usage信息（如果存在）
-        if (openaiChunk.usage) {
-            result.usageMetadata = {
-                promptTokenCount: openaiChunk.usage.prompt_tokens || 0,
-                candidatesTokenCount: openaiChunk.usage.completion_tokens || 0,
-                totalTokenCount: openaiChunk.usage.total_tokens || 0,
-                cachedContentTokenCount: openaiChunk.usage.prompt_tokens_details?.cached_tokens || 0,
-                promptTokensDetails: [{
-                    modality: "TEXT",
-                    tokenCount: openaiChunk.usage.prompt_tokens || 0
-                }],
-                candidatesTokensDetails: [{
-                    modality: "TEXT",
-                    tokenCount: openaiChunk.usage.completion_tokens || 0
-                }],
-                thoughtsTokenCount: openaiChunk.usage.completion_tokens_details?.reasoning_tokens || 0
-            };
-        }
-
-        return result;
     }
 
     /**

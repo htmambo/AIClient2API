@@ -23,17 +23,6 @@ export const PROVIDER_MAPPINGS = [
         urlKeys: ['KIRO_BASE_URL', 'KIRO_REFRESH_URL', 'KIRO_REFRESH_IDC_URL']
     },
     {
-        // Gemini CLI OAuth 配置
-        dirName: 'gemini',
-        patterns: ['configs/gemini/', '/gemini/', 'configs/gemini-cli/'],
-        providerType: 'gemini-cli-oauth',
-        credPathKey: 'GEMINI_OAUTH_CREDS_FILE_PATH',
-        defaultCheckModel: 'gemini-2.5-flash',
-        displayName: 'Gemini CLI OAuth',
-        needsProjectId: true,
-        urlKeys: ['GEMINI_BASE_URL']
-    },
-    {
         // Qwen OAuth 配置
         dirName: 'qwen',
         patterns: ['configs/qwen/', '/qwen/'],
@@ -43,17 +32,6 @@ export const PROVIDER_MAPPINGS = [
         displayName: 'Qwen OAuth',
         needsProjectId: false,
         urlKeys: ['QWEN_BASE_URL', 'QWEN_OAUTH_BASE_URL']
-    },
-    {
-        // Antigravity OAuth 配置
-        dirName: 'antigravity',
-        patterns: ['configs/antigravity/', '/antigravity/'],
-        providerType: 'gemini-antigravity',
-        credPathKey: 'ANTIGRAVITY_OAUTH_CREDS_FILE_PATH',
-        defaultCheckModel: 'gemini-2.5-computer-use-preview-10-2025',
-        displayName: 'Gemini Antigravity',
-        needsProjectId: true,
-        urlKeys: ['ANTIGRAVITY_BASE_URL_DAILY', 'ANTIGRAVITY_BASE_URL_AUTOPUSH']
     }
 ];
 

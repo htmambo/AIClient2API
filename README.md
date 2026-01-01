@@ -4,7 +4,7 @@
 
 # AIClient-2-API 🚀
 
-**A powerful proxy that can unify the requests of various client-only large model APIs (Gemini CLI, Antigravity, Qwen Code, Kiro ...), simulate requests, and encapsulate them into a local OpenAI-compatible interface.**
+**A powerful proxy that can unify the requests of various client-only large model APIs (Qwen Code, Kiro ...), simulate requests, and encapsulate them into a local OpenAI-compatible interface.**
 
 </div>
 
@@ -22,7 +22,7 @@
 
 </div>
 
-`AIClient2API` is an API proxy service that breaks through client limitations, converting free large models originally restricted to client use only (such as Gemini, Antigravity, Qwen Code, Kiro) into standard OpenAI-compatible interfaces that can be called by any application. Built on Node.js, it supports intelligent conversion between OpenAI, Claude, and Gemini protocols, enabling tools like Cherry-Studio, NextChat, and Cline to freely use advanced models such as Claude Opus 4.5, Gemini 3.0 Pro, and Qwen3 Coder Plus at scale. The project adopts a modular architecture based on strategy and adapter patterns, with built-in account pool management, intelligent polling, automatic failover, and health check mechanisms, ensuring 99.9% service availability.
+`AIClient2API` is an API proxy service that breaks through client limitations, converting models originally restricted to client use only (such as Qwen Code, Kiro) into standard OpenAI-compatible interfaces that can be called by any application. Built on Node.js, it provides OpenAI-compatible and Claude-compatible endpoints, enabling tools like Cherry-Studio, NextChat, and Cline to use models via a unified interface. The project adopts a modular architecture based on strategy and adapter patterns, with built-in account pool management, intelligent polling, automatic failover, and health check mechanisms.
 
 > [!NOTE]
 > **🎉 Important Milestone**
@@ -33,31 +33,29 @@
 >
 > - **2025.12.25** - Unified configuration management: All configs centralized to `configs/` directory. Docker users need to update mount path to `-v "local_path:/app/configs"`
 > - **2025.12.11** - Automatically built Docker images are now available on Docker Hub: [justlikemaki/aiclient-2-api](https://hub.docker.com/r/justlikemaki/aiclient-2-api)
-> - **2025.11.30** - Added Antigravity protocol support, enabling access to Gemini 3 Pro, Claude Sonnet 4.5, and other models via Google internal interfaces
-> - **2025.11.16** - Added Ollama protocol support, unified interface to access all supported models (Claude, Gemini, Qwen, OpenAI, etc.)
+> - **2025.11.16** - Added Ollama protocol support, unified interface to access all supported models (Claude, Qwen, OpenAI, etc.)
 > - **2025.11.11** - Added Web UI management console, supporting real-time configuration management and health status monitoring
-> - **2025.11.06** - Added support for Gemini 3 Preview, enhanced model compatibility and performance optimization
 > - **2025.10.18** - Kiro open registration, new accounts get 500 credits, full support for Claude Sonnet 4.5
 > - **2025.09.01** - Integrated Qwen Code CLI, added `qwen3-coder-plus` model support
 > - **2025.08.29** - Released account pool management feature, supporting multi-account polling, intelligent failover, and automatic degradation strategies
 >   - Configuration: Add `PROVIDER_POOLS_FILE_PATH` parameter in `configs/config.json`
 >   - Reference configuration: [provider_pools.json](./configs/provider_pools.json.example)
 > - **History Developed**
->   - Support Gemini CLI, Kiro and other client2API
->   - OpenAI, Claude, Gemini three-protocol mutual conversion, automatic intelligent switching
+>   - Support Kiro and other client2API
+>   - OpenAI & Claude compatible endpoints
 
 ---
 
 ## 💡 Core Advantages
 
 ### 🎯 Unified Access, One-Stop Management
-*   **Multi-Model Unified Interface**: Through standard OpenAI-compatible protocol, configure once to access mainstream large models including Gemini, Claude, Qwen Code, Kimi K2, MiniMax M2
+*   **Multi-Model Unified Interface**: Through standard OpenAI-compatible protocol, configure once to access mainstream large models including Claude, Qwen Code, Kimi K2, MiniMax M2
 *   **Flexible Switching Mechanism**: Path routing, support dynamic model switching via startup parameters or environment variables to meet different scenario requirements
 *   **Zero-Cost Migration**: Fully compatible with OpenAI API specifications, tools like Cherry-Studio, NextChat, Cline can be used without modification
-*   **Multi-Protocol Intelligent Conversion**: Support intelligent conversion between OpenAI, Claude, and Gemini protocols for cross-protocol model invocation
+*   **Multi-Protocol Intelligent Conversion**: Support OpenAI-compatible and Claude-compatible endpoints for cross-protocol model invocation
 
 ### 🚀 Break Through Limitations, Improve Efficiency
-*   **Bypass Official Restrictions**: Utilize OAuth authorization mechanism to effectively break through rate and quota limits of services like Gemini, Antigravity
+*   **Bypass Official Restrictions**: Utilize OAuth authorization mechanism to effectively access OAuth-based providers like Qwen and Kiro
 *   **Free Advanced Models**: Use Claude Opus 4.5 for free via Kiro API mode, use Qwen3 Coder Plus via Qwen OAuth mode, reducing usage costs
 *   **Intelligent Account Pool Scheduling**: Support multi-account polling, automatic failover, and configuration degradation, ensuring 99.9% service availability
 
@@ -94,12 +92,12 @@ The most recommended way to use AIClient-2-API is to start it through an automat
 #### 🐳 Docker Quick Start (Recommended)
 
 ```bash
-docker run -d -p 3000:3000 -p 8085:8085 -p 8086:8086 -p 19876-19880:19876-19880 --restart=always -v "your_path:/app/configs" --name aiclient2api justlikemaki/aiclient-2-api
+docker run -d -p 3000:3000 -p 19876-19880:19876-19880 --restart=always -v "your_path:/app/configs" --name aiclient2api justlikemaki/aiclient-2-api
 ```
 
 **Parameter Description**:
 - `-d`: Run container in background
-- `-p 3000:3000 ...`: Port mapping. 3000 is for Web UI, others are for OAuth callbacks (Gemini: 8085, Antigravity: 8086, Kiro: 19876-19880)
+- `-p 3000:3000 ...`: Port mapping. 3000 is for Web UI, others are for OAuth callbacks (Kiro: 19876-19880)
 - `--restart=always`: Container auto-restart policy
 - `-v "your_path:/app/configs"`: Mount configuration directory (replace "your_path" with actual path, e.g., `/home/user/aiclient-configs`)
 - `--name aiclient2api`: Container name
@@ -155,7 +153,7 @@ A functional Web management interface, including:
 
 **📊 Dashboard**: System overview, interactive routing examples, client configuration guide
 
-**⚙️ Configuration**: Real-time parameter modification, supporting all providers (Gemini, Antigravity, OpenAI, Claude, Kiro, Qwen), including advanced settings and file uploads
+**⚙️ Configuration**: Real-time parameter modification, including advanced settings and file uploads
 
 **🔗 Provider Pools**: Monitor active connections, provider health statistics, enable/disable management
 
@@ -172,8 +170,7 @@ Supports various input types such as images and documents, providing you with a 
 
 #### Latest Model Support
 Seamlessly support the following latest large models, just configure the corresponding endpoint in Web UI or [`configs/config.json`](./configs/config.json):
-*   **Claude 4.5 Opus** - Anthropic's strongest model ever, now supported via Kiro, Antigravity
-*   **Gemini 3 Pro** - Google's next-generation architecture preview, now supported via Gemini, Antigravity
+*   **Claude 4.5 Opus** - Anthropic's strongest model ever, now supported via Kiro
 *   **Qwen3 Coder Plus** - Alibaba Tongyi Qianwen's latest code-specific model, now supported via Qwen Code
 *   **Kimi K2 / MiniMax M2** - Synchronized support for top domestic flagship models, now supported via custom OpenAI, Claude
 
@@ -185,20 +182,10 @@ Seamlessly support the following latest large models, just configure the corresp
 
 #### 🌐 Web UI Quick Authorization (Recommended)
 In the Web UI management interface, you can complete authorization configuration rapidly:
-1. **Generate Authorization**: On the **"Provider Pools"** page or **"Configuration"** page, click the **"Generate Authorization"** button in the upper right corner of the corresponding provider (e.g., Gemini, Qwen).
-2. **Scan/Login**: An authorization dialog will pop up, you can click **"Open in Browser"** for login verification. For Qwen, just complete the web login; for Gemini and Antigravity, complete the Google account authorization.
+1. **Generate Authorization**: On the **"Provider Pools"** page or **"Configuration"** page, click the **"Generate Authorization"** button in the upper right corner of the corresponding provider (e.g., Qwen, Kiro).
+2. **Scan/Login**: An authorization dialog will pop up, you can click **"Open in Browser"** for login verification.
 3. **Auto-Save**: After successful authorization, the system will automatically obtain credentials and save them to the corresponding directory in `configs/`. You can see the newly generated credentials on the **"Config Files"** page.
 4. **Visual Management**: You can upload or delete credentials at any time in the Web UI, or use the **"Quick Associate"** function to bind existing credential files to providers with one click.
-
-#### Gemini CLI OAuth Configuration
-1. **Obtain OAuth Credentials**: Visit [Google Cloud Console](https://console.cloud.google.com/) to create a project and enable Gemini API
-2. **Project Configuration**: You may need to provide a valid Google Cloud project ID, which can be specified via the startup parameter `--project-id`
-3. **Ensure Project ID**: When configuring in the Web UI, ensure the project ID entered matches the project ID displayed in the Google Cloud Console and Gemini CLI.
-
-#### Antigravity OAuth Configuration
-1. **Personal Account**: Personal accounts require separate authorization, application channels have been closed.
-2. **Pro Member**: Antigravity is temporarily open to Pro members, you need to purchase a Pro membership first.
-3. **Organization Account**: Organization accounts require separate authorization, contact the administrator to obtain authorization.
 
 #### Qwen Code OAuth Configuration
 1. **First Authorization**: After configuring the Qwen service, the system will automatically open the authorization page in the browser
@@ -232,10 +219,10 @@ Support excluding unsupported models through `notSupportedModels` configuration,
 
 ```json
 {
-  "gemini-cli-oauth": [
+  "claude-kiro-oauth": [
     {
       "uuid": "provider-1",
-      "notSupportedModels": ["gemini-3.0-pro", "gemini-3.5-flash"],
+      "notSupportedModels": ["claude-opus-4-5"],
       "checkHealth": true
     }
   ]
@@ -252,15 +239,13 @@ Support excluding unsupported models through `notSupportedModels` configuration,
 
 ##### 2. Cross-Type Fallback Configuration
 
-When all accounts under a Provider Type (e.g., `gemini-cli-oauth`) are exhausted due to 429 quota limits or marked as unhealthy, the system can automatically fallback to another compatible Provider Type (e.g., `gemini-antigravity`) instead of returning an error directly.
+When all accounts under a Provider Type (e.g., `claude-kiro-oauth`) are exhausted due to 429 quota limits or marked as unhealthy, the system can automatically fallback to another compatible Provider Type (e.g., `claude-custom`) instead of returning an error directly.
 
 **Configuration**: Add `providerFallbackChain` configuration in `configs/config.json`:
 
 ```json
 {
   "providerFallbackChain": {
-    "gemini-cli-oauth": ["gemini-antigravity"],
-    "gemini-antigravity": ["gemini-cli-oauth"],
     "claude-kiro-oauth": ["claude-custom"],
     "claude-custom": ["claude-kiro-oauth"]
   }
@@ -273,7 +258,7 @@ When all accounts under a Provider Type (e.g., `gemini-cli-oauth`) are exhausted
    - Look up the configured fallback types
    - Check if the fallback type supports the requested model (protocol compatibility check)
    - Select a healthy account from the fallback type's pool
-3. Supports multi-level degradation chains: `gemini-cli-oauth → gemini-antigravity → openai-custom`
+3. Supports multi-level degradation chains: `claude-kiro-oauth → claude-custom`
 4. Only returns an error if all fallback types are also unavailable
 
 **Use Cases**:
@@ -281,7 +266,7 @@ When all accounts under a Provider Type (e.g., `gemini-cli-oauth`) are exhausted
 - Through cross-type Fallback, you can fully utilize the independent quotas of multiple Providers, improving overall availability and throughput
 
 **Notes**:
-- Fallback only occurs between protocol-compatible types (e.g., between `gemini-*`, between `claude-*`)
+- Fallback only occurs between protocol-compatible types (e.g., between `claude-*`)
 - The system automatically checks if the target Provider Type supports the requested model
 
 ---
@@ -292,10 +277,8 @@ Default storage locations for authorization credential files of each service:
 
 | Service | Default Path | Description |
 |------|---------|------|
-| **Gemini** | `~/.gemini/oauth_creds.json` | OAuth authentication credentials |
 | **Kiro** | `~/.aws/sso/cache/kiro-auth-token.json` | Kiro authentication token |
 | **Qwen** | `~/.qwen/oauth_creds.json` | Qwen OAuth credentials |
-| **Antigravity** | `~/.antigravity/oauth_creds.json` | Antigravity OAuth credentials (supports Claude 4.5 Opus) |
 
 > **Note**: `~` represents the user home directory (Windows: `C:\Users\username`, Linux/macOS: `/home/username` or `/Users/username`)
 >
@@ -329,7 +312,6 @@ curl http://localhost:3000/ollama/api/chat \
 3. **Specify provider using model prefix**:
 - `[Kiro]` - Access Claude models using Kiro API
 - `[Claude]` - Use official Claude API
-- `[Gemini CLI]` - Access via Gemini CLI OAuth
 - `[OpenAI]` - Use official OpenAI API
 - `[Qwen CLI]` - Access via Qwen OAuth
 
@@ -342,8 +324,8 @@ curl http://localhost:3000/ollama/api/chat \
 **Problem Description**: After clicking "Generate Authorization", the browser opens the authorization page but authorization fails or cannot be completed.
 
 **Solutions**:
-- **Check Network Connection**: Ensure you can access Google, Alibaba Cloud, and other services normally
-- **Check Port Occupation**: OAuth callbacks require specific ports (Gemini: 8085, Antigravity: 8086, Kiro: 19876-19880), ensure these ports are not occupied
+- **Check Network Connection**: Ensure you can access AWS, Alibaba Cloud, and other services normally
+- **Check Port Occupation**: OAuth callbacks require specific ports (Kiro: 19876-19880), ensure these ports are not occupied
 - **Clear Browser Cache**: Try using incognito mode or clearing browser cache and retry
 - **Check Firewall Settings**: Ensure the firewall allows access to local callback ports
 - **Docker Users**: Ensure all OAuth callback ports are correctly mapped
@@ -462,8 +444,6 @@ Or modify the port configuration in `configs/config.json` to use a different por
 This project follows the [**GNU General Public License v3 (GPLv3)**](https://www.gnu.org/licenses/gpl-3.0) license. For details, please check the `LICENSE` file in the root directory.
 
 ## 🙏 Acknowledgements
-
-The development of this project was greatly inspired by the official Google Gemini CLI and referenced part of the code implementation of `gemini-cli.ts` in Cline 3.18.0. Sincere thanks to the Google official team and the Cline development team for their excellent work!
 
 ### Contributor List
 

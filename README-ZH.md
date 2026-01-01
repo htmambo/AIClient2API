@@ -4,7 +4,7 @@
 
 # AIClient-2-API 🚀
 
-**一个能将多种仅客户端内使用的大模型 API（Gemini CLI, Antigravity, Qwen Code, Kiro ...），模拟请求，统一封装为本地 OpenAI 兼容接口的强大代理。**
+**一个能将多种仅客户端内使用的大模型 API（Qwen Code, Kiro ...），模拟请求，统一封装为本地 OpenAI 兼容接口的强大代理。**
 
 </div>
 
@@ -22,7 +22,7 @@
 
 </div>
 
-`AIClient2API` 是一个突破客户端限制的 API 代理服务，将 Gemini、Antigravity、Qwen Code、Kiro 等原本仅限客户端内使用的免费大模型，转换为可供任何应用调用的标准 OpenAI 兼容接口。基于 Node.js 构建，支持 OpenAI、Claude、Gemini 三大协议的智能互转，让 Cherry-Studio、NextChat、Cline 等工具能够免费大量使用 Claude Opus 4.5、Gemini 3.0 Pro、Qwen3 Coder Plus 等高级模型。项目采用策略模式和适配器模式的模块化架构，内置账号池管理、智能轮询、自动故障转移和健康检查机制，确保 99.9% 的服务可用性。
+`AIClient2API` 是一个突破客户端限制的 API 代理服务，将 Qwen Code、Kiro 等原本仅限客户端内使用的模型能力，转换为可供任何应用调用的标准 OpenAI 兼容接口。基于 Node.js 构建，提供 OpenAI 兼容与 Claude 兼容端点，让 Cherry-Studio、NextChat、Cline 等工具可以通过统一接口调用模型。项目采用策略模式和适配器模式的模块化架构，内置账号池管理、智能轮询、自动故障转移和健康检查机制。
 
 > [!NOTE]
 > **🎉 重要里程碑**
@@ -33,30 +33,28 @@
 >
 > - **2025.12.25** - 配置文件统一管理：所有配置集中到 `configs/` 目录，Docker 用户需更新挂载路径为 `-v "本地路径:/app/configs"`
 > - **2025.12.11** - Docker 镜像自动构建并发布到 Docker Hub: [justlikemaki/aiclient-2-api](https://hub.docker.com/r/justlikemaki/aiclient-2-api)
-> - **2025.11.30** - 新增 Antigravity 协议支持，支持通过 Google 内部接口访问 Gemini 3 Pro、Claude Sonnet 4.5 等模型
-> - **2025.11.16** - 新增 Ollama 协议支持，统一接口访问所有支持的模型（Claude、Gemini、Qwen、OpenAI等）
+> - **2025.11.16** - 新增 Ollama 协议支持，统一接口访问所有支持的模型（Claude、Qwen、OpenAI等）
 > - **2025.11.11** - 新增 Web UI 管理控制台，支持实时配置管理和健康状态监控
-> - **2025.11.06** - 新增对 Gemini 3 预览版的支持，增强模型兼容性和性能优化
 > - **2025.10.18** - Kiro 开放注册，新用户赠送 500 额度，已完整支持 Claude Sonnet 4.5
 > - **2025.09.01** - 集成 Qwen Code CLI，新增 `qwen3-coder-plus` 模型支持
 > - **2025.08.29** - 发布账号池管理功能，支持多账号轮询、智能故障转移和自动降级策略
 >   - 配置方式：在 `configs/config.json` 中添加 `PROVIDER_POOLS_FILE_PATH` 参数
 >   - 参考配置：[provider_pools.json](./configs/provider_pools.json.example)
 > - **历史已开发**
->   - 支持 Gemini CLI、Kiro 等客户端2API
->   - OpenAI ,Claude ,Gemini 三协议互转，自动智能切换
+>   - 支持 Kiro 等客户端2API
+>   - OpenAI / Claude 兼容端点
 ---
 
 ## 💡 核心优势
 
 ### 🎯 统一接入，一站式管理
-*   **多模型统一接口**：通过标准 OpenAI 兼容协议，一次配置即可接入 Gemini、Claude、Qwen Code、Kimi K2、MiniMax M2 等主流大模型
+*   **多模型统一接口**：通过标准 OpenAI 兼容协议，一次配置即可接入 Claude、Qwen Code、Kimi K2、MiniMax M2 等主流大模型
 *   **灵活切换机制**：Path 路由、支持通过启动参数、环境变量三种方式动态切换模型，满足不同场景需求
 *   **零成本迁移**：完全兼容 OpenAI API 规范，Cherry-Studio、NextChat、Cline 等工具无需修改即可使用
-*   **多协议智能转换**：支持 OpenAI、Claude、Gemini 三大协议间的智能转换，实现跨协议模型调用
+*   **多协议智能转换**：提供 OpenAI 兼容与 Claude 兼容端点，实现跨客户端调用
 
 ### 🚀 突破限制，提升效率
-*   **绕过官方限制**：利用 OAuth 授权机制，有效突破 Gemini, Antigravity 等服务的免费 API 速率和配额限制
+*   **绕过官方限制**：利用 OAuth 授权机制，接入 Qwen、Kiro 等 OAuth 体系提供商
 *   **免费高级模型**：通过 Kiro API 模式免费使用 Claude Opus 4.5，通过 Qwen OAuth 模式使用 Qwen3 Coder Plus，降低使用成本
 *   **账号池智能调度**：支持多账号轮询、自动故障转移和配置降级，确保 99.9% 服务可用性
 
@@ -93,12 +91,12 @@
 #### 🐳 Docker 快捷启动 (推荐)
 
 ```bash
-docker run -d -p 3000:3000 -p 8085:8085 -p 8086:8086 -p 19876-19880:19876-19880 --restart=always -v "指定路径:/app/configs" --name aiclient2api justlikemaki/aiclient-2-api
+docker run -d -p 3000:3000 -p 19876-19880:19876-19880 --restart=always -v "指定路径:/app/configs" --name aiclient2api justlikemaki/aiclient-2-api
 ```
 
 **参数说明**：
 - `-d`：后台运行容器
-- `-p 3000:3000 ...`：端口映射。3000 为 Web UI，其余为 OAuth 回调端口（Gemini: 8085, Antigravity: 8086, Kiro: 19876-19880）
+- `-p 3000:3000 ...`：端口映射。3000 为 Web UI，其余为 OAuth 回调端口（Kiro: 19876-19880）
 - `--restart=always`：容器自动重启策略
 - `-v "指定路径:/app/configs"`：挂载配置目录（请将"指定路径"替换为实际路径，如 `/home/user/aiclient-configs`）
 - `--name aiclient2api`：容器名称
@@ -154,7 +152,7 @@ docker run -d -p 3000:3000 -p 8085:8085 -p 8086:8086 -p 19876-19880:19876-19880 
 
 **📊 仪表盘**：系统概览、交互式路由示例、客户端配置指南
 
-**⚙️ 配置管理**：实时参数修改，支持所有提供商（Gemini、Antigravity、OpenAI、Claude、Kiro、Qwen），包含高级设置和文件上传
+**⚙️ 配置管理**：实时参数修改，包含高级设置和文件上传
 
 **🔗 提供商池**：监控活动连接、提供商健康统计、启用/禁用管理
 
@@ -171,8 +169,7 @@ docker run -d -p 3000:3000 -p 8085:8085 -p 8086:8086 -p 19876-19880:19876-19880 
 
 #### 最新模型支持
 无缝支持以下最新大模型，仅需在 Web UI 或 [`configs/config.json`](./configs/config.json) 中配置相应的端点：
-*   **Claude 4.5 Opus** - Anthropic 史上最强模型，现已通过 Kiro, Antigravity 支持
-*   **Gemini 3 Pro** - Google 下一代架构预览版，现已通过 Gemini, Antigravity 支持
+*   **Claude 4.5 Opus** - Anthropic 史上最强模型，现已通过 Kiro 支持
 *   **Qwen3 Coder Plus** - 阿里通义千问最新代码专用模型，现已通过Qwen Code 支持
 *   **Kimi K2 / MiniMax M2** - 国内顶级旗舰模型同步支持，现已通过自定义OpenAI，Claude 支持
 
@@ -184,20 +181,10 @@ docker run -d -p 3000:3000 -p 8085:8085 -p 8086:8086 -p 19876-19880:19876-19880 
 
 #### 🌐 Web UI 快捷授权 (推荐)
 在 Web UI 管理界面中，您可以极速完成授权配置：
-1. **生成授权**：在 **“提供商池”** 页面或**“配置管理”** 页面，点击对应提供商（如 Gemini, Qwen）右上角的 **“生成授权”** 按钮。
-2. **扫码/登录**：系统将弹出授权对话框，您可以点击 **“在浏览器中打开”** 进行登录验证。对于 Qwen，只需完成网页登录；对于 Gemini，Antigravity 需完成 Google 账号授权。
+1. **生成授权**：在 **“提供商池”** 页面或**“配置管理”** 页面，点击对应提供商（如 Qwen、Kiro）右上角的 **“生成授权”** 按钮。
+2. **扫码/登录**：系统将弹出授权对话框，您可以点击 **“在浏览器中打开”** 进行登录验证。
 3. **自动保存**：授权成功后，系统会自动获取凭据并保存至 `configs/` 对应目录下，您可以在 **“配置文件”** 页面看到新生成的凭据。
 4. **可视化管理**：您可以随时在 Web UI 中上传、删除凭据，或通过 **“快速关联”** 功能将已有的凭据文件一键绑定到提供商。
-
-#### Gemini CLI OAuth 配置
-1. **获取OAuth凭据**：访问 [Google Cloud Console](https://console.cloud.google.com/) 创建项目，启用Gemini API
-2. **项目配置**：可能需要提供有效的Google Cloud项目ID，可通过启动参数 `--project-id` 指定
-3. **确保项目ID**：在 Web UI 中配置时，确保输入的项目ID与 Google Cloud Console 和 Gemini CLI 中显示的项目ID一致。
-
-#### Antigravity OAuth 配置
-1. **个人账号**：个人账号需要单独授权，已关闭申请渠道。
-2. **Pro会员**：Antigravity 暂时对 Pro 会员开放，需要先购买 Pro 会员。
-3. **组织账号**：组织账号需要单独授权，联系管理员获取授权。
 
 #### Qwen Code OAuth 配置
 1. **首次授权**：配置Qwen服务后，系统会自动在浏览器中打开授权页面
@@ -231,10 +218,10 @@ docker run -d -p 3000:3000 -p 8085:8085 -p 8086:8086 -p 19876-19880:19876-19880 
 
 ```json
 {
-  "gemini-cli-oauth": [
+  "claude-kiro-oauth": [
     {
       "uuid": "provider-1",
-      "notSupportedModels": ["gemini-3.0-pro", "gemini-3.5-flash"],
+      "notSupportedModels": ["claude-opus-4-5"],
       "checkHealth": true
     }
   ]
@@ -251,15 +238,13 @@ docker run -d -p 3000:3000 -p 8085:8085 -p 8086:8086 -p 19876-19880:19876-19880 
 
 ##### 2. 跨类型 Fallback 配置
 
-当某一 Provider Type（如 `gemini-cli-oauth`）下的所有账号都因 429 配额耗尽或被标记为 unhealthy 时，系统能够自动 fallback 到另一个兼容的 Provider Type（如 `gemini-antigravity`），而不是直接返回错误。
+当某一 Provider Type（如 `claude-kiro-oauth`）下的所有账号都因 429 配额耗尽或被标记为 unhealthy 时，系统能够自动 fallback 到另一个兼容的 Provider Type（如 `claude-custom`），而不是直接返回错误。
 
 **配置方式**：在 `configs/config.json` 中添加 `providerFallbackChain` 配置：
 
 ```json
 {
   "providerFallbackChain": {
-    "gemini-cli-oauth": ["gemini-antigravity"],
-    "gemini-antigravity": ["gemini-cli-oauth"],
     "claude-kiro-oauth": ["claude-custom"],
     "claude-custom": ["claude-kiro-oauth"]
   }
@@ -272,7 +257,7 @@ docker run -d -p 3000:3000 -p 8085:8085 -p 8086:8086 -p 19876-19880:19876-19880 
    - 查找配置的 fallback 类型
    - 检查 fallback 类型是否支持当前请求的模型（协议兼容性检查）
    - 从 fallback 类型的池中选取 healthy 账号
-3. 支持多级降级链：`gemini-cli-oauth → gemini-antigravity → openai-custom`
+3. 支持多级降级链：`claude-kiro-oauth → claude-custom`
 4. 如果所有 fallback 类型也不可用，才返回错误
 
 **使用场景**：
@@ -280,7 +265,7 @@ docker run -d -p 3000:3000 -p 8085:8085 -p 8086:8086 -p 19876-19880:19876-19880 
 - 通过跨类型 Fallback，可以充分利用多种 Provider 的独立配额，提高整体可用性和吞吐量
 
 **注意事项**：
-- Fallback 只会在协议兼容的类型之间进行（如 `gemini-*` 之间、`claude-*` 之间）
+- Fallback 只会在协议兼容的类型之间进行（如 `claude-*` 之间）
 - 系统会自动检查目标 Provider Type 是否支持当前请求的模型
 
 ---
@@ -291,10 +276,8 @@ docker run -d -p 3000:3000 -p 8085:8085 -p 8086:8086 -p 19876-19880:19876-19880 
 
 | 服务 | 默认路径 | 说明 |
 |------|---------|------|
-| **Gemini** | `~/.gemini/oauth_creds.json` | OAuth 认证凭据 |
 | **Kiro** | `~/.aws/sso/cache/kiro-auth-token.json` | Kiro 认证令牌 |
 | **Qwen** | `~/.qwen/oauth_creds.json` | Qwen OAuth 凭据 |
-| **Antigravity** | `~/.antigravity/oauth_creds.json` | Antigravity OAuth 凭据 (支持 Claude 4.5 Opus) |
 
 > **说明**：`~` 表示用户主目录（Windows: `C:\Users\用户名`，Linux/macOS: `/home/用户名` 或 `/Users/用户名`）
 
@@ -328,7 +311,6 @@ curl http://localhost:3000/ollama/api/chat \
 3. **使用模型前缀指定提供商**：
 - `[Kiro]` - 使用 Kiro API 访问 Claude 模型
 - `[Claude]` - 使用 Claude 官方 API
-- `[Gemini CLI]` - 通过 Gemini CLI OAuth 访问
 - `[OpenAI]` - 使用 OpenAI 官方 API
 - `[Qwen CLI]` - 通过 Qwen OAuth 访问
 
@@ -341,8 +323,8 @@ curl http://localhost:3000/ollama/api/chat \
 **问题描述**：点击"生成授权"后，浏览器打开授权页面但授权失败或无法完成。
 
 **解决方案**：
-- **检查网络连接**：确保能够正常访问 Google、阿里云等服务
-- **检查端口占用**：OAuth 回调需要特定端口（Gemini: 8085, Antigravity: 8086, Kiro: 19876-19880），确保这些端口未被占用
+- **检查网络连接**：确保能够正常访问 AWS、阿里云等服务
+- **检查端口占用**：OAuth 回调需要特定端口（Kiro: 19876-19880），确保这些端口未被占用
 - **清除浏览器缓存**：尝试使用无痕模式或清除浏览器缓存后重试
 - **检查防火墙设置**：确保防火墙允许本地回调端口的访问
 - **Docker 用户**：确保已正确映射所有 OAuth 回调端口
@@ -460,8 +442,6 @@ kill -9 <PID>
 
 本项目遵循 [**GNU General Public License v3 (GPLv3)**](https://www.gnu.org/licenses/gpl-3.0) 开源许可。详情请查看根目录下的 `LICENSE` 文件。
 ## 🙏 致谢
-
-本项目的开发受到了官方 Google Gemini CLI 的极大启发，并参考了Cline 3.18.0 版本 `gemini-cli.ts` 的部分代码实现。在此对 Google 官方团队和 Cline 开发团队的卓越工作表示衷心的感谢！
 ### 贡献者列表
 
 感谢以下所有为 AIClient-2-API 项目做出贡献的开发者：

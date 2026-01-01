@@ -27,10 +27,6 @@ export async function handleAPIRequests(method, path, req, res, currentConfig, a
             await handleModelListRequest(req, res, apiService, ENDPOINT_TYPE.OPENAI_MODEL_LIST, currentConfig, providerPoolManager, currentConfig.uuid);
             return true;
         }
-        if (path === '/v1beta/models') {
-            await handleModelListRequest(req, res, apiService, ENDPOINT_TYPE.GEMINI_MODEL_LIST, currentConfig, providerPoolManager, currentConfig.uuid);
-            return true;
-        }
     }
 
     // Route content generation requests
@@ -41,11 +37,6 @@ export async function handleAPIRequests(method, path, req, res, currentConfig, a
         }
         if (path === '/v1/responses') {
             await handleContentGenerationRequest(req, res, apiService, ENDPOINT_TYPE.OPENAI_RESPONSES, currentConfig, promptLogFilename, providerPoolManager, currentConfig.uuid);
-            return true;
-        }
-        const geminiUrlPattern = new RegExp(`/v1beta/models/(.+?):(${API_ACTIONS.GENERATE_CONTENT}|${API_ACTIONS.STREAM_GENERATE_CONTENT})`);
-        if (geminiUrlPattern.test(path)) {
-            await handleContentGenerationRequest(req, res, apiService, ENDPOINT_TYPE.GEMINI_CONTENT, currentConfig, promptLogFilename, providerPoolManager, currentConfig.uuid);
             return true;
         }
         if (path === '/v1/messages') {

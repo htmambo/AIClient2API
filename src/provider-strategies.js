@@ -1,5 +1,4 @@
 import { MODEL_PROTOCOL_PREFIX } from './common.js';
-import { GeminiStrategy } from './gemini/gemini-strategy.js';
 import { OpenAIStrategy } from './openai/openai-strategy.js';
 import { ClaudeStrategy } from './claude/claude-strategy.js';
 import { ResponsesAPIStrategy } from './openai/openai-responses-strategy.js';
@@ -10,8 +9,6 @@ import { ResponsesAPIStrategy } from './openai/openai-responses-strategy.js';
 class ProviderStrategyFactory {
     static getStrategy(providerProtocol) {
         switch (providerProtocol) {
-            case MODEL_PROTOCOL_PREFIX.GEMINI:
-                return new GeminiStrategy();
             case MODEL_PROTOCOL_PREFIX.OPENAI:
                 return new OpenAIStrategy();
             case MODEL_PROTOCOL_PREFIX.OPENAI_RESPONSES:
