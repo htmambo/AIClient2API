@@ -1,29 +1,11 @@
 import deepmerge from 'deepmerge';
-import { handleError, isAuthorized } from './common.js';
+import { handleError, isAuthorized, getRequestBody } from './common.js';
 import { handleUIApiRequests, serveStaticFiles } from './ui-manager.js';
 import { handleAPIRequests } from './api-manager.js';
 import { getApiService, getProviderStatus } from './service-manager.js';
 import { getProviderPoolManager } from './service-manager.js';
 import { MODEL_PROVIDER } from './common.js';
 import { PROMPT_LOG_FILENAME } from './config-manager.js';
-
-/**
- * Parse request body as JSON
- */
-function parseRequestBody(req) {
-    return new Promise((resolve, reject) => {
-        let body = '';
-        req.on('data', chunk => { body += chunk.toString(); });
-        req.on('end', () => {
-            try {
-                resolve(body ? JSON.parse(body) : {});
-            } catch (e) {
-                reject(new Error('Invalid JSON in request body'));
-            }
-        });
-        req.on('error', reject);
-    });
-}
 
 /**
  * 创建主请求处理器
@@ -330,7 +312,7 @@ export function createRequestHandler(config, providerPoolManager) {
          */
         if (path.includes('/count_tokens') && method === 'POST') {
             try {
-                const body = await parseRequestBody(req);
+                const body = await getRequestBody(req);
                 console.log(`[Server] Handling count_tokens request for model: ${body.model}`);
 
                 // 优先使用精确的 countTokens 方法

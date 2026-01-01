@@ -296,17 +296,6 @@ export function getProviderPoolManager() {
 }
 
 /**
- * Mark provider as unhealthy
- * @param {string} provider - The model provider
- * @param {Object} providerInfo - Provider information including uuid
- */
-export function markProviderUnhealthy(provider, providerInfo) {
-    if (providerPoolManager) {
-        providerPoolManager.markProviderUnhealthy(provider, providerInfo);
-    }
-}
-
-/**
  * Get providers status
  * @param {Object} config - The current request configuration
  * @param {Object} [options] - Optional. Additional options.

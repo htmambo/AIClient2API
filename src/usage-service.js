@@ -112,8 +112,8 @@ export class UsageService {
     }
 }
 
-// 导出单例实例
-export const usageService = new UsageService();
+// 单例实例（内部使用）
+const usageService = new UsageService();
 
 /**
  * 格式化 Kiro 用量信息为易读格式

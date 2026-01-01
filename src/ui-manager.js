@@ -293,30 +293,6 @@ async function validateCredentials(password) {
 }
 
 /**
- * 解析请求体JSON
- */
-function parseRequestBody(req) {
-    return new Promise((resolve, reject) => {
-        let body = '';
-        req.on('data', chunk => {
-            body += chunk.toString();
-        });
-        req.on('end', () => {
-            try {
-                if (!body.trim()) {
-                    resolve({});
-                } else {
-                    resolve(JSON.parse(body));
-                }
-            } catch (error) {
-                reject(new Error('Invalid JSON format'));
-            }
-        });
-        req.on('error', reject);
-    });
-}
-
-/**
  * 检查token验证
  */
 async function checkAuth(req) {
@@ -343,7 +319,7 @@ async function handleLoginRequest(req, res) {
     }
 
     try {
-        const requestData = await parseRequestBody(req);
+        const requestData = await getRequestBody(req);
         const { password } = requestData;
         
         if (!password) {
