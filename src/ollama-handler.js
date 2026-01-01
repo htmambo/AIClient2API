@@ -17,7 +17,6 @@ export const MODEL_PREFIX_MAP = {
     [MODEL_PROVIDER.KIRO_API]: '[Kiro]',
     [MODEL_PROVIDER.CLAUDE_CUSTOM]: '[Claude]',
     [MODEL_PROVIDER.OPENAI_CUSTOM]: '[OpenAI]',
-    [MODEL_PROVIDER.QWEN_API]: '[Qwen CLI]',
     [MODEL_PROVIDER.OPENAI_CUSTOM_RESPONSES]: '[OpenAI Responses]',
 }
 
@@ -150,19 +149,6 @@ export function getProviderByModelName(modelName, providerPoolManager, defaultPr
         }
     }
     
-    // Check if it's a Qwen model
-    if (lowerModelName.includes('qwen')) {
-        // Find available Qwen provider
-        for (const [providerType, providers] of Object.entries(providerPoolManager.providerPools)) {
-            if (providerType.includes('qwen')) {
-                const healthyProvider = providers.find(p => p.isHealthy);
-                if (healthyProvider) {
-                    return providerType;
-                }
-            }
-        }
-    }
-    
     // Check if it's a GPT model
     if (lowerModelName.includes('gpt')) {
         // Find available OpenAI provider
@@ -214,11 +200,6 @@ export function getProviderForModel(modelName, defaultProvider) {
             return MODEL_PROVIDER.KIRO_API;
         }
         return MODEL_PROVIDER.CLAUDE_CUSTOM;
-    }
-
-    // Qwen models
-    if (lowerModel.includes('qwen')) {
-        return MODEL_PROVIDER.QWEN_API;
     }
 
     // OpenAI models (excluding Warp's gpt models)

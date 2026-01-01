@@ -41,14 +41,6 @@ import {
     OLLAMA_GPT35_16K_MAX_OUTPUT_TOKENS,
     OLLAMA_GPT35_BASE_CONTEXT_LENGTH,
     OLLAMA_GPT35_BASE_MAX_OUTPUT_TOKENS,
-    OLLAMA_QWEN_CODER_PLUS_CONTEXT_LENGTH,
-    OLLAMA_QWEN_CODER_PLUS_MAX_OUTPUT_TOKENS,
-    OLLAMA_QWEN_VL_PLUS_CONTEXT_LENGTH,
-    OLLAMA_QWEN_VL_PLUS_MAX_OUTPUT_TOKENS,
-    OLLAMA_QWEN_CODER_FLASH_CONTEXT_LENGTH,
-    OLLAMA_QWEN_CODER_FLASH_MAX_OUTPUT_TOKENS,
-    OLLAMA_QWEN_DEFAULT_CONTEXT_LENGTH,
-    OLLAMA_QWEN_DEFAULT_MAX_OUTPUT_TOKENS,
     OLLAMA_DEFAULT_FILE_TYPE,
     OLLAMA_DEFAULT_QUANTIZATION_VERSION,
     OLLAMA_DEFAULT_ROPE_FREQ_BASE,
@@ -497,31 +489,6 @@ export class OllamaConverter extends BaseConverter {
             } else {
                 contextLength = OLLAMA_GPT35_BASE_CONTEXT_LENGTH;
                 maxOutputTokens = OLLAMA_GPT35_BASE_MAX_OUTPUT_TOKENS;
-            }
-        }
-        // Qwen models
-        else if (lowerName.includes('qwen')) {
-            architecture = 'qwen';
-            
-            // Qwen3 Coder Plus (coder-model)
-            if (lowerName.includes('coder-plus') || lowerName.includes('coder_plus') || lowerName.includes('coder-model')) {
-                contextLength = OLLAMA_QWEN_CODER_PLUS_CONTEXT_LENGTH; // 128K tokens
-                maxOutputTokens = OLLAMA_QWEN_CODER_PLUS_MAX_OUTPUT_TOKENS; // 65K output
-            }
-            // Qwen3 VL Plus (vision-model)
-            else if (lowerName.includes('vl-plus') || lowerName.includes('vl_plus') || lowerName.includes('vision-model')) {
-                contextLength = OLLAMA_QWEN_VL_PLUS_CONTEXT_LENGTH; // 256K tokens
-                maxOutputTokens = OLLAMA_QWEN_VL_PLUS_MAX_OUTPUT_TOKENS; // 32K output
-            }
-            // Qwen3 Coder Flash
-            else if (lowerName.includes('coder-flash') || lowerName.includes('coder_flash')) {
-                contextLength = OLLAMA_QWEN_CODER_FLASH_CONTEXT_LENGTH; // 128K tokens
-                maxOutputTokens = OLLAMA_QWEN_CODER_FLASH_MAX_OUTPUT_TOKENS; // 65K output
-            }
-            // Default for Qwen
-            else {
-                contextLength = OLLAMA_QWEN_DEFAULT_CONTEXT_LENGTH; // 32K tokens
-                maxOutputTokens = OLLAMA_QWEN_DEFAULT_MAX_OUTPUT_TOKENS;
             }
         }
         

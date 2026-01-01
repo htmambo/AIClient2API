@@ -8,25 +8,6 @@ import { autoLinkProviderConfigs } from './service-manager.js';
 import { CONFIG } from './config-manager.js';
 
 /**
- * 活动的轮询任务管理
- */
-const activePollingTasks = new Map();
-
-/**
- * Qwen OAuth 配置
- */
-const QWEN_OAUTH_CONFIG = {
-    clientId: 'f0304373b74a44d2b584a3fb70ca9e56',
-    scope: 'openid profile email model.completion',
-    deviceCodeEndpoint: 'https://chat.qwen.ai/api/v1/oauth2/device/code',
-    tokenEndpoint: 'https://chat.qwen.ai/api/v1/oauth2/token',
-    grantType: 'urn:ietf:params:oauth:grant-type:device_code',
-    credentialsDir: '.qwen',
-    credentialsFile: 'oauth_creds.json',
-    logPrefix: '[Qwen Auth]'
-};
-
-/**
  * Kiro OAuth 配置（支持多种认证方式）
  */
 const KIRO_OAUTH_CONFIG = {
@@ -123,235 +104,6 @@ function generateCodeChallenge(codeVerifier) {
     return hash.digest('base64url');
 }
 
-/**
- * 停止活动的轮询任务
- * @param {string} taskId - 任务标识符
- */
-function stopPollingTask(taskId) {
-    const task = activePollingTasks.get(taskId);
-    if (task) {
-        task.shouldStop = true;
-        activePollingTasks.delete(taskId);
-        console.log(`${QWEN_OAUTH_CONFIG.logPrefix} 已停止轮询任务: ${taskId}`);
-    }
-}
-
-/**
- * 轮询获取 Qwen OAuth 令牌
- * @param {string} deviceCode - 设备代码
- * @param {string} codeVerifier - PKCE 代码验证器
- * @param {number} interval - 轮询间隔（秒）
- * @param {number} expiresIn - 过期时间（秒）
- * @param {string} taskId - 任务标识符
- * @param {Object} options - 额外选项
- * @returns {Promise<Object>} 返回令牌信息
- */
-async function pollQwenToken(deviceCode, codeVerifier, interval = 5, expiresIn = 300, taskId = 'default', options = {}) {
-    let credPath = path.join(os.homedir(), QWEN_OAUTH_CONFIG.credentialsDir, QWEN_OAUTH_CONFIG.credentialsFile);
-    const maxAttempts = Math.floor(expiresIn / interval);
-    let attempts = 0;
-    
-    // 创建任务控制对象
-    const taskControl = { shouldStop: false };
-    activePollingTasks.set(taskId, taskControl);
-    
-    console.log(`${QWEN_OAUTH_CONFIG.logPrefix} 开始轮询令牌 [${taskId}]，间隔 ${interval} 秒，最多尝试 ${maxAttempts} 次`);
-    
-    const poll = async () => {
-        // 检查是否需要停止
-        if (taskControl.shouldStop) {
-            console.log(`${QWEN_OAUTH_CONFIG.logPrefix} 轮询任务 [${taskId}] 已被停止`);
-            throw new Error('轮询任务已被取消');
-        }
-        
-        if (attempts >= maxAttempts) {
-            activePollingTasks.delete(taskId);
-            throw new Error('授权超时，请重新开始授权流程');
-        }
-        
-        attempts++;
-        
-        const bodyData = {
-            client_id: QWEN_OAUTH_CONFIG.clientId,
-            device_code: deviceCode,
-            grant_type: QWEN_OAUTH_CONFIG.grantType,
-            code_verifier: codeVerifier
-        };
-        
-        const formBody = Object.entries(bodyData)
-            .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`)
-            .join('&');
-        
-        try {
-            const response = await fetch(QWEN_OAUTH_CONFIG.tokenEndpoint, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                    'Accept': 'application/json'
-                },
-                body: formBody
-            });
-            
-            const data = await response.json();
-            
-            if (response.ok && data.access_token) {
-                // 成功获取令牌
-                console.log(`${QWEN_OAUTH_CONFIG.logPrefix} 成功获取令牌 [${taskId}]`);
-                
-                // 如果指定了保存到 configs 目录
-                if (options.saveToConfigs) {
-                    const targetDir = path.join(process.cwd(), 'configs', options.providerDir);
-                    await fs.promises.mkdir(targetDir, { recursive: true });
-                    const timestamp = Date.now();
-                    const filename = `${timestamp}_oauth_creds.json`;
-                    credPath = path.join(targetDir, filename);
-                }
-
-                // 保存令牌到文件
-                await fs.promises.mkdir(path.dirname(credPath), { recursive: true });
-                await fs.promises.writeFile(credPath, JSON.stringify(data, null, 2));
-                console.log(`${QWEN_OAUTH_CONFIG.logPrefix} 令牌已保存到 ${credPath}`);
-                
-                const relativePath = path.relative(process.cwd(), credPath);
-
-                // 清理任务
-                activePollingTasks.delete(taskId);
-                
-                // 广播授权成功事件
-                broadcastEvent('oauth_success', {
-                    provider: 'openai-qwen-oauth',
-                    credPath: credPath,
-                    relativePath: relativePath,
-                    timestamp: new Date().toISOString()
-                });
-                
-                // 自动关联新生成的凭据到 Pools
-                await autoLinkProviderConfigs(CONFIG);
-                
-                return data;
-            }
-            
-            // 检查错误类型
-            if (data.error === 'authorization_pending') {
-                // 用户尚未完成授权，继续轮询
-                console.log(`${QWEN_OAUTH_CONFIG.logPrefix} 等待用户授权 [${taskId}]... (第 ${attempts}/${maxAttempts} 次尝试)`);
-                await new Promise(resolve => setTimeout(resolve, interval * 1000));
-                return poll();
-            } else if (data.error === 'slow_down') {
-                // 需要降低轮询频率
-                console.log(`${QWEN_OAUTH_CONFIG.logPrefix} 降低轮询频率`);
-                await new Promise(resolve => setTimeout(resolve, (interval + 5) * 1000));
-                return poll();
-            } else if (data.error === 'expired_token') {
-                activePollingTasks.delete(taskId);
-                throw new Error('设备代码已过期，请重新开始授权流程');
-            } else if (data.error === 'access_denied') {
-                activePollingTasks.delete(taskId);
-                throw new Error('用户拒绝了授权请求');
-            } else {
-                activePollingTasks.delete(taskId);
-                throw new Error(`授权失败: ${data.error || '未知错误'}`);
-            }
-        } catch (error) {
-            if (error.message.includes('授权') || error.message.includes('过期') || error.message.includes('拒绝')) {
-                throw error;
-            }
-            console.error(`${QWEN_OAUTH_CONFIG.logPrefix} 轮询出错:`, error);
-            // 网络错误，继续重试
-            await new Promise(resolve => setTimeout(resolve, interval * 1000));
-            return poll();
-        }
-    };
-    
-    return poll();
-}
-
-/**
- * 处理 Qwen OAuth 授权（设备授权流程）
- * @param {Object} currentConfig - 当前配置对象
- * @param {Object} options - 额外选项
- * @returns {Promise<Object>} 返回授权URL和相关信息
- */
-export async function handleQwenOAuth(currentConfig, options = {}) {
-    const codeVerifier = generateCodeVerifier();
-    const codeChallenge = generateCodeChallenge(codeVerifier);
-    
-    const bodyData = {
-        client_id: QWEN_OAUTH_CONFIG.clientId,
-        scope: QWEN_OAUTH_CONFIG.scope,
-        code_challenge: codeChallenge,
-        code_challenge_method: 'S256'
-    };
-    
-    const formBody = Object.entries(bodyData)
-        .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`)
-        .join('&');
-    
-    try {
-        const response = await fetch(QWEN_OAUTH_CONFIG.deviceCodeEndpoint, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-                'Accept': 'application/json'
-            },
-            body: formBody
-        });
-        
-        if (!response.ok) {
-            throw new Error(`Qwen OAuth请求失败: ${response.status} ${response.statusText}`);
-        }
-        
-        const deviceAuth = await response.json();
-        
-        if (!deviceAuth.device_code || !deviceAuth.verification_uri_complete) {
-            throw new Error('Qwen OAuth响应格式错误，缺少必要字段');
-        }
-        
-        // 启动后台轮询获取令牌
-        const interval = 5;
-        // const expiresIn = deviceAuth.expires_in || 1800;
-        const expiresIn = 300;
-        
-        // 生成唯一的任务ID
-        const taskId = `qwen-${deviceAuth.device_code.substring(0, 8)}-${Date.now()}`;
-        
-        // 先停止之前可能存在的所有 Qwen 轮询任务
-        for (const [existingTaskId] of activePollingTasks.entries()) {
-            if (existingTaskId.startsWith('qwen-')) {
-                stopPollingTask(existingTaskId);
-            }
-        }
-        
-        // 不等待轮询完成，立即返回授权信息
-        pollQwenToken(deviceAuth.device_code, codeVerifier, interval, expiresIn, taskId, options)
-            .catch(error => {
-                console.error(`${QWEN_OAUTH_CONFIG.logPrefix} 轮询失败 [${taskId}]:`, error);
-                // 广播授权失败事件
-                broadcastEvent('oauth_error', {
-                    provider: 'openai-qwen-oauth',
-                    error: error.message,
-                    timestamp: new Date().toISOString()
-                });
-            });
-        
-        return {
-            authUrl: deviceAuth.verification_uri_complete,
-            authInfo: {
-                provider: 'openai-qwen-oauth',
-                deviceCode: deviceAuth.device_code,
-                userCode: deviceAuth.user_code,
-                verificationUri: deviceAuth.verification_uri,
-                verificationUriComplete: deviceAuth.verification_uri_complete,
-                expiresIn: expiresIn,
-                interval: interval,
-                codeVerifier: codeVerifier
-            }
-        };
-    } catch (error) {
-        console.error(`${QWEN_OAUTH_CONFIG.logPrefix} 请求失败:`, error);
-        throw new Error(`Qwen OAuth 授权失败: ${error.message}`);
-    }
-}
 
 /**
  * 处理 Kiro OAuth 授权（统一入口）
@@ -427,7 +179,7 @@ async function handleKiroSocialAuth(provider, currentConfig, options = {}) {
 }
 
 /**
- * Kiro Builder ID - Device Code Flow（类似 Qwen OAuth 模式）
+ * Kiro Builder ID - Device Code Flow
  */
 async function handleKiroBuilderIDDeviceCode(currentConfig, options = {}) {
     // 停止之前的轮询任务
@@ -478,7 +230,7 @@ async function handleKiroBuilderIDDeviceCode(currentConfig, options = {}) {
     
     const deviceAuth = await authResponse.json();
     
-    // 3. 启动后台轮询（类似 Qwen OAuth 的模式）
+    // 3. 启动后台轮询
     const taskId = `kiro-${deviceAuth.deviceCode.substring(0, 8)}-${Date.now()}`;
 
     

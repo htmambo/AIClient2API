@@ -625,8 +625,7 @@ function calculateTotalUsage(usageBreakdown) {
  */
 function getProviderDisplayName(providerType) {
     const names = {
-        'claude-kiro-oauth': 'Claude Kiro OAuth',
-        'openai-qwen-oauth': 'Qwen OAuth'
+        'claude-kiro-oauth': 'Claude Kiro OAuth'
     };
     return names[providerType] || providerType;
 }
@@ -638,8 +637,7 @@ function getProviderDisplayName(providerType) {
  */
 function getProviderIcon(providerType) {
     const icons = {
-        'claude-kiro-oauth': 'fas fa-robot',
-        'openai-qwen-oauth': 'fas fa-code'
+        'claude-kiro-oauth': 'fas fa-robot'
     };
     return icons[providerType] || 'fas fa-server';
 }

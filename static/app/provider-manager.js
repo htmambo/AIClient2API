@@ -210,7 +210,6 @@ function renderProviders(providers) {
         'openai-custom',
         'claude-custom',
         'claude-kiro-oauth',
-        'openai-qwen-oauth',
         'openaiResponses-custom'
     ];
     
@@ -420,7 +419,7 @@ async function openProviderManager(providerType) {
  */
 function generateAuthButton(providerType) {
     // 只为支持OAuth的提供商显示授权按钮
-    const oauthProviders = ['openai-qwen-oauth', 'claude-kiro-oauth'];
+    const oauthProviders = ['claude-kiro-oauth'];
     
     if (!oauthProviders.includes(providerType)) {
         return '';
@@ -582,7 +581,6 @@ async function executeGenerateAuthUrl(providerType, extraOptions = {}) {
  */
 function getAuthFilePath(provider) {
     const authFilePaths = {
-        'openai-qwen-oauth': '~/.qwen/oauth_creds.json',
         'claude-kiro-oauth': '~/.aws/sso/cache/kiro-auth-token.json'
     };
     return authFilePaths[provider] || (getCurrentLanguage() === 'en-US' ? 'Unknown Path' : '未知路径');
@@ -629,22 +627,10 @@ function showAuthModal(authUrl, authInfo) {
     
     // 获取需要开放的端口号（从 authInfo 或当前页面 URL）
     const requiredPort = authInfo.callbackPort || authInfo.port || window.location.port || '3000';
-    const isDeviceFlow = authInfo.provider === 'openai-qwen-oauth' || (authInfo.provider === 'claude-kiro-oauth' && authInfo.authMethod === 'builder-id');
+    const isDeviceFlow = (authInfo.provider === 'claude-kiro-oauth' && authInfo.authMethod === 'builder-id');
 
     let instructionsHtml = '';
-    if (authInfo.provider === 'openai-qwen-oauth') {
-        instructionsHtml = `
-            <div class="auth-instructions">
-                <h4 data-i18n="oauth.modal.steps">${t('oauth.modal.steps')}</h4>
-                <ol>
-                    <li data-i18n="oauth.modal.step1">${t('oauth.modal.step1')}</li>
-                    <li data-i18n="oauth.modal.step2.qwen">${t('oauth.modal.step2.qwen')}</li>
-                    <li data-i18n="oauth.modal.step3">${t('oauth.modal.step3')}</li>
-                    <li data-i18n="oauth.modal.step4.qwen" data-i18n-params='{"min":"${Math.floor(authInfo.expiresIn / 60)}"}'>${t('oauth.modal.step4.qwen', { min: Math.floor(authInfo.expiresIn / 60) })}</li>
-                </ol>
-            </div>
-        `;
-    } else if (authInfo.provider === 'claude-kiro-oauth') {
+    if (authInfo.provider === 'claude-kiro-oauth') {
         const methodDisplay = authInfo.authMethod === 'builder-id' ? 'AWS Builder ID' : `Social (${authInfo.socialProvider || 'Google'})`;
         const methodAccount = authInfo.authMethod === 'builder-id' ? 'AWS Builder ID' : authInfo.socialProvider || 'Google';
         instructionsHtml = `

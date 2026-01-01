@@ -340,8 +340,7 @@ export async function getProviderStatus(config, options = {}) {
         'openai-custom': 'OPENAI_BASE_URL',
         'openaiResponses-custom': 'OPENAI_BASE_URL',
         'claude-custom': 'CLAUDE_BASE_URL',
-        'claude-kiro-oauth': 'KIRO_OAUTH_CREDS_FILE_PATH',
-        'openai-qwen-oauth': 'QWEN_OAUTH_CREDS_FILE_PATH'
+        'claude-kiro-oauth': 'KIRO_OAUTH_CREDS_FILE_PATH'
     };
     let providerPoolsSlim = [];
     let unhealthyProvideIdentifyList = [];

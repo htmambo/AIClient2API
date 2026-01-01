@@ -23,7 +23,6 @@ AIClient2API 现在包含一个功能完整的可视化 Web UI 管理控制台�
   - **OpenAI Custom** - 自定义OpenAI API配置
   - **Claude Custom** - 自定义Claude API配置
   - **Claude Kiro OAuth** - 突破限制/免费使用的Claude服务
-  - **Qwen OAuth** - 通义千问OAuth认证
   - **OpenAI Responses** - OpenAI新版本API
 - 编辑系统提示词
 - 高级配置选项：
@@ -48,8 +47,6 @@ AIClient2API 现在包含一个功能完整的可视化 Web UI 管理控制台�
 - 一键复制端点路径功能
 
 支持的路由路径示例：
-- `/openai-qwen-oauth/v1/chat/completions` - Qwen OAuth (OpenAI协议)
-- `/openai-qwen-oauth/v1/messages` - Qwen OAuth (Claude协议)
 - `/claude-custom/v1/chat/completions` - Claude Custom (OpenAI协议)
 - `/claude-custom/v1/messages` - Claude Custom (Claude协议)
 - `/claude-kiro-oauth/v1/chat/completions` - Claude Kiro OAuth (OpenAI协议)
@@ -170,7 +167,6 @@ static/
 
 ### 突破限制类型
 - **Claude Kiro OAuth** - 免费使用的Claude服务
-- **Qwen OAuth** - 通义千问OAuth认证
 
 ### 官方API/三方类型
 - **OpenAI Custom** - 自定义OpenAI API端点

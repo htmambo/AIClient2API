@@ -152,17 +152,6 @@ function getAvailableRoutes() {
             badgeClass: 'official'
         },
         {
-            provider: 'openai-qwen-oauth',
-            name: 'Qwen OAuth',
-            paths: {
-                openai: '/openai-qwen-oauth/v1/chat/completions',
-                claude: '/openai-qwen-oauth/v1/messages'
-            },
-            description: 'Qwen Code Plus',
-            badge: t('dashboard.routing.oauth'),
-            badgeClass: 'oauth'
-        },
-        {
             provider: 'openaiResponses-custom',
             name: 'OpenAI Responses',
             paths: {
@@ -245,9 +234,7 @@ async function copyCurlExample(provider, options = {}) {
             break;
             
         case 'openai-custom':
-        case 'openai-qwen-oauth':
-            if (protocol === 'openai') {
-                curlCommand = `curl http://localhost:3000${path} \\
+            curlCommand = `curl http://localhost:3000${path} \\
   -H "Content-Type: application/json" \\
   -H "Authorization: Bearer YOUR_API_KEY" \\
   -d '{
@@ -255,16 +242,6 @@ async function copyCurlExample(provider, options = {}) {
     "messages": [{"role": "user", "content": "${message}"}],
     "max_tokens": 1000
   }'`;
-            } else {
-                curlCommand = `curl http://localhost:3000${path} \\
-  -H "Content-Type: application/json" \\
-  -H "X-API-Key: YOUR_API_KEY" \\
-  -d '{
-    "model": "${model}",
-    "max_tokens": 1000,
-    "messages": [{"role": "user", "content": "${message}"}]
-  }'`;
-            }
             break;
             
         case 'openaiResponses-custom':

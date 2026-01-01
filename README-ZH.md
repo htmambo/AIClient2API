@@ -4,7 +4,7 @@
 
 # AIClient-2-API 🚀
 
-**一个能将多种仅客户端内使用的大模型 API（Qwen Code, Kiro ...），模拟请求，统一封装为本地 OpenAI 兼容接口的强大代理。**
+**一个能将多种仅客户端内使用的大模型 API（Kiro ...），模拟请求，统一封装为本地 OpenAI 兼容接口的强大代理。**
 
 </div>
 
@@ -22,7 +22,7 @@
 
 </div>
 
-`AIClient2API` 是一个突破客户端限制的 API 代理服务，将 Qwen Code、Kiro 等原本仅限客户端内使用的模型能力，转换为可供任何应用调用的标准 OpenAI 兼容接口。基于 Node.js 构建，提供 OpenAI 兼容与 Claude 兼容端点，让 Cherry-Studio、NextChat、Cline 等工具可以通过统一接口调用模型。项目采用策略模式和适配器模式的模块化架构，内置账号池管理、智能轮询、自动故障转移和健康检查机制。
+`AIClient2API` 是一个突破客户端限制的 API 代理服务，将 Kiro 等原本仅限客户端内使用的模型能力，转换为可供任何应用调用的标准 OpenAI 兼容接口。基于 Node.js 构建，提供 OpenAI 兼容与 Claude 兼容端点，让 Cherry-Studio、NextChat、Cline 等工具可以通过统一接口调用模型。项目采用策略模式和适配器模式的模块化架构，内置账号池管理、智能轮询、自动故障转移和健康检查机制。
 
 > [!NOTE]
 > **🎉 重要里程碑**
@@ -33,10 +33,9 @@
 >
 > - **2025.12.25** - 配置文件统一管理：所有配置集中到 `configs/` 目录，Docker 用户需更新挂载路径为 `-v "本地路径:/app/configs"`
 > - **2025.12.11** - Docker 镜像自动构建并发布到 Docker Hub: [justlikemaki/aiclient-2-api](https://hub.docker.com/r/justlikemaki/aiclient-2-api)
-> - **2025.11.16** - 新增 Ollama 协议支持，统一接口访问所有支持的模型（Claude、Qwen、OpenAI等）
+> - **2025.11.16** - 新增 Ollama 协议支持，统一接口访问所有支持的模型（Claude、OpenAI等）
 > - **2025.11.11** - 新增 Web UI 管理控制台，支持实时配置管理和健康状态监控
 > - **2025.10.18** - Kiro 开放注册，新用户赠送 500 额度，已完整支持 Claude Sonnet 4.5
-> - **2025.09.01** - 集成 Qwen Code CLI，新增 `qwen3-coder-plus` 模型支持
 > - **2025.08.29** - 发布账号池管理功能，支持多账号轮询、智能故障转移和自动降级策略
 >   - 配置方式：在 `configs/config.json` 中添加 `PROVIDER_POOLS_FILE_PATH` 参数
 >   - 参考配置：[provider_pools.json](./configs/provider_pools.json.example)
@@ -48,14 +47,14 @@
 ## 💡 核心优势
 
 ### 🎯 统一接入，一站式管理
-*   **多模型统一接口**：通过标准 OpenAI 兼容协议，一次配置即可接入 Claude、Qwen Code、Kimi K2、MiniMax M2 等主流大模型
+*   **多模型统一接口**：通过标准 OpenAI 兼容协议，一次配置即可接入 Claude、Kimi K2、MiniMax M2 等主流大模型
 *   **灵活切换机制**：Path 路由、支持通过启动参数、环境变量三种方式动态切换模型，满足不同场景需求
 *   **零成本迁移**：完全兼容 OpenAI API 规范，Cherry-Studio、NextChat、Cline 等工具无需修改即可使用
 *   **多协议智能转换**：提供 OpenAI 兼容与 Claude 兼容端点，实现跨客户端调用
 
 ### 🚀 突破限制，提升效率
-*   **绕过官方限制**：利用 OAuth 授权机制，接入 Qwen、Kiro 等 OAuth 体系提供商
-*   **免费高级模型**：通过 Kiro API 模式免费使用 Claude Opus 4.5，通过 Qwen OAuth 模式使用 Qwen3 Coder Plus，降低使用成本
+*   **绕过官方限制**：利用 OAuth 授权机制，接入 Kiro 等 OAuth 体系提供商
+*   **免费高级模型**：通过 Kiro API 模式免费使用 Claude Opus 4.5，降低使用成本
 *   **账号池智能调度**：支持多账号轮询、自动故障转移和配置降级，确保 99.9% 服务可用性
 
 ### 🛡️ 安全可控，数据透明
@@ -170,7 +169,6 @@ docker run -d -p 3000:3000 -p 19876-19880:19876-19880 --restart=always -v "指�
 #### 最新模型支持
 无缝支持以下最新大模型，仅需在 Web UI 或 [`configs/config.json`](./configs/config.json) 中配置相应的端点：
 *   **Claude 4.5 Opus** - Anthropic 史上最强模型，现已通过 Kiro 支持
-*   **Qwen3 Coder Plus** - 阿里通义千问最新代码专用模型，现已通过Qwen Code 支持
 *   **Kimi K2 / MiniMax M2** - 国内顶级旗舰模型同步支持，现已通过自定义OpenAI，Claude 支持
 
 ---
@@ -181,20 +179,10 @@ docker run -d -p 3000:3000 -p 19876-19880:19876-19880 --restart=always -v "指�
 
 #### 🌐 Web UI 快捷授权 (推荐)
 在 Web UI 管理界面中，您可以极速完成授权配置：
-1. **生成授权**：在 **“提供商池”** 页面或**“配置管理”** 页面，点击对应提供商（如 Qwen、Kiro）右上角的 **“生成授权”** 按钮。
+1. **生成授权**：在 **“提供商池”** 页面或**“配置管理”** 页面，点击对应提供商（如 Kiro）右上角的 **“生成授权”** 按钮。
 2. **扫码/登录**：系统将弹出授权对话框，您可以点击 **“在浏览器中打开”** 进行登录验证。
 3. **自动保存**：授权成功后，系统会自动获取凭据并保存至 `configs/` 对应目录下，您可以在 **“配置文件”** 页面看到新生成的凭据。
 4. **可视化管理**：您可以随时在 Web UI 中上传、删除凭据，或通过 **“快速关联”** 功能将已有的凭据文件一键绑定到提供商。
-
-#### Qwen Code OAuth 配置
-1. **首次授权**：配置Qwen服务后，系统会自动在浏览器中打开授权页面
-2. **推荐参数**：使用官方默认参数以获得最佳效果
-   ```json
-   {
-     "temperature": 0,
-     "top_p": 1
-   }
-   ```
 
 #### Kiro API 配置
 1. **环境准备**：[下载并安装 Kiro 客户端](https://kiro.dev/pricing/)
@@ -277,7 +265,6 @@ docker run -d -p 3000:3000 -p 19876-19880:19876-19880 --restart=always -v "指�
 | 服务 | 默认路径 | 说明 |
 |------|---------|------|
 | **Kiro** | `~/.aws/sso/cache/kiro-auth-token.json` | Kiro 认证令牌 |
-| **Qwen** | `~/.qwen/oauth_creds.json` | Qwen OAuth 凭据 |
 
 > **说明**：`~` 表示用户主目录（Windows: `C:\Users\用户名`，Linux/macOS: `/home/用户名` 或 `/Users/用户名`）
 
@@ -312,7 +299,6 @@ curl http://localhost:3000/ollama/api/chat \
 - `[Kiro]` - 使用 Kiro API 访问 Claude 模型
 - `[Claude]` - 使用 Claude 官方 API
 - `[OpenAI]` - 使用 OpenAI 官方 API
-- `[Qwen CLI]` - 通过 Qwen OAuth 访问
 
 ---
 
@@ -323,7 +309,7 @@ curl http://localhost:3000/ollama/api/chat \
 **问题描述**：点击"生成授权"后，浏览器打开授权页面但授权失败或无法完成。
 
 **解决方案**：
-- **检查网络连接**：确保能够正常访问 AWS、阿里云等服务
+- **检查网络连接**：确保能够正常访问 AWS 等服务
 - **检查端口占用**：OAuth 回调需要特定端口（Kiro: 19876-19880），确保这些端口未被占用
 - **清除浏览器缓存**：尝试使用无痕模式或清除浏览器缓存后重试
 - **检查防火墙设置**：确保防火墙允许本地回调端口的访问

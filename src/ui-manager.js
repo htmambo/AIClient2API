@@ -56,7 +56,7 @@ import { getAllProviderModels, getProviderModels } from './provider-models.js';
 import { CONFIG } from './config-manager.js';
 import { serviceInstances, getServiceAdapter } from './adapter.js';
 import { initApiService } from './service-manager.js';
-import { handleQwenOAuth, handleKiroOAuth } from './oauth-handlers.js';
+import { handleKiroOAuth } from './oauth-handlers.js';
 import {
     generateUUID,
     normalizePath,
@@ -697,11 +697,8 @@ export async function handleUIApiRequests(method, pathParam, req, res, currentCo
             if (newConfig.CLAUDE_BASE_URL !== undefined) currentConfig.CLAUDE_BASE_URL = newConfig.CLAUDE_BASE_URL;
             if (newConfig.KIRO_OAUTH_CREDS_BASE64 !== undefined) currentConfig.KIRO_OAUTH_CREDS_BASE64 = newConfig.KIRO_OAUTH_CREDS_BASE64;
             if (newConfig.KIRO_OAUTH_CREDS_FILE_PATH !== undefined) currentConfig.KIRO_OAUTH_CREDS_FILE_PATH = newConfig.KIRO_OAUTH_CREDS_FILE_PATH;
-            if (newConfig.QWEN_OAUTH_CREDS_FILE_PATH !== undefined) currentConfig.QWEN_OAUTH_CREDS_FILE_PATH = newConfig.QWEN_OAUTH_CREDS_FILE_PATH;
             
             // New Provider URLs
-            if (newConfig.QWEN_BASE_URL !== undefined) currentConfig.QWEN_BASE_URL = newConfig.QWEN_BASE_URL;
-            if (newConfig.QWEN_OAUTH_BASE_URL !== undefined) currentConfig.QWEN_OAUTH_BASE_URL = newConfig.QWEN_OAUTH_BASE_URL;
             if (newConfig.KIRO_REFRESH_URL !== undefined) currentConfig.KIRO_REFRESH_URL = newConfig.KIRO_REFRESH_URL;
             if (newConfig.KIRO_REFRESH_IDC_URL !== undefined) currentConfig.KIRO_REFRESH_IDC_URL = newConfig.KIRO_REFRESH_IDC_URL;
             if (newConfig.KIRO_BASE_URL !== undefined) currentConfig.KIRO_BASE_URL = newConfig.KIRO_BASE_URL;
@@ -755,10 +752,7 @@ export async function handleUIApiRequests(method, pathParam, req, res, currentCo
                     PROJECT_ID: currentConfig.PROJECT_ID,
                     KIRO_OAUTH_CREDS_BASE64: currentConfig.KIRO_OAUTH_CREDS_BASE64,
                     KIRO_OAUTH_CREDS_FILE_PATH: currentConfig.KIRO_OAUTH_CREDS_FILE_PATH,
-                    QWEN_OAUTH_CREDS_FILE_PATH: currentConfig.QWEN_OAUTH_CREDS_FILE_PATH,
                     // Provider URLs
-                    QWEN_BASE_URL: currentConfig.QWEN_BASE_URL,
-                    QWEN_OAUTH_BASE_URL: currentConfig.QWEN_OAUTH_BASE_URL,
                     KIRO_REFRESH_URL: currentConfig.KIRO_REFRESH_URL,
                     KIRO_REFRESH_IDC_URL: currentConfig.KIRO_REFRESH_IDC_URL,
                     KIRO_BASE_URL: currentConfig.KIRO_BASE_URL,
@@ -1539,11 +1533,7 @@ export async function handleUIApiRequests(method, pathParam, req, res, currentCo
             }
 
             // 根据提供商类型生成授权链接并启动回调服务器
-            if (providerType === 'openai-qwen-oauth') {
-                const result = await handleQwenOAuth(currentConfig, options);
-                authUrl = result.authUrl;
-                authInfo = result.authInfo;
-            } else if (providerType === 'claude-kiro-oauth') {
+            if (providerType === 'claude-kiro-oauth') {
                 // Kiro OAuth 支持多种认证方式
                 // options.method 可以是: 'google' | 'github' | 'builder-id'
                 const result = await handleKiroOAuth(currentConfig, options);
@@ -1820,7 +1810,7 @@ export async function handleUIApiRequests(method, pathParam, req, res, currentCo
                 res.writeHead(400, { 'Content-Type': 'application/json' });
                 res.end(JSON.stringify({
                     error: {
-                        message: 'Unable to identify provider type for config file, please ensure file is in configs/kiro/ or configs/qwen/ directory'
+                        message: 'Unable to identify provider type for config file, please ensure file is in configs/kiro/ directory'
                     }
                 }));
                 return true;
@@ -2256,7 +2246,6 @@ async function scanConfigFiles(currentConfig, providerPoolManager) {
 
     // 从配置中提取所有OAuth凭据文件路径 - 标准化路径格式
     addToUsedPaths(usedPaths, currentConfig.KIRO_OAUTH_CREDS_FILE_PATH);
-    addToUsedPaths(usedPaths, currentConfig.QWEN_OAUTH_CREDS_FILE_PATH);
 
     // 使用最新的提供商池数据
     let providerPools = currentConfig.providerPools;
@@ -2269,7 +2258,6 @@ async function scanConfigFiles(currentConfig, providerPoolManager) {
         for (const [providerType, providers] of Object.entries(providerPools)) {
             for (const provider of providers) {
                 addToUsedPaths(usedPaths, provider.KIRO_OAUTH_CREDS_FILE_PATH);
-                addToUsedPaths(usedPaths, provider.QWEN_OAUTH_CREDS_FILE_PATH);
             }
         }
     }
@@ -2405,17 +2393,6 @@ function getFileUsageInfo(relativePath, fileName, usedPaths, currentConfig) {
         });
     }
 
-    if (currentConfig.QWEN_OAUTH_CREDS_FILE_PATH &&
-        (pathsEqual(relativePath, currentConfig.QWEN_OAUTH_CREDS_FILE_PATH) ||
-         pathsEqual(relativePath, currentConfig.QWEN_OAUTH_CREDS_FILE_PATH.replace(/\\/g, '/')))) {
-        usageInfo.usageType = 'main_config';
-        usageInfo.usageDetails.push({
-            type: 'Main Config',
-            location: 'Qwen OAuth credentials file path',
-            configKey: 'QWEN_OAUTH_CREDS_FILE_PATH'
-        });
-    }
-
     // 检查提供商池中的使用情况
     if (currentConfig.providerPools) {
         // 使用 flatMap 将双重循环优化为单层循环 O(n)
@@ -2436,18 +2413,6 @@ function getFileUsageInfo(relativePath, fileName, usedPaths, currentConfig) {
                     providerType: providerType,
                     providerIndex: index,
                     configKey: 'KIRO_OAUTH_CREDS_FILE_PATH'
-                });
-            }
-
-            if (provider.QWEN_OAUTH_CREDS_FILE_PATH &&
-                (pathsEqual(relativePath, provider.QWEN_OAUTH_CREDS_FILE_PATH) ||
-                 pathsEqual(relativePath, provider.QWEN_OAUTH_CREDS_FILE_PATH.replace(/\\/g, '/')))) {
-                providerUsages.push({
-                    type: 'Provider Pool',
-                    location: `Qwen OAuth credentials (node ${index + 1})`,
-                    providerType: providerType,
-                    providerIndex: index,
-                    configKey: 'QWEN_OAUTH_CREDS_FILE_PATH'
                 });
             }
 
@@ -2667,8 +2632,7 @@ async function getAdapterUsage(adapter, providerType) {
 function getProviderDisplayName(provider, providerType) {
     // 尝试从凭据文件路径提取名称
     const credPathKey = {
-        'claude-kiro-oauth': 'KIRO_OAUTH_CREDS_FILE_PATH',
-        'openai-qwen-oauth': 'QWEN_OAUTH_CREDS_FILE_PATH'
+        'claude-kiro-oauth': 'KIRO_OAUTH_CREDS_FILE_PATH'
     }[providerType];
 
     if (credPathKey && provider[credPathKey]) {

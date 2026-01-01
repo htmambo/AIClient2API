@@ -21,17 +21,6 @@ export const PROVIDER_MAPPINGS = [
         displayName: 'Claude Kiro OAuth',
         needsProjectId: false,
         urlKeys: ['KIRO_BASE_URL', 'KIRO_REFRESH_URL', 'KIRO_REFRESH_IDC_URL']
-    },
-    {
-        // Qwen OAuth 配置
-        dirName: 'qwen',
-        patterns: ['configs/qwen/', '/qwen/'],
-        providerType: 'openai-qwen-oauth',
-        credPathKey: 'QWEN_OAUTH_CREDS_FILE_PATH',
-        defaultCheckModel: 'qwen3-coder-plus',
-        displayName: 'Qwen OAuth',
-        needsProjectId: false,
-        urlKeys: ['QWEN_BASE_URL', 'QWEN_OAUTH_BASE_URL']
     }
 ];
 

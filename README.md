@@ -4,7 +4,7 @@
 
 # AIClient-2-API 🚀
 
-**A powerful proxy that can unify the requests of various client-only large model APIs (Qwen Code, Kiro ...), simulate requests, and encapsulate them into a local OpenAI-compatible interface.**
+**A powerful proxy that can unify the requests of various client-only large model APIs (Kiro ...), simulate requests, and encapsulate them into a local OpenAI-compatible interface.**
 
 </div>
 
@@ -22,7 +22,7 @@
 
 </div>
 
-`AIClient2API` is an API proxy service that breaks through client limitations, converting models originally restricted to client use only (such as Qwen Code, Kiro) into standard OpenAI-compatible interfaces that can be called by any application. Built on Node.js, it provides OpenAI-compatible and Claude-compatible endpoints, enabling tools like Cherry-Studio, NextChat, and Cline to use models via a unified interface. The project adopts a modular architecture based on strategy and adapter patterns, with built-in account pool management, intelligent polling, automatic failover, and health check mechanisms.
+`AIClient2API` is an API proxy service that breaks through client limitations, converting models originally restricted to client use only (such as Kiro) into standard OpenAI-compatible interfaces that can be called by any application. Built on Node.js, it provides OpenAI-compatible and Claude-compatible endpoints, enabling tools like Cherry-Studio, NextChat, and Cline to use models via a unified interface. The project adopts a modular architecture based on strategy and adapter patterns, with built-in account pool management, intelligent polling, automatic failover, and health check mechanisms.
 
 > [!NOTE]
 > **🎉 Important Milestone**
@@ -33,10 +33,9 @@
 >
 > - **2025.12.25** - Unified configuration management: All configs centralized to `configs/` directory. Docker users need to update mount path to `-v "local_path:/app/configs"`
 > - **2025.12.11** - Automatically built Docker images are now available on Docker Hub: [justlikemaki/aiclient-2-api](https://hub.docker.com/r/justlikemaki/aiclient-2-api)
-> - **2025.11.16** - Added Ollama protocol support, unified interface to access all supported models (Claude, Qwen, OpenAI, etc.)
+> - **2025.11.16** - Added Ollama protocol support, unified interface to access all supported models (Claude, OpenAI, etc.)
 > - **2025.11.11** - Added Web UI management console, supporting real-time configuration management and health status monitoring
 > - **2025.10.18** - Kiro open registration, new accounts get 500 credits, full support for Claude Sonnet 4.5
-> - **2025.09.01** - Integrated Qwen Code CLI, added `qwen3-coder-plus` model support
 > - **2025.08.29** - Released account pool management feature, supporting multi-account polling, intelligent failover, and automatic degradation strategies
 >   - Configuration: Add `PROVIDER_POOLS_FILE_PATH` parameter in `configs/config.json`
 >   - Reference configuration: [provider_pools.json](./configs/provider_pools.json.example)
@@ -49,14 +48,14 @@
 ## 💡 Core Advantages
 
 ### 🎯 Unified Access, One-Stop Management
-*   **Multi-Model Unified Interface**: Through standard OpenAI-compatible protocol, configure once to access mainstream large models including Claude, Qwen Code, Kimi K2, MiniMax M2
+*   **Multi-Model Unified Interface**: Through standard OpenAI-compatible protocol, configure once to access mainstream large models including Claude, Kimi K2, MiniMax M2
 *   **Flexible Switching Mechanism**: Path routing, support dynamic model switching via startup parameters or environment variables to meet different scenario requirements
 *   **Zero-Cost Migration**: Fully compatible with OpenAI API specifications, tools like Cherry-Studio, NextChat, Cline can be used without modification
 *   **Multi-Protocol Intelligent Conversion**: Support OpenAI-compatible and Claude-compatible endpoints for cross-protocol model invocation
 
 ### 🚀 Break Through Limitations, Improve Efficiency
-*   **Bypass Official Restrictions**: Utilize OAuth authorization mechanism to effectively access OAuth-based providers like Qwen and Kiro
-*   **Free Advanced Models**: Use Claude Opus 4.5 for free via Kiro API mode, use Qwen3 Coder Plus via Qwen OAuth mode, reducing usage costs
+*   **Bypass Official Restrictions**: Utilize OAuth authorization mechanism to effectively access OAuth-based providers like Kiro
+*   **Free Advanced Models**: Use Claude Opus 4.5 for free via Kiro API mode, reducing usage costs
 *   **Intelligent Account Pool Scheduling**: Support multi-account polling, automatic failover, and configuration degradation, ensuring 99.9% service availability
 
 ### 🛡️ Secure and Controllable, Data Transparent
@@ -171,7 +170,6 @@ Supports various input types such as images and documents, providing you with a 
 #### Latest Model Support
 Seamlessly support the following latest large models, just configure the corresponding endpoint in Web UI or [`configs/config.json`](./configs/config.json):
 *   **Claude 4.5 Opus** - Anthropic's strongest model ever, now supported via Kiro
-*   **Qwen3 Coder Plus** - Alibaba Tongyi Qianwen's latest code-specific model, now supported via Qwen Code
 *   **Kimi K2 / MiniMax M2** - Synchronized support for top domestic flagship models, now supported via custom OpenAI, Claude
 
 ---
@@ -182,20 +180,10 @@ Seamlessly support the following latest large models, just configure the corresp
 
 #### 🌐 Web UI Quick Authorization (Recommended)
 In the Web UI management interface, you can complete authorization configuration rapidly:
-1. **Generate Authorization**: On the **"Provider Pools"** page or **"Configuration"** page, click the **"Generate Authorization"** button in the upper right corner of the corresponding provider (e.g., Qwen, Kiro).
+1. **Generate Authorization**: On the **"Provider Pools"** page or **"Configuration"** page, click the **"Generate Authorization"** button in the upper right corner of the corresponding provider (e.g., Kiro).
 2. **Scan/Login**: An authorization dialog will pop up, you can click **"Open in Browser"** for login verification.
 3. **Auto-Save**: After successful authorization, the system will automatically obtain credentials and save them to the corresponding directory in `configs/`. You can see the newly generated credentials on the **"Config Files"** page.
 4. **Visual Management**: You can upload or delete credentials at any time in the Web UI, or use the **"Quick Associate"** function to bind existing credential files to providers with one click.
-
-#### Qwen Code OAuth Configuration
-1. **First Authorization**: After configuring the Qwen service, the system will automatically open the authorization page in the browser
-2. **Recommended Parameters**: Use official default parameters for best results
-   ```json
-   {
-     "temperature": 0,
-     "top_p": 1
-   }
-   ```
 
 #### Kiro API Configuration
 1. **Environment Preparation**: [Download and install Kiro client](https://kiro.dev/pricing/)
@@ -278,7 +266,6 @@ Default storage locations for authorization credential files of each service:
 | Service | Default Path | Description |
 |------|---------|------|
 | **Kiro** | `~/.aws/sso/cache/kiro-auth-token.json` | Kiro authentication token |
-| **Qwen** | `~/.qwen/oauth_creds.json` | Qwen OAuth credentials |
 
 > **Note**: `~` represents the user home directory (Windows: `C:\Users\username`, Linux/macOS: `/home/username` or `/Users/username`)
 >
@@ -313,7 +300,6 @@ curl http://localhost:3000/ollama/api/chat \
 - `[Kiro]` - Access Claude models using Kiro API
 - `[Claude]` - Use official Claude API
 - `[OpenAI]` - Use official OpenAI API
-- `[Qwen CLI]` - Access via Qwen OAuth
 
 ---
 
@@ -324,7 +310,7 @@ curl http://localhost:3000/ollama/api/chat \
 **Problem Description**: After clicking "Generate Authorization", the browser opens the authorization page but authorization fails or cannot be completed.
 
 **Solutions**:
-- **Check Network Connection**: Ensure you can access AWS, Alibaba Cloud, and other services normally
+- **Check Network Connection**: Ensure you can access AWS and other services normally
 - **Check Port Occupation**: OAuth callbacks require specific ports (Kiro: 19876-19880), ensure these ports are not occupied
 - **Clear Browser Cache**: Try using incognito mode or clearing browser cache and retry
 - **Check Firewall Settings**: Ensure the firewall allows access to local callback ports

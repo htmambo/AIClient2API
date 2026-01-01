@@ -15,11 +15,7 @@ export const PROVIDER_MODELS = {
         'claude-3-7-sonnet-20250219'
     ],
     'openai-custom': [],
-    'openaiResponses-custom': [],
-    'openai-qwen-oauth': [
-        'qwen3-coder-plus',
-        'qwen3-coder-flash'
-    ]
+    'openaiResponses-custom': []
 };
 
 /**

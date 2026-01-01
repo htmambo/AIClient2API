@@ -330,11 +330,6 @@ function generateMockConfigData() {
                     {
                         "KIRO_OAUTH_CREDS_FILE_PATH": "~/.aws/sso/cache/kiro-auth-token.json"
                     }
-                ],
-                "openai-qwen-oauth": [
-                    {
-                        "QWEN_OAUTH_CREDS_FILE_PATH": "~/.qwen/oauth_creds.json"
-                    }
                 ]
             }, null, 2)
         },
@@ -797,12 +792,6 @@ function detectProviderFromPath(filePath) {
             providerType: 'claude-kiro-oauth',
             displayName: 'Claude Kiro OAuth',
             shortName: 'kiro-oauth'
-        },
-        {
-            patterns: ['configs/qwen/', '/qwen/'],
-            providerType: 'openai-qwen-oauth',
-            displayName: 'Qwen OAuth',
-            shortName: 'qwen-oauth'
         }
     ];
 

@@ -52,14 +52,6 @@ async function loadConfiguration() {
         const kiroRefreshIdcUrlEl = document.getElementById('kiroRefreshIdcUrl');
         if (kiroRefreshIdcUrlEl) kiroRefreshIdcUrlEl.value = data.KIRO_REFRESH_IDC_URL || '';
         
-        // Qwen OAuth
-        const qwenOauthCredsFilePathEl = document.getElementById('qwenOauthCredsFilePath');
-        if (qwenOauthCredsFilePathEl) qwenOauthCredsFilePathEl.value = data.QWEN_OAUTH_CREDS_FILE_PATH || '';
-        const qwenBaseUrlEl = document.getElementById('qwenBaseUrl');
-        if (qwenBaseUrlEl) qwenBaseUrlEl.value = data.QWEN_BASE_URL || '';
-        const qwenOauthBaseUrlEl = document.getElementById('qwenOauthBaseUrl');
-        if (qwenOauthBaseUrlEl) qwenOauthBaseUrlEl.value = data.QWEN_OAUTH_BASE_URL || '';
-        
         // OpenAI Responses
         const openaiResponsesApiKeyEl = document.getElementById('openaiResponsesApiKey');
         const openaiResponsesBaseUrlEl = document.getElementById('openaiResponsesBaseUrl');
@@ -166,12 +158,6 @@ async function saveConfiguration() {
             config.KIRO_BASE_URL = document.getElementById('kiroBaseUrl')?.value || null;
             config.KIRO_REFRESH_URL = document.getElementById('kiroRefreshUrl')?.value || null;
             config.KIRO_REFRESH_IDC_URL = document.getElementById('kiroRefreshIdcUrl')?.value || null;
-            break;
-            
-        case 'openai-qwen-oauth':
-            config.QWEN_OAUTH_CREDS_FILE_PATH = document.getElementById('qwenOauthCredsFilePath')?.value || '';
-            config.QWEN_BASE_URL = document.getElementById('qwenBaseUrl')?.value || null;
-            config.QWEN_OAUTH_BASE_URL = document.getElementById('qwenOauthBaseUrl')?.value || null;
             break;
             
         case 'openaiResponses-custom':

@@ -83,14 +83,13 @@ import { createRequestHandler } from './request-handler.js';
  * --host <address>                    服务器监听地址 / Server listening address (default: 0.0.0.0)
  * --port <number>                     服务器监听端口 / Server listening port (default: 3000)
  * --api-key <key>                     身份验证所需的 API 密钥 / Required API key for authentication (default: 123456)
- * --model-provider <provider[,provider...]> AI 模型提供商 / AI model provider: openai-custom, claude-custom, openaiResponses-custom, openai-qwen-oauth, claude-kiro-oauth
+ * --model-provider <provider[,provider...]> AI 模型提供商 / AI model provider: openai-custom, claude-custom, openaiResponses-custom, claude-kiro-oauth
  * --openai-api-key <key>             OpenAI API 密钥 / OpenAI API key (for openai-custom provider)
  * --openai-base-url <url>            OpenAI API 基础 URL / OpenAI API base URL (for openai-custom provider)
  * --claude-api-key <key>             Claude API 密钥 / Claude API key (for claude-custom provider)
  * --claude-base-url <url>            Claude API 基础 URL / Claude API base URL (for claude-custom provider)
  * --kiro-oauth-creds-base64 <b64>    Kiro OAuth 凭据的 Base64 字符串 / Kiro OAuth credentials as Base64 string
  * --kiro-oauth-creds-file <path>     Kiro OAuth 凭据 JSON 文件路径 / Path to Kiro OAuth credentials JSON file
- * --qwen-oauth-creds-file <path>     Qwen OAuth 凭据 JSON 文件路径 / Path to Qwen OAuth credentials JSON file
  * --project-id <id>                  项目 ID（按需）/ Project ID (optional)
  * --system-prompt-file <path>        系统提示文件路径 / Path to system prompt file (default: configs/input_system_prompt.txt)
  * --system-prompt-mode <mode>        系统提示模式 / System prompt mode: overwrite or append (default: overwrite)

@@ -77,11 +77,8 @@ function getFieldLabel(key) {
         'CLAUDE_API_KEY': 'Claude API Key',
         'CLAUDE_BASE_URL': 'Claude Base URL',
         'KIRO_OAUTH_CREDS_FILE_PATH': isEn ? 'OAuth Credentials File Path' : 'OAuth凭据文件路径',
-        'QWEN_OAUTH_CREDS_FILE_PATH': isEn ? 'OAuth Credentials File Path' : 'OAuth凭据文件路径',
         'KIRO_BASE_URL': 'Base URL',
-        'KIRO_REFRESH_URL': 'Refresh URL',
-        'QWEN_BASE_URL': 'Qwen Base URL',
-        'QWEN_OAUTH_BASE_URL': 'OAuth Base URL'
+        'KIRO_REFRESH_URL': 'Refresh URL'
     };
     
     return labelMap[key] || key;
@@ -161,26 +158,6 @@ function getProviderTypeFields(providerType) {
                 label: `Refresh IDC URL <span class="optional-tag">${t('config.optional')}</span>`,
                 type: 'text',
                 placeholder: 'https://oidc.{{region}}.amazonaws.com/token'
-            }
-        ],
-        'openai-qwen-oauth': [
-            {
-                id: 'QWEN_OAUTH_CREDS_FILE_PATH',
-                label: isEn ? 'OAuth Credentials File Path' : 'OAuth凭据文件路径',
-                type: 'text',
-                placeholder: isEn ? 'e.g.: ~/.qwen/oauth_creds.json' : '例如: ~/.qwen/oauth_creds.json'
-            },
-            {
-                id: 'QWEN_BASE_URL',
-                label: `Qwen Base URL <span class="optional-tag">${t('config.optional')}</span>`,
-                type: 'text',
-                placeholder: 'https://portal.qwen.ai/v1'
-            },
-            {
-                id: 'QWEN_OAUTH_BASE_URL',
-                label: `OAuth Base URL <span class="optional-tag">${t('config.optional')}</span>`,
-                type: 'text',
-                placeholder: 'https://chat.qwen.ai'
             }
         ]
     };

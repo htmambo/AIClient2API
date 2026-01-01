@@ -54,8 +54,7 @@ class FileUploadHandler {
      */
     getProviderKey(provider) {
         const providerMap = {
-            'claude-kiro-oauth': 'kiro',
-            'openai-qwen-oauth': 'qwen'
+            'claude-kiro-oauth': 'kiro'
         };
         return providerMap[provider] || 'kiro';
     }

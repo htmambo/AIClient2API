@@ -14,7 +14,6 @@ export class ProviderPoolManager {
         'openai-custom': 'gpt-3.5-turbo',
         'claude-custom': 'claude-3-7-sonnet-20250219',
         'claude-kiro-oauth': 'claude-haiku-4-5',
-        'openai-qwen-oauth': 'qwen3-coder-flash',
         'openaiResponses-custom': 'gpt-4o-mini'
     };
 
@@ -553,7 +552,7 @@ export class ProviderPoolManager {
             return requests;
         }
         
-        // 其他提供商（OpenAI、Claude、Qwen）使用标准 messages 格式
+        // 其他提供商（OpenAI、Claude）使用标准 messages 格式
         requests.push({
             messages: [baseMessage],
             model: modelName
@@ -585,7 +584,7 @@ export class ProviderPoolManager {
         }
 
         // 使用内部服务适配器方式进行健康检查
-        const proxyKeys = ['OPENAI', 'CLAUDE', 'QWEN', 'KIRO'];
+        const proxyKeys = ['OPENAI', 'CLAUDE', 'KIRO'];
         const tempConfig = {
             ...providerConfig,
             MODEL_PROVIDER: providerType

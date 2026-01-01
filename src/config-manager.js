@@ -73,11 +73,8 @@ export async function initializeConfig(args = process.argv.slice(2), configFileP
             CLAUDE_BASE_URL: null,
             KIRO_OAUTH_CREDS_BASE64: null,
             KIRO_OAUTH_CREDS_FILE_PATH: null,
-            QWEN_OAUTH_CREDS_FILE_PATH: null,
             PROJECT_ID: null,
             // Provider URLs
-            QWEN_BASE_URL: null,
-            QWEN_OAUTH_BASE_URL: null,
             KIRO_REFRESH_URL: null,
             KIRO_REFRESH_IDC_URL: null,
             KIRO_BASE_URL: null,
@@ -161,17 +158,7 @@ export async function initializeConfig(args = process.argv.slice(2), configFileP
             }
         }
         // Provider URL arguments
-        else if (args[i] === '--qwen-base-url') {
-            if (i + 1 < args.length) {
-                currentConfig.QWEN_BASE_URL = args[i + 1];
-                i++;
-            }
-        } else if (args[i] === '--qwen-oauth-base-url') {
-            if (i + 1 < args.length) {
-                currentConfig.QWEN_OAUTH_BASE_URL = args[i + 1];
-                i++;
-            }
-        } else if (args[i] === '--kiro-refresh-url') {
+        else if (args[i] === '--kiro-refresh-url') {
             if (i + 1 < args.length) {
                 currentConfig.KIRO_REFRESH_URL = args[i + 1];
                 i++;
@@ -240,13 +227,6 @@ export async function initializeConfig(args = process.argv.slice(2), configFileP
                 i++;
             } else {
                console.warn(`[Config Warning] --kiro-oauth-creds-file flag requires a value.`);
-           }
-       } else if (args[i] === '--qwen-oauth-creds-file') {
-           if (i + 1 < args.length) {
-               currentConfig.QWEN_OAUTH_CREDS_FILE_PATH = args[i + 1];
-               i++;
-           } else {
-               console.warn(`[Config Warning] --qwen-oauth-creds-file flag requires a value.`);
            }
        } else if (args[i] === '--cron-near-minutes') {
             if (i + 1 < args.length) {
@@ -371,9 +351,6 @@ export function logProviderSpecificDetails(provider, config) {
             } else {
                 console.log(`  [claude-kiro-oauth] OAuth Creds: Default`);
             }
-            break;
-        case MODEL_PROVIDER.QWEN_API:
-            console.log(`  [openai-qwen-oauth] OAuth Creds File Path: ${config.QWEN_OAUTH_CREDS_FILE_PATH || 'Default'}`);
             break;
         default:
             console.log(`  [${provider}] Provider initialized.`);
