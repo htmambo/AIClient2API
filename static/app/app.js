@@ -118,6 +118,17 @@ function initApp() {
     setInterval(() => {
         updateTimeDisplay();
     }, 5000);
+
+    // 为授权按钮添加事件监听
+    const authBtn = document.querySelector('.generate-auth-btn');
+    if (authBtn) {
+        authBtn.addEventListener('click', (e) => {
+            e.stopPropagation(); // 阻止事件冒泡到父元素
+            executeGenerateAuthUrl();
+        });
+    } else {
+        console.warn('未找到授权按钮元素');
+    }
     
     // 定期刷新系统信息
     setInterval(() => {
@@ -145,7 +156,7 @@ document.addEventListener('DOMContentLoaded', initApp);
 window.loadProviders = loadProviders;
 window.refreshProviderConfig = refreshProviderConfig;
 window.fileUploadHandler = fileUploadHandler;
-window.showAuthModal = showAuthModal;
+// window.showAuthModal = showAuthModal;
 window.executeGenerateAuthUrl = executeGenerateAuthUrl;
 
 // 配置管理相关全局函数

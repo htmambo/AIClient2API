@@ -318,15 +318,6 @@ function renderProviders(providers) {
         const statusClass = isEmptyState ? 'status-empty' : (healthyCount === totalCount ? 'status-healthy' : 'status-unhealthy');
         const statusIcon = isEmptyState ? 'fa-info-circle' : (healthyCount === totalCount ? 'fa-check-circle' : 'fa-exclamation-triangle');
         const statusText = isEmptyState ? t('providers.status.empty') : t('providers.status.healthy', { healthy: healthyCount, total: totalCount });
-
-        // 为授权按钮添加事件监听
-        const authBtn = document.querySelector('.generate-auth-btn');
-        if (authBtn) {
-            authBtn.addEventListener('click', (e) => {
-                e.stopPropagation(); // 阻止事件冒泡到父元素
-                handleGenerateAuthUrl(providerType);
-            });
-        }
     });
     
     // 更新统计卡片数据
@@ -408,87 +399,11 @@ function updateProviderStatsDisplay(activeProviders, healthyProviders, totalAcco
 }
 
 /**
- * 处理生成授权链接
- * @param {string} providerType - 提供商类型
- */
-async function handleGenerateAuthUrl(providerType) {
-    // 如果是 Kiro OAuth，先显示认证方式选择对话框
-    if (providerType === 'claude-kiro-oauth') {
-        showKiroAuthMethodSelector(providerType);
-        return;
-    }
-    
-    await executeGenerateAuthUrl(providerType, {});
-}
-
-/**
- * 显示 Kiro OAuth 认证方式选择对话框
- * @param {string} providerType - 提供商类型
- */
-function showKiroAuthMethodSelector(providerType) {
-    const modal = document.createElement('div');
-    modal.className = 'modal-overlay';
-    modal.style.display = 'flex';
-    
-    modal.innerHTML = `
-        <div class="modal-content" style="max-width: 500px;">
-            <div class="modal-header">
-                <h3><i class="fas fa-key"></i> <span data-i18n="oauth.kiro.selectMethod">${t('oauth.kiro.selectMethod')}</span></h3>
-                <button class="modal-close">&times;</button>
-            </div>
-            <div class="modal-body">
-                <div class="auth-method-options" style="display: flex; flex-direction: column; gap: 12px;">
-                    <button class="auth-method-btn" data-method="builder-id" style="display: flex; align-items: center; gap: 12px; padding: 16px; border: 2px solid #e0e0e0; border-radius: 8px; background: white; cursor: pointer; transition: all 0.2s;">
-                        <i class="fab fa-aws" style="font-size: 24px; color: #ff9900;"></i>
-                        <div style="text-align: left;">
-                            <div style="font-weight: 600; color: #333;" data-i18n="oauth.kiro.awsBuilder">${t('oauth.kiro.awsBuilder')}</div>
-                            <div style="font-size: 12px; color: #666;" data-i18n="oauth.kiro.awsBuilderDesc">${t('oauth.kiro.awsBuilderDesc')}</div>
-                        </div>
-                    </button>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button class="modal-cancel" data-i18n="modal.provider.cancel">${t('modal.provider.cancel')}</button>
-            </div>
-        </div>
-    `;
-    
-    document.body.appendChild(modal);
-    
-    // 关闭按钮事件
-    const closeBtn = modal.querySelector('.modal-close');
-    const cancelBtn = modal.querySelector('.modal-cancel');
-    [closeBtn, cancelBtn].forEach(btn => {
-        btn.addEventListener('click', () => {
-            modal.remove();
-        });
-    });
-    
-    // 认证方式选择按钮事件
-    const methodBtns = modal.querySelectorAll('.auth-method-btn');
-    methodBtns.forEach(btn => {
-        btn.addEventListener('mouseenter', () => {
-            btn.style.borderColor = '#00a67e';
-            btn.style.background = '#f8fffe';
-        });
-        btn.addEventListener('mouseleave', () => {
-            btn.style.borderColor = '#e0e0e0';
-            btn.style.background = 'white';
-        });
-        btn.addEventListener('click', async () => {
-            const method = btn.dataset.method;
-            modal.remove();
-            await executeGenerateAuthUrl(providerType, { method });
-        });
-    });
-}
-
-/**
  * 执行生成授权链接
  * @param {string} providerType - 提供商类型
  * @param {Object} extraOptions - 额外选项
  */
-async function executeGenerateAuthUrl(providerType, extraOptions = {}) {
+async function executeGenerateAuthUrl(providerType = 'claude-kiro-oauth', extraOptions = {}) {
     try {
         showToast(t('common.info'), t('modal.provider.auth.initializing'), 'info');
         
@@ -661,10 +576,28 @@ function showAuthModal(authUrl, authInfo) {
     const cancelBtn = modal.querySelector('.modal-cancel');
     [closeBtn, cancelBtn].forEach(btn => {
         btn.addEventListener('click', () => {
-            //window.removeEventListener('oauth_success_event', handleOAuthSuccess);
+            window.removeEventListener('oauth_success_event', handleOAuthSuccess);
             modal.remove();
         });
     });
+    // ESC键关闭模态框
+    const handleEscKey = (event) => {
+        if (event.key === 'Escape') {
+            closeBtn.click();
+            document.removeEventListener('keydown', handleEscKey);
+        }
+    };
+    
+    // 点击背景关闭模态框
+    const handleBackgroundClick = (event) => {
+        if (event.target === modal) {
+            closeBtn.click();
+            document.removeEventListener('keydown', handleEscKey);
+        }
+    };
+    // 添加事件监听器
+    document.addEventListener('keydown', handleEscKey);
+    modal.addEventListener('click', handleBackgroundClick);
 
     // 重新生成按钮事件
     const regenerateBtn = modal.querySelector('.regenerate-port-btn');
