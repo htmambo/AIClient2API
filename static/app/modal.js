@@ -70,7 +70,7 @@ function renderProviderManagerBodyHtml(data, options = {}) {
 
     return `
         ${shouldPaginate ? renderPagination(1, totalPages, providers.length) : ''}
-        <div class="provider-list">
+        <div class="provider-list" data-provider-type="${providerType}">
             ${listHtml}
         </div>
         ${shouldPaginate ? renderPagination(1, totalPages, providers.length, 'bottom') : ''}
