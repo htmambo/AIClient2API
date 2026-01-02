@@ -8,22 +8,26 @@ import { promises as fs } from 'fs';
 import { v4 as uuidv4 } from 'uuid';
 
 /**
- * 提供商目录映射配置
- * 定义目录名称到提供商类型的映射关系
+ * 单一提供商映射配置
+ * 系统现在只支持单一提供商类型，但保留多账号负载均衡
  */
-export const PROVIDER_MAPPINGS = [
-    {
-        // Kiro OAuth 配置
-        dirName: 'kiro',
-        patterns: ['configs/kiro/', '/kiro/'],
-        providerType: 'claude-kiro-oauth',
-        credPathKey: 'KIRO_OAUTH_CREDS_FILE_PATH',
-        defaultCheckModel: 'claude-haiku-4-5',
-        displayName: 'Claude Kiro OAuth',
-        needsProjectId: false,
-        urlKeys: ['KIRO_BASE_URL', 'KIRO_REFRESH_URL', 'KIRO_REFRESH_IDC_URL']
-    }
-];
+export const SINGLE_PROVIDER_MAPPING = {
+    // Kiro OAuth 配置
+    dirName: 'kiro',
+    patterns: ['configs/kiro/', '/kiro/'],
+    providerType: 'claude-kiro-oauth',
+    credPathKey: 'KIRO_OAUTH_CREDS_FILE_PATH',
+    defaultCheckModel: 'claude-haiku-4-5',
+    displayName: 'Claude Kiro OAuth',
+    needsProjectId: false,
+    urlKeys: ['KIRO_BASE_URL', 'KIRO_REFRESH_URL', 'KIRO_REFRESH_IDC_URL']
+};
+
+/**
+ * 导出常用的单一提供商常量
+ */
+export const SINGLE_PROVIDER_TYPE = SINGLE_PROVIDER_MAPPING.providerType;
+export const SINGLE_PROVIDER_CRED_PATH_KEY = SINGLE_PROVIDER_MAPPING.credPathKey;
 
 /**
  * 标准化路径，用于跨平台兼容
@@ -171,26 +175,23 @@ export function isPathUsed(relativePath, fileName, usedPaths) {
 }
 
 /**
- * 根据文件路径检测提供商类型
+ * 根据文件路径检测提供商类型（单一提供商版本）
  * @param {string} normalizedPath - 标准化的文件路径（小写，正斜杠）
  * @returns {Object|null} 提供商映射对象，如果未检测到则返回 null
  */
 export function detectProviderFromPath(normalizedPath) {
-    // 遍历映射关系，查找匹配的提供商
-    for (const mapping of PROVIDER_MAPPINGS) {
-        for (const pattern of mapping.patterns) {
-            if (normalizedPath.includes(pattern)) {
-                return {
-                    providerType: mapping.providerType,
-                    credPathKey: mapping.credPathKey,
-                    defaultCheckModel: mapping.defaultCheckModel,
-                    displayName: mapping.displayName,
-                    needsProjectId: mapping.needsProjectId
-                };
-            }
+    const mapping = SINGLE_PROVIDER_MAPPING;
+    for (const pattern of mapping.patterns) {
+        if (normalizedPath.includes(pattern)) {
+            return {
+                providerType: mapping.providerType,
+                credPathKey: mapping.credPathKey,
+                defaultCheckModel: mapping.defaultCheckModel,
+                displayName: mapping.displayName,
+                needsProjectId: mapping.needsProjectId
+            };
         }
     }
-
     return null;
 }
 

@@ -3,9 +3,9 @@ import fs from 'fs';
 import path from 'path';
 import os from 'os';
 import crypto from 'crypto';
-import { broadcastEvent } from './ui-manager.js';
-import { autoLinkProviderConfigs } from './service-manager.js';
-import { CONFIG } from './config-manager.js';
+import { broadcastEvent } from '../ui/event-broadcaster.js';
+import { autoLinkProviderConfigs } from '../service-manager.js';
+import { CONFIG } from '../config-manager.js';
 
 /**
  * Kiro OAuth 配置（支持多种认证方式）

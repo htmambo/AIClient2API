@@ -5,7 +5,7 @@
 
 import { getProviderPoolManager } from './service-manager.js';
 import { MODEL_PROVIDER} from './common.js';
-import { serviceInstances } from './claude/kiro-api.js';
+import { serviceInstances } from './kiro/adapter.js';
 
 /**
  * 用量查询服务类
@@ -44,7 +44,7 @@ export class UsageService {
             try {
                 // 检查是否有号池配置
                 if (poolManager) {
-                    const pools = poolManager.getProviderPools(providerType);
+                    const pools = poolManager.providerPools;
                     if (pools && pools.length > 0) {
                         results[providerType] = [];
                         for (const pool of pools) {

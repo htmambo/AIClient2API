@@ -4,7 +4,7 @@
  */
 
 import { v4 as uuidv4 } from 'uuid';
-import { KIRO_CONSTANTS } from './kiro-constants.js';
+import { KIRO_CONSTANTS } from './constants.js';
 
 /**
  * 提取文本内容

@@ -22,10 +22,7 @@ class FileUploadHandler {
                 const button = event.target.closest('.upload-btn');
                 const targetInputId = button.getAttribute('data-target');
                 if (targetInputId) {
-                    // 尝试从模态框获取 providerType
-                    const modal = button.closest('.provider-modal');
-                    const providerType = modal ? modal.getAttribute('data-provider-type') : null;
-                    this.handleFileUpload(button, targetInputId, providerType);
+                    this.handleFileUpload(button, targetInputId);
                 }
             }
         });
@@ -46,10 +43,7 @@ class FileUploadHandler {
      * @returns {string} - 提供商标识
      */
     getProviderKey(provider) {
-        const providerMap = {
-            'claude-kiro-oauth': 'kiro'
-        };
-        return providerMap[provider] || 'kiro';
+        return 'kiro';
     }
 
     /**

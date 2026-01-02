@@ -9,7 +9,8 @@ import path from 'path';
 import {
     pathsEqual,
     isPathUsed,
-    addToUsedPaths
+    addToUsedPaths,
+    SINGLE_PROVIDER_TYPE
 } from '../provider-utils.js';
 import { createLogger } from '../logger.js';
 
@@ -45,10 +46,12 @@ export async function scanConfigFiles(currentConfig, providerPoolManager) {
 
     // 检查提供商池文件中的所有OAuth凭据路径 - 标准化路径格式
     if (providerPools) {
-        for (const [providerType, providers] of Object.entries(providerPools)) {
-            for (const provider of providers) {
-                addToUsedPaths(usedPaths, provider.KIRO_OAUTH_CREDS_FILE_PATH);
-            }
+        const providers = Array.isArray(providerPools)
+            ? providerPools
+            : (providerPools && typeof providerPools === 'object' ? (providerPools[SINGLE_PROVIDER_TYPE] || []) : []);
+
+        for (const provider of providers) {
+            addToUsedPaths(usedPaths, provider.KIRO_OAUTH_CREDS_FILE_PATH);
         }
     }
 
@@ -180,13 +183,13 @@ function getFileUsageInfo(relativePath, fileName, usedPaths, currentConfig) {
 
     // 检查提供商池中的使用情况
     if (currentConfig.providerPools) {
-        // 使用 flatMap 将双重循环优化为单层循环 O(n)
-        const allProviders = Object.entries(currentConfig.providerPools).flatMap(
-            ([providerType, providers]) =>
-                providers.map((provider, index) => ({ provider, providerType, index }))
-        );
+        const providers = Array.isArray(currentConfig.providerPools)
+            ? currentConfig.providerPools
+            : (currentConfig.providerPools && typeof currentConfig.providerPools === 'object'
+                ? (currentConfig.providerPools[SINGLE_PROVIDER_TYPE] || [])
+                : []);
 
-        for (const { provider, providerType, index } of allProviders) {
+        for (const [index, provider] of providers.entries()) {
             const providerUsages = [];
 
             if (provider.KIRO_OAUTH_CREDS_FILE_PATH &&
@@ -195,7 +198,7 @@ function getFileUsageInfo(relativePath, fileName, usedPaths, currentConfig) {
                 providerUsages.push({
                     type: 'Provider Pool',
                     location: `Kiro OAuth credentials (node ${index + 1})`,
-                    providerType: providerType,
+                    providerType: SINGLE_PROVIDER_TYPE,
                     providerIndex: index,
                     configKey: 'KIRO_OAUTH_CREDS_FILE_PATH'
                 });

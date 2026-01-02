@@ -9,7 +9,7 @@ import {
     createStreamErrorResponse
 } from './error-handler.js';
 import { createLogger } from './logger.js';
-import { KiroStrategy } from './claude/kiro-strategy.js';
+import { KiroStrategy } from './kiro/strategy.js';
 
 const logger = createLogger('Common');
 
@@ -268,9 +268,7 @@ export async function handleStreamRequest(res, service, model, requestBody, from
         // 流式请求成功完成，统计使用次数，错误次数重置为0
         if (providerPoolManager && pooluuid) {
             logger.debug('Marking provider healthy after successful stream', { provider: toProvider, uuid: pooluuid });
-            providerPoolManager.markProviderHealthy(toProvider, {
-                uuid: pooluuid
-            });
+            providerPoolManager.markProviderHealthy({ uuid: pooluuid });
         }
 
     } catch (error) {
@@ -278,9 +276,7 @@ export async function handleStreamRequest(res, service, model, requestBody, from
         if (providerPoolManager && pooluuid) {
             logger.warn('Marking provider unhealthy due to stream error', { provider: toProvider, uuid: pooluuid });
             // 如果是号池模式，并且请求处理失败，则标记当前使用的提供者为不健康
-            providerPoolManager.markProviderUnhealthy(toProvider, {
-                uuid: pooluuid
-            });
+            providerPoolManager.markProviderUnhealthy({ uuid: pooluuid });
         }
 
         // 使用新方法创建符合 fromProvider 格式的流式错误响应
@@ -313,18 +309,14 @@ export async function handleUnaryRequest(res, service, model, requestBody, fromP
         // 一元请求成功完成，统计使用次数，错误次数重置为0
         if (providerPoolManager && pooluuid) {
             logger.debug('Marking provider healthy after successful unary request', { provider: toProvider, uuid: pooluuid });
-            providerPoolManager.markProviderHealthy(toProvider, {
-                uuid: pooluuid
-            });
+            providerPoolManager.markProviderHealthy({ uuid: pooluuid });
         }
     } catch (error) {
         logger.error('Error during unary processing', error);
         if (providerPoolManager && pooluuid) {
             logger.warn('Marking provider unhealthy due to unary error', { provider: toProvider, uuid: pooluuid });
             // 如果是号池模式，并且请求处理失败，则标记当前使用的提供者为不健康
-            providerPoolManager.markProviderUnhealthy(toProvider, {
-                uuid: pooluuid
-            });
+            providerPoolManager.markProviderUnhealthy({ uuid: pooluuid });
         }
 
         // 使用新方法创建符合 fromProvider 格式的错误响应
@@ -372,7 +364,7 @@ export async function handleContentGenerationRequest(req, res, service, endpoint
 
     // 2.5. 如果使用了提供商池，根据模型重新选择提供商（支持 Fallback）
     // 注意：这里使用 skipUsageCount: true，因为初次选择时已经增加了 usageCount
-    if (providerPoolManager && CONFIG.providerPools && CONFIG.providerPools[CONFIG.MODEL_PROVIDER]) {
+    if (providerPoolManager && Array.isArray(CONFIG.providerPools) && CONFIG.providerPools.length > 0) {
         const { getApiServiceWithFallback } = await import('./service-manager.js');
         const result = await getApiServiceWithFallback(CONFIG, model);
         

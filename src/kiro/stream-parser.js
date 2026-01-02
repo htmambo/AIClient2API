@@ -3,7 +3,7 @@
  * 负责解析 AWS Event Stream 格式的数据流
  */
 
-import { parseBracketToolCalls, deduplicateToolCalls } from './kiro-tool-parser.js';
+import { parseBracketToolCalls, deduplicateToolCalls } from './tool-parser.js';
 
 /**
  * 解析 AWS Event Stream 格式，提取所有完整的 JSON 事件

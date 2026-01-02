@@ -55,7 +55,8 @@ export function createRequestHandler(config, providerPoolManager) {
          */
         res.setHeader('Access-Control-Allow-Origin', '*');
         res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-        res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-goog-api-key, Model-Provider');
+        // 单一提供商模式：不再支持 Model-Provider Header 动态切换
+        res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-goog-api-key');
 
         /**
          * 处理 CORS 预检请求（OPTIONS）
@@ -181,65 +182,9 @@ export function createRequestHandler(config, providerPoolManager) {
         }
 
 
-        // ==================== 第八步：提供商动态切换 ====================
-
-        /**
-         * 方式一：通过 HTTP Header 切换提供商
-         *
-         * 客户端可以通过设置 'Model-Provider' 请求头来动态指定使用的提供商
-         * 例如：Model-Provider: claude-kiro-oauth
-         *
-         * 优先级：Header > Path > 配置文件
-         */
-        const modelProviderHeader = req.headers['model-provider'];
-        if (modelProviderHeader) {
-            currentConfig.MODEL_PROVIDER = modelProviderHeader;
-            console.log(`[Config] MODEL_PROVIDER overridden by header to: ${currentConfig.MODEL_PROVIDER}`);
-        }
-
-        /**
-         * 方式二：通过 URL Path 切换提供商
-         *
-         * 支持在 URL 路径的第一段指定提供商，例如：
-         * - /claude-kiro-oauth/v1/messages
-         * - /claude-kiro-oauth/v1/chat/completions
-         *
-         * 处理逻辑：
-         * 1. 分割路径为段（去除空段）
-         * 2. 检查第一段是否是有效的提供商标识符
-         * 3. 如果有效，则：
-         *    - 更新 currentConfig.MODEL_PROVIDER
-         *    - 从路径中移除提供商段
-         *    - 重构路径为标准 API 路径
-         * 4. 如果无效，记录日志但不影响请求处理
-         *
-         * 示例：
-         * 输入：/claude-kiro-oauth/v1/messages
-         * 输出：path = /v1/messages, MODEL_PROVIDER = 'claude-kiro-oauth'
-         */
-        const pathSegments = path.split('/').filter(segment => segment.length > 0);
-        if (pathSegments.length > 0) {
-            const firstSegment = pathSegments[0];
-
-            // 检查第一段是否是有效的提供商标识符
-            const isValidProvider = Object.values(MODEL_PROVIDER).includes(firstSegment);
-
-            if (firstSegment && isValidProvider) {
-                // 有效提供商：更新配置并重构路径
-                currentConfig.MODEL_PROVIDER = firstSegment;
-                console.log(`[Config] MODEL_PROVIDER overridden by path segment to: ${currentConfig.MODEL_PROVIDER}`);
-
-                // 移除第一段（提供商标识符）
-                pathSegments.shift();
-
-                // 重构路径为标准 API 路径
-                path = '/' + pathSegments.join('/');
-                requestUrl.pathname = path;
-            } else if (firstSegment && !isValidProvider) {
-                // 无效提供商：记录日志但继续处理
-                console.log(`[Config] Ignoring invalid MODEL_PROVIDER in path segment: ${firstSegment}`);
-            }
-        }
+        // ==================== 第八步：提供商动态切换（已移除） ====================
+        // 单一提供商模式：不再支持通过 Header 或 URL Path 动态切换 MODEL_PROVIDER。
+        // 统一使用配置文件确定的 MODEL_PROVIDER（当前仅支持单一 providerType）。
 
         // ==================== 第九步：获取 API 服务实例 ====================
 
@@ -267,12 +212,10 @@ export function createRequestHandler(config, providerPoolManager) {
             // 服务获取失败，返回错误响应
             handleError(res, { statusCode: 500, message: `Failed to get API service: ${error.message}` });
 
-            // 如果启用了池管理，标记提供商为不健康
+            // 如果启用了池管理，标记提供商为不健康（单一提供商模式：不再需要 providerType 参数）
             const poolManager = getProviderPoolManager();
             if (poolManager) {
-                poolManager.markProviderUnhealthy(currentConfig.MODEL_PROVIDER, {
-                    uuid: currentConfig.uuid
-                });
+                poolManager.markProviderUnhealthy({ uuid: currentConfig.uuid });
             }
             return;
         }

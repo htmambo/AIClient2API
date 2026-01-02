@@ -1,11 +1,13 @@
-import { getServiceAdapter, serviceInstances } from './claude/kiro-api.js';
-import { ProviderPoolManager } from './provider-pool-manager.js';
+import { getServiceAdapter, serviceInstances } from './kiro/adapter.js';
+import { ProviderPoolManager } from './kiro/oauth-pool-manager.js';
 import deepmerge from 'deepmerge';
 import * as fs from 'fs';
 import { promises as pfs } from 'fs';
 import * as path from 'path';
 import {
-    PROVIDER_MAPPINGS,
+    SINGLE_PROVIDER_MAPPING,
+    SINGLE_PROVIDER_TYPE,
+    SINGLE_PROVIDER_CRED_PATH_KEY,
     createProviderConfig,
     addToUsedPaths,
     isPathUsed,
@@ -22,33 +24,35 @@ let providerPoolManager = null;
  * @returns {Promise<Object>} 更新后的 providerPools 对象
  */
 export async function autoLinkProviderConfigs(config) {
-    // 确保 providerPools 对象存在
+    // 单一提供商模式：providerPools 使用数组结构
+    // 兼容旧格式：{ [providerType]: ProviderConfig[] }
     if (!config.providerPools) {
-        config.providerPools = {};
+        config.providerPools = [];
+    } else if (!Array.isArray(config.providerPools) && typeof config.providerPools === 'object') {
+        const legacyPools = config.providerPools[SINGLE_PROVIDER_TYPE];
+        if (Array.isArray(legacyPools)) {
+            config.providerPools = legacyPools;
+        } else {
+            const firstArray = Object.values(config.providerPools).find(v => Array.isArray(v));
+            config.providerPools = Array.isArray(firstArray) ? firstArray : [];
+        }
+    } else if (!Array.isArray(config.providerPools)) {
+        config.providerPools = [];
     }
     
     let totalNewProviders = 0;
     const allNewProviders = {};
     
-    // 遍历所有提供商映射
-    for (const mapping of PROVIDER_MAPPINGS) {
-        const configsPath = path.join(process.cwd(), 'configs', mapping.dirName);
-        const { providerType, credPathKey, defaultCheckModel, displayName, needsProjectId } = mapping;
-        
-        // 确保提供商类型数组存在
-        if (!config.providerPools[providerType]) {
-            config.providerPools[providerType] = [];
-        }
-        
-        // 检查目录是否存在
-        if (!fs.existsSync(configsPath)) {
-            continue;
-        }
-        
+    const mapping = SINGLE_PROVIDER_MAPPING;
+    const configsPath = path.join(process.cwd(), 'configs', mapping.dirName);
+    const { credPathKey, defaultCheckModel, displayName, needsProjectId, urlKeys } = mapping;
+    
+    // 检查目录是否存在
+    if (fs.existsSync(configsPath)) {
         // 获取已关联的配置文件路径集合
         const linkedPaths = new Set();
-        for (const provider of config.providerPools[providerType]) {
-            if (provider[credPathKey]) {
+        for (const provider of config.providerPools) {
+            if (provider && provider[credPathKey]) {
                 // 使用公共方法添加路径的所有变体格式
                 addToUsedPaths(linkedPaths, provider[credPathKey]);
             }
@@ -59,12 +63,13 @@ export async function autoLinkProviderConfigs(config) {
         await scanProviderDirectory(configsPath, linkedPaths, newProviders, {
             credPathKey,
             defaultCheckModel,
-            needsProjectId
+            needsProjectId,
+            urlKeys
         });
         
         // 如果有新的配置文件需要关联
         if (newProviders.length > 0) {
-            config.providerPools[providerType].push(...newProviders);
+            config.providerPools.push(...newProviders);
             totalNewProviders += newProviders.length;
             allNewProviders[displayName] = newProviders;
         }
@@ -112,7 +117,7 @@ export async function autoLinkProviderConfigs(config) {
  * @param {boolean} options.needsProjectId - 是否需要 PROJECT_ID
  */
 async function scanProviderDirectory(dirPath, linkedPaths, newProviders, options) {
-    const { credPathKey, defaultCheckModel, needsProjectId } = options;
+    const { credPathKey, defaultCheckModel, needsProjectId, urlKeys } = options;
     
     try {
         const files = await pfs.readdir(dirPath, { withFileTypes: true });
@@ -136,7 +141,8 @@ async function scanProviderDirectory(dirPath, linkedPaths, newProviders, options
                             credPathKey,
                             credPath: formatSystemPath(relativePath),
                             defaultCheckModel,
-                            needsProjectId
+                            needsProjectId,
+                            urlKeys
                         });
                         
                         newProviders.push(newProvider);
@@ -165,11 +171,11 @@ async function scanProviderDirectory(dirPath, linkedPaths, newProviders, options
  */
 export async function initApiService(config) {
     
-    if (config.providerPools && Object.keys(config.providerPools).length > 0) {
+    if (Array.isArray(config.providerPools) && config.providerPools.length > 0) {
         providerPoolManager = new ProviderPoolManager(config.providerPools, {
             globalConfig: config,
             maxErrorCount: config.MAX_ERROR_COUNT ?? 3,
-            providerFallbackChain: config.providerFallbackChain || {},
+            providerType: SINGLE_PROVIDER_TYPE,
         });
         console.log('[Initialization] ProviderPoolManager initialized with configured pools.');
         // 健康检查将在服务器完全启动后执行
@@ -183,8 +189,8 @@ export async function initApiService(config) {
     if (Array.isArray(config.DEFAULT_MODEL_PROVIDERS)) {
         config.DEFAULT_MODEL_PROVIDERS.forEach((provider) => providersToInit.add(provider));
     }
-    if (config.providerPools) {
-        Object.keys(config.providerPools).forEach((provider) => providersToInit.add(provider));
+    if (Array.isArray(config.providerPools) && config.providerPools.length > 0) {
+        providersToInit.add(SINGLE_PROVIDER_TYPE);
     }
     if (providersToInit.size === 0) {
         const { ALL_MODEL_PROVIDERS } = await import('./config-manager.js');
@@ -197,7 +203,7 @@ export async function initApiService(config) {
             console.warn(`[Initialization Warning] Skipping unknown model provider '${provider}' during adapter initialization.`);
             continue;
         }
-        if (config.providerPools && config.providerPools[provider] && config.providerPools[provider].length > 0) {
+        if (Array.isArray(config.providerPools) && config.providerPools.length > 0 && provider === SINGLE_PROVIDER_TYPE) {
             // 由号池管理器负责按需初始化
             continue;
         }
@@ -221,9 +227,10 @@ export async function initApiService(config) {
  */
 export async function getApiService(config, requestedModel = null, options = {}) {
     let serviceConfig = config;
-    if (providerPoolManager && config.providerPools && config.providerPools[config.MODEL_PROVIDER]) {
-        // 如果有号池管理器，并且当前模型提供者类型有对应的号池，则从号池中选择一个提供者配置
-        const selectedProviderConfig = providerPoolManager.selectProvider(config.MODEL_PROVIDER, requestedModel, { skipUsageCount: true });
+    if (providerPoolManager && Array.isArray(config.providerPools) && config.providerPools.length > 0) {
+        // 单一提供商：从号池中选择一个提供者配置
+        // 默认计数 usageCount/lastUsed，除非显式传入 options.skipUsageCount
+        const selectedProviderConfig = providerPoolManager.selectProvider(requestedModel, options);
         if (selectedProviderConfig) {
             // 合并选中的提供者配置到当前请求的 config 中
             serviceConfig = deepmerge(config, selectedProviderConfig);
@@ -239,51 +246,48 @@ export async function getApiService(config, requestedModel = null, options = {})
 }
 
 /**
- * Get API service adapter with fallback support and return detailed result
+ * Get API service adapter with selection metadata (single-provider).
  * @param {Object} config - The current request configuration
  * @param {string} [requestedModel] - Optional. The model name to filter providers by.
  * @param {Object} [options] - Optional. Additional options.
  * @returns {Promise<Object>} Object containing service adapter and metadata
  */
-export async function getApiServiceWithFallback(config, requestedModel = null, options = {}) {
+export async function getApiServiceWithSelection(config, requestedModel = null, options = {}) {
     let serviceConfig = config;
-    let actualProviderType = config.MODEL_PROVIDER;
-    let isFallback = false;
     let selectedUuid = null;
-    
-    if (providerPoolManager && config.providerPools && config.providerPools[config.MODEL_PROVIDER]) {
-        const selectedResult = providerPoolManager.selectProviderWithFallback(
-            config.MODEL_PROVIDER,
-            requestedModel,
-            { skipUsageCount: true }
-        );
-        
-        if (selectedResult) {
-            const { config: selectedProviderConfig, actualProviderType: selectedType, isFallback: fallbackUsed } = selectedResult;
-            
-            // 合并选中的提供者配置到当前请求的 config 中
+
+    if (providerPoolManager && Array.isArray(config.providerPools) && config.providerPools.length > 0) {
+        const selectedProviderConfig = providerPoolManager.selectProvider(requestedModel, options);
+        if (selectedProviderConfig) {
             serviceConfig = deepmerge(config, selectedProviderConfig);
             delete serviceConfig.providerPools;
-            
-            actualProviderType = selectedType;
-            isFallback = fallbackUsed;
-            selectedUuid = selectedProviderConfig.uuid;
-            
-            // 如果发生了 fallback，需要更新 MODEL_PROVIDER
-            if (isFallback) {
-                serviceConfig.MODEL_PROVIDER = actualProviderType;
-            }
+            config.uuid = serviceConfig.uuid;
+            selectedUuid = serviceConfig.uuid;
         }
     }
-    
+
     const service = getServiceAdapter(serviceConfig);
-    
     return {
         service,
         serviceConfig,
-        actualProviderType,
-        isFallback,
-        uuid: selectedUuid
+        actualProviderType: config.MODEL_PROVIDER || SINGLE_PROVIDER_TYPE,
+        uuid: selectedUuid || config.uuid || null
+    };
+}
+
+/**
+ * Backward-compatible wrapper: previously provided fallback metadata.
+ * Single-provider mode always returns isFallback=false.
+ */
+export async function getApiServiceWithFallback(config, requestedModel = null, options = {}) {
+    // 兼容旧行为：fallback 路径的“二次选择”默认不应增加 usageCount
+    const result = await getApiServiceWithSelection(config, requestedModel, { ...options, skipUsageCount: true });
+    return {
+        service: result.service,
+        serviceConfig: result.serviceConfig,
+        actualProviderType: result.actualProviderType,
+        isFallback: false,
+        uuid: result.uuid
     };
 }
 
@@ -304,7 +308,7 @@ export function getProviderPoolManager() {
  * @returns {Promise<Object>} The API service adapter
  */
 export async function getProviderStatus(config, options = {}) {
-    let providerPools = {};
+    let providerPools = [];
     const filePath = config.PROVIDER_POOLS_FILE_PATH || 'configs/provider_pools.json';
     try {
         if (providerPoolManager && providerPoolManager.providerPools) {
@@ -317,17 +321,13 @@ export async function getProviderStatus(config, options = {}) {
         console.warn('[API Service] Failed to load provider pools:', error.message);
     }
 
-    // providerPoolsSlim 只保留顶级 key 及部分字段，过滤 isDisabled 为 true 的元素
+    // 单一提供商：providerPoolsSlim 只保留部分字段，过滤 isDisabled 为 true 的元素
     const slimFields = [
         'customName',
         'isHealthy',
         'lastErrorTime',
         'lastErrorMessage'
     ];
-    // identify 字段映射表
-    const identifyFieldMap = {
-        'claude-kiro-oauth': 'KIRO_OAUTH_CREDS_FILE_PATH'
-    };
     let providerPoolsSlim = [];
     let unhealthyProvideIdentifyList = [];
     let count = 0;
@@ -335,12 +335,16 @@ export async function getProviderStatus(config, options = {}) {
     let unhealthyRatio = 0;
     const filterProvider = options && options.provider;
     const filterCustomName = options && options.customName;
-    for (const key of Object.keys(providerPools)) {
-        if (!Array.isArray(providerPools[key])) continue;
-        if (filterProvider && key !== filterProvider) continue;
-        const identifyField = identifyFieldMap[key] || null;
-        const slimArr = providerPools[key]
+
+    // 兼容新旧格式：数组 or { [providerType]: [] }
+    const providers = Array.isArray(providerPools)
+        ? providerPools
+        : (providerPools && typeof providerPools === 'object' ? (providerPools[SINGLE_PROVIDER_TYPE] || []) : []);
+
+    if (!filterProvider || filterProvider === SINGLE_PROVIDER_TYPE) {
+        const slimArr = providers
             .filter(item => {
+                if (!item) return false;
                 if (item.isDisabled) return false;
                 if (filterCustomName && item.customName !== filterCustomName) return false;
                 return true;
@@ -348,18 +352,15 @@ export async function getProviderStatus(config, options = {}) {
             .map(item => {
                 const slim = {};
                 for (const f of slimFields) {
-                    slim[f] = item.hasOwnProperty(f) ? item[f] : null;
+                    slim[f] = Object.prototype.hasOwnProperty.call(item, f) ? item[f] : null;
                 }
-                // identify 字段
-                if (identifyField && item.hasOwnProperty(identifyField)) {
-                    let tmpCustomName = item.customName ? `${item.customName}` : 'NoCustomName';
-                    let identifyStr = `${tmpCustomName}::${key}::${item[identifyField]}`;
-                    slim.identify = identifyStr;
+                if (SINGLE_PROVIDER_CRED_PATH_KEY && Object.prototype.hasOwnProperty.call(item, SINGLE_PROVIDER_CRED_PATH_KEY)) {
+                    const tmpCustomName = item.customName ? `${item.customName}` : 'NoCustomName';
+                    slim.identify = `${tmpCustomName}::${SINGLE_PROVIDER_TYPE}::${item[SINGLE_PROVIDER_CRED_PATH_KEY]}`;
                 } else {
                     slim.identify = null;
                 }
-                slim.provider = key;
-                // 统计
+                slim.provider = SINGLE_PROVIDER_TYPE;
                 count++;
                 if (slim.isHealthy === false) {
                     unhealthyCount++;
@@ -369,6 +370,7 @@ export async function getProviderStatus(config, options = {}) {
             });
         providerPoolsSlim.push(...slimArr);
     }
+
     if (count > 0) {
         unhealthyRatio = Number((unhealthyCount / count).toFixed(2));
     }

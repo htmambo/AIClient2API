@@ -6,7 +6,7 @@
 import { promises as fs } from 'fs';
 import path from 'path';
 import { CONFIG } from '../config-manager.js';
-import { serviceInstances } from '../claude/kiro-api.js';
+import { serviceInstances } from '../kiro/adapter.js';
 import { initApiService } from '../service-manager.js';
 import { createLogger } from '../logger.js';
 
@@ -95,8 +95,8 @@ export function getSanitizedConfig(currentConfig) {
 
     // 处理提供商池中的敏感信息
     if (sanitized.providerPools) {
-        for (const providerType in sanitized.providerPools) {
-            sanitized.providerPools[providerType] = sanitized.providerPools[providerType].map(provider => {
+        if (Array.isArray(sanitized.providerPools)) {
+            sanitized.providerPools = sanitized.providerPools.map(provider => {
                 const sanitizedProvider = { ...provider };
                 sensitiveKeys.forEach(key => {
                     if (sanitizedProvider[key]) {
@@ -105,6 +105,18 @@ export function getSanitizedConfig(currentConfig) {
                 });
                 return sanitizedProvider;
             });
+        } else if (typeof sanitized.providerPools === 'object') {
+            for (const providerType in sanitized.providerPools) {
+                sanitized.providerPools[providerType] = sanitized.providerPools[providerType].map(provider => {
+                    const sanitizedProvider = { ...provider };
+                    sensitiveKeys.forEach(key => {
+                        if (sanitizedProvider[key]) {
+                            sanitizedProvider[key] = '***REDACTED***';
+                        }
+                    });
+                    return sanitizedProvider;
+                });
+            }
         }
     }
 

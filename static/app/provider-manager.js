@@ -198,134 +198,109 @@ function renderProviders(providers) {
     
     container.innerHTML = '';
 
-    // 检查是否有提供商池数据
-    const hasProviders = Object.keys(providers).length > 0;
+    const providerType = 'claude-kiro-oauth';
+    const providerTitle = 'Claude Kiro OAuth';
+    const accounts = Array.isArray(providers)
+        ? providers
+        : (providers && providers[providerType]) || [];
+    const hasProviders = accounts.length > 0;
     const statsGrid = document.querySelector('#providers .stats-grid');
     
     // 始终显示统计卡片
     if (statsGrid) statsGrid.style.display = 'grid';
-
-    // 定义所有支持的提供商显示顺序
-    const providerDisplayOrder = [
-        'claude-kiro-oauth'
-    ];
-    
-    // 获取所有提供商类型并按指定顺序排序
-    // 优先显示预定义的所有提供商类型，即使某些提供商没有数据也要显示
-    let allProviderTypes;
-    if (hasProviders) {
-        // 合并预定义类型和实际存在的类型，确保显示所有预定义提供商
-        const actualProviderTypes = Object.keys(providers);
-        allProviderTypes = [...new Set([...providerDisplayOrder, ...actualProviderTypes])];
-    } else {
-        allProviderTypes = providerDisplayOrder;
-    }
-    const sortedProviderTypes = providerDisplayOrder.filter(type => allProviderTypes.includes(type))
-        .concat(allProviderTypes.filter(type => !providerDisplayOrder.includes(type)));
     
     // 计算总统计
-    let totalAccounts = 0;
-    let totalHealthy = 0;
-    
-    // 按照排序后的提供商类型渲染
-    sortedProviderTypes.forEach((providerType) => {
-        const accounts = hasProviders ? providers[providerType] || [] : [];
-        const providerDiv = document.createElement('div');
-        providerDiv.className = 'provider-item';
-        providerDiv.dataset.providerType = providerType;
-        providerDiv.style.cursor = 'pointer';
+    const totalAccounts = accounts.length;
+    const healthyCount = accounts.filter(acc => acc.isHealthy).length;
+    const usageCount = accounts.reduce((sum, acc) => sum + (acc.usageCount || 0), 0);
+    const errorCount = accounts.reduce((sum, acc) => sum + (acc.errorCount || 0), 0);
 
-        const healthyCount = accounts.filter(acc => acc.isHealthy).length;
-        const totalCount = accounts.length;
-        const usageCount = accounts.reduce((sum, acc) => sum + (acc.usageCount || 0), 0);
-        const errorCount = accounts.reduce((sum, acc) => sum + (acc.errorCount || 0), 0);
-        
-        totalAccounts += totalCount;
-        totalHealthy += healthyCount;
+    // 更新全局统计变量
+    if (!providerStats.providerTypeStats[providerType]) {
+        providerStats.providerTypeStats[providerType] = {
+            totalAccounts: 0,
+            healthyAccounts: 0,
+            totalUsage: 0,
+            totalErrors: 0,
+            lastUpdate: null
+        };
+    }
 
-        // 更新全局统计变量
-        if (!providerStats.providerTypeStats[providerType]) {
-            providerStats.providerTypeStats[providerType] = {
-                totalAccounts: 0,
-                healthyAccounts: 0,
-                totalUsage: 0,
-                totalErrors: 0,
-                lastUpdate: null
-            };
-        }
-        
-        const typeStats = providerStats.providerTypeStats[providerType];
-        typeStats.totalAccounts = totalCount;
-        typeStats.healthyAccounts = healthyCount;
-        typeStats.totalUsage = usageCount;
-        typeStats.totalErrors = errorCount;
-        typeStats.lastUpdate = new Date().toISOString();
+    const typeStats = providerStats.providerTypeStats[providerType];
+    typeStats.totalAccounts = totalAccounts;
+    typeStats.healthyAccounts = healthyCount;
+    typeStats.totalUsage = usageCount;
+    typeStats.totalErrors = errorCount;
+    typeStats.lastUpdate = new Date().toISOString();
 
-        // 为无数据状态设置特殊样式
-        const isEmptyState = !hasProviders || totalCount === 0;
-        const statusClass = isEmptyState ? 'status-empty' : (healthyCount === totalCount ? 'status-healthy' : 'status-unhealthy');
-        const statusIcon = isEmptyState ? 'fa-info-circle' : (healthyCount === totalCount ? 'fa-check-circle' : 'fa-exclamation-triangle');
-        const statusText = isEmptyState ? t('providers.status.empty') : t('providers.status.healthy', { healthy: healthyCount, total: totalCount });
+    // 为无数据状态设置特殊样式
+    const isEmptyState = !hasProviders;
+    const statusClass = isEmptyState ? 'status-empty' : (healthyCount === totalAccounts ? 'status-healthy' : 'status-unhealthy');
+    const statusIcon = isEmptyState ? 'fa-info-circle' : (healthyCount === totalAccounts ? 'fa-check-circle' : 'fa-exclamation-triangle');
+    const statusText = isEmptyState ? t('providers.status.empty') : t('providers.status.healthy', { healthy: healthyCount, total: totalAccounts });
 
-        providerDiv.innerHTML = `
-            <div class="provider-header">
-                <div class="provider-name">
-                    <span class="provider-type-text">${providerType}</span>
-                </div>
-                <div class="provider-header-right">
-                    ${generateAuthButton(providerType)}
-                    <div class="provider-status ${statusClass}">
-                        <i class="fas fa-${statusIcon}"></i>
-                        <span>${statusText}</span>
-                    </div>
+    const providerDiv = document.createElement('div');
+    providerDiv.className = 'provider-item';
+    providerDiv.dataset.providerType = providerType;
+    providerDiv.style.cursor = 'pointer';
+    providerDiv.innerHTML = `
+        <div class="provider-header">
+            <div class="provider-name">
+                <span class="provider-type-text">${providerTitle}</span>
+            </div>
+            <div class="provider-header-right">
+                ${generateAuthButton(providerType)}
+                <div class="provider-status ${statusClass}">
+                    <i class="fas fa-${statusIcon}"></i>
+                    <span>${statusText}</span>
                 </div>
             </div>
-            <div class="provider-stats">
-                <div class="provider-stat">
-                    <span class="provider-stat-label" data-i18n="providers.stat.totalAccounts">${t('providers.stat.totalAccounts')}</span>
-                    <span class="provider-stat-value">${totalCount}</span>
-                </div>
-                <div class="provider-stat">
-                    <span class="provider-stat-label" data-i18n="providers.stat.healthyAccounts">${t('providers.stat.healthyAccounts')}</span>
-                    <span class="provider-stat-value">${healthyCount}</span>
-                </div>
-                <div class="provider-stat">
-                    <span class="provider-stat-label" data-i18n="providers.stat.usageCount">${t('providers.stat.usageCount')}</span>
-                    <span class="provider-stat-value">${usageCount}</span>
-                </div>
-                <div class="provider-stat">
-                    <span class="provider-stat-label" data-i18n="providers.stat.errorCount">${t('providers.stat.errorCount')}</span>
-                    <span class="provider-stat-value">${errorCount}</span>
-                </div>
+        </div>
+        <div class="provider-stats">
+            <div class="provider-stat">
+                <span class="provider-stat-label" data-i18n="providers.stat.totalAccounts">${t('providers.stat.totalAccounts')}</span>
+                <span class="provider-stat-value">${totalAccounts}</span>
             </div>
-        `;
+            <div class="provider-stat">
+                <span class="provider-stat-label" data-i18n="providers.stat.healthyAccounts">${t('providers.stat.healthyAccounts')}</span>
+                <span class="provider-stat-value">${healthyCount}</span>
+            </div>
+            <div class="provider-stat">
+                <span class="provider-stat-label" data-i18n="providers.stat.usageCount">${t('providers.stat.usageCount')}</span>
+                <span class="provider-stat-value">${usageCount}</span>
+            </div>
+            <div class="provider-stat">
+                <span class="provider-stat-label" data-i18n="providers.stat.errorCount">${t('providers.stat.errorCount')}</span>
+                <span class="provider-stat-value">${errorCount}</span>
+            </div>
+        </div>
+    `;
 
-        // 如果是空状态，添加特殊样式
-        if (isEmptyState) {
-            providerDiv.classList.add('empty-provider');
-        }
+    // 如果是空状态，添加特殊样式
+    if (isEmptyState) {
+        providerDiv.classList.add('empty-provider');
+    }
 
-        // 添加点击事件 - 整个提供商组都可以点击
-        providerDiv.addEventListener('click', (e) => {
-            e.preventDefault();
-            openProviderManager(providerType);
-        });
-
-        container.appendChild(providerDiv);
-        
-        // 为授权按钮添加事件监听
-        const authBtn = providerDiv.querySelector('.generate-auth-btn');
-        if (authBtn) {
-            authBtn.addEventListener('click', (e) => {
-                e.stopPropagation(); // 阻止事件冒泡到父元素
-                handleGenerateAuthUrl(providerType);
-            });
-        }
+    // 添加点击事件 - 整个提供商组都可以点击
+    providerDiv.addEventListener('click', (e) => {
+        e.preventDefault();
+        openProviderManager();
     });
+
+    container.appendChild(providerDiv);
+    
+    // 为授权按钮添加事件监听
+    const authBtn = providerDiv.querySelector('.generate-auth-btn');
+    if (authBtn) {
+        authBtn.addEventListener('click', (e) => {
+            e.stopPropagation(); // 阻止事件冒泡到父元素
+            handleGenerateAuthUrl(providerType);
+        });
+    }
     
     // 更新统计卡片数据
-    const activeProviders = hasProviders ? Object.keys(providers).length : 0;
-    updateProviderStatsDisplay(activeProviders, totalHealthy, totalAccounts);
+    const activeProviders = hasProviders ? 1 : 0;
+    updateProviderStatsDisplay(activeProviders, healthyCount, totalAccounts);
 }
 
 /**
@@ -396,11 +371,10 @@ function updateProviderStatsDisplay(activeProviders, healthyProviders, totalAcco
 
 /**
  * 打开提供商管理模态框
- * @param {string} providerType - 提供商类型
  */
-async function openProviderManager(providerType) {
+async function openProviderManager() {
     try {
-        const data = await window.apiClient.get(`/providers/${encodeURIComponent(providerType)}`);
+        const data = await window.apiClient.get(`/providers/${encodeURIComponent('claude-kiro-oauth')}`);
         
         showProviderManagerModal(data);
     } catch (error) {

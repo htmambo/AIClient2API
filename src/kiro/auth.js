@@ -5,7 +5,7 @@
 
 import { promises as fs } from 'fs';
 import * as path from 'path';
-import { KIRO_CONSTANTS, KIRO_AUTH_TOKEN_FILE } from './kiro-constants.js';
+import { KIRO_CONSTANTS, KIRO_AUTH_TOKEN_FILE } from './constants.js';
 
 /**
  * 加载凭据文件

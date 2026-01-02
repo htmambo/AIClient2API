@@ -258,17 +258,36 @@ export async function initializeConfig(args = process.argv.slice(2), configFileP
     if (currentConfig.PROVIDER_POOLS_FILE_PATH) {
         try {
             const poolsData = await pfs.readFile(currentConfig.PROVIDER_POOLS_FILE_PATH, 'utf8');
-            currentConfig.providerPools = JSON.parse(poolsData);
-            logger.info('Loaded provider pools', { path: currentConfig.PROVIDER_POOLS_FILE_PATH });
+            const parsedPools = JSON.parse(poolsData);
+
+            // 兼容新旧两种配置格式
+            if (Array.isArray(parsedPools)) {
+                // 新格式：直接是账号数组
+                currentConfig.providerPools = parsedPools;
+            } else if (parsedPools && typeof parsedPools === 'object') {
+                // 旧格式：{ [providerType]: ProviderConfig[] }
+                // 提取 claude-kiro-oauth 的账号列表
+                currentConfig.providerPools = parsedPools['claude-kiro-oauth'] || [];
+                logger.warn('Detected legacy provider_pools.json format, auto-migrating to single-provider pool', {
+                    path: currentConfig.PROVIDER_POOLS_FILE_PATH
+                });
+            } else {
+                currentConfig.providerPools = [];
+            }
+
+            logger.info('Loaded provider pools', {
+                path: currentConfig.PROVIDER_POOLS_FILE_PATH,
+                accountCount: currentConfig.providerPools.length
+            });
         } catch (error) {
             logger.error('Failed to load provider pools', {
                 path: currentConfig.PROVIDER_POOLS_FILE_PATH,
                 error: error.message
             });
-            currentConfig.providerPools = {};
+            currentConfig.providerPools = [];
         }
     } else {
-        currentConfig.providerPools = {};
+        currentConfig.providerPools = [];
     }
 
     // Set PROMPT_LOG_FILENAME based on the determined config

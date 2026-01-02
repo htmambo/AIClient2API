@@ -6,6 +6,8 @@ import { t } from './i18n.js';
 
 // 分页配置
 const PROVIDERS_PER_PAGE = 5;
+const SINGLE_PROVIDER_TYPE = 'claude-kiro-oauth';
+const SINGLE_PROVIDER_TITLE = 'Claude Kiro OAuth';
 let currentPage = 1;
 let currentProviders = [];
 let currentProviderType = '';
@@ -16,7 +18,11 @@ let cachedModels = []; // 缓存模型列表
  * @param {Object} data - 提供商数据
  */
 function showProviderManagerModal(data) {
-    const { providerType, providers, totalCount, healthyCount } = data;
+    const providers = Array.isArray(data.providers) ? data.providers : [];
+    const totalCount = data.totalCount || providers.length;
+    const healthyCount = data.healthyCount || providers.filter(provider => provider.isHealthy).length;
+    const providerType = SINGLE_PROVIDER_TYPE;
+    const providerTitle = SINGLE_PROVIDER_TITLE;
     
     // 保存当前数据用于分页
     currentProviders = providers;
@@ -43,7 +49,7 @@ function showProviderManagerModal(data) {
     modal.innerHTML = `
         <div class="provider-modal-content">
             <div class="provider-modal-header">
-                <h3 data-i18n="modal.provider.manage" data-i18n-params='{"type":"${providerType}"}'><i class="fas fa-cogs"></i> 管理 ${providerType} 提供商配置</h3>
+                <h3 data-i18n="modal.provider.manage" data-i18n-params='{"type":"${providerTitle}"}'><i class="fas fa-cogs"></i> 管理 ${providerTitle} 提供商配置</h3>
                 <button class="modal-close" onclick="window.closeProviderModal(this)">
                     <i class="fas fa-times"></i>
                 </button>
@@ -59,13 +65,13 @@ function showProviderManagerModal(data) {
                         <span class="value">${healthyCount}</span>
                     </div>
                     <div class="provider-summary-actions">
-                        <button class="btn btn-success" onclick="window.showAddProviderForm('${providerType}')">
+                        <button class="btn btn-success" onclick="window.showAddProviderForm()">
                             <i class="fas fa-plus"></i> <span data-i18n="modal.provider.add">添加新提供商</span>
                         </button>
-                        <button class="btn btn-warning" onclick="window.resetAllProvidersHealth('${providerType}')" data-i18n="modal.provider.resetHealth" title="将所有节点的健康状态重置为健康">
+                        <button class="btn btn-warning" onclick="window.resetAllProvidersHealth()" data-i18n="modal.provider.resetHealth" title="将所有节点的健康状态重置为健康">
                             <i class="fas fa-heartbeat"></i> 重置为健康
                         </button>
-                        <button class="btn btn-info" onclick="window.performHealthCheck('${providerType}')" data-i18n="modal.provider.healthCheck" title="对所有节点执行健康检测">
+                        <button class="btn btn-info" onclick="window.performHealthCheck()" data-i18n="modal.provider.healthCheck" title="对所有节点执行健康检测">
                             <i class="fas fa-stethoscope"></i> 健康检测
                         </button>
                     </div>
@@ -90,7 +96,7 @@ function showProviderManagerModal(data) {
     
     // 先获取该提供商类型的模型列表（只调用一次API）
     const pageProviders = providers.slice(0, PROVIDERS_PER_PAGE);
-    loadModelsForProviderType(providerType, pageProviders);
+    loadModelsForProvider(pageProviders);
 }
 
 /**
@@ -201,7 +207,7 @@ function goToProviderPage(page) {
             renderNotSupportedModelsSelector(provider.uuid, cachedModels, provider.notSupportedModels || []);
         });
     } else {
-        loadModelsForProviderType(currentProviderType, pageProviders);
+        loadModelsForProvider(pageProviders);
     }
 }
 
@@ -220,11 +226,10 @@ function renderProviderListPaginated(providers, page) {
 }
 
 /**
- * 为提供商类型加载模型列表（优化：只调用一次API，并缓存结果）
- * @param {string} providerType - 提供商类型
+ * 为提供商加载模型列表（优化：只调用一次API，并缓存结果）
  * @param {Array} providers - 提供商列表
  */
-async function loadModelsForProviderType(providerType, providers) {
+async function loadModelsForProvider(providers) {
     try {
         // 如果已有缓存，直接使用
         if (cachedModels.length > 0) {
@@ -235,8 +240,8 @@ async function loadModelsForProviderType(providerType, providers) {
         }
         
         // 只调用一次API获取模型列表
-        const response = await window.apiClient.get(`/provider-models/${encodeURIComponent(providerType)}`);
-        const models = response.KIRO_MODELS || [];
+        const response = await window.apiClient.get(`/provider-models/${encodeURIComponent(SINGLE_PROVIDER_TYPE)}`);
+        const models = response.models || [];
         
         // 缓存模型列表
         cachedModels = models;
@@ -246,7 +251,7 @@ async function loadModelsForProviderType(providerType, providers) {
             renderNotSupportedModelsSelector(provider.uuid, models, provider.notSupportedModels || []);
         });
     } catch (error) {
-        console.error('Failed to load models for provider type:', error);
+        console.error('Failed to load models for provider:', error);
         // 如果加载失败，为每个提供商显示错误信息
         providers.forEach(provider => {
             const container = document.querySelector(`.not-supported-models-container[data-uuid="${provider.uuid}"]`);
@@ -301,9 +306,8 @@ function addModalEventListeners(modal) {
             event.preventDefault();
             event.stopPropagation();
             const targetInputId = button.getAttribute('data-target');
-            const providerType = modal.getAttribute('data-provider-type');
             if (targetInputId && window.fileUploadHandler) {
-                window.fileUploadHandler.handleFileUpload(button, targetInputId, providerType);
+                window.fileUploadHandler.handleFileUpload(button, targetInputId);
             }
         }
     };
@@ -862,7 +866,6 @@ async function saveProvider(uuid, event) {
     event.stopPropagation();
     
     const providerDetail = event.target.closest('.provider-item-detail');
-    const providerType = providerDetail.closest('.provider-modal').getAttribute('data-provider-type');
     
     const configInputs = providerDetail.querySelectorAll('input[data-config-key]');
     const configSelects = providerDetail.querySelectorAll('select[data-config-key]');
@@ -886,11 +889,11 @@ async function saveProvider(uuid, event) {
     providerConfig.notSupportedModels = notSupportedModels;
     
     try {
-        await window.apiClient.put(`/providers/${encodeURIComponent(providerType)}/${uuid}`, { providerConfig });
+        await window.apiClient.put(`/providers/${encodeURIComponent(SINGLE_PROVIDER_TYPE)}/${uuid}`, { providerConfig });
         await window.apiClient.post('/reload-config');
         showToast(t('common.success'), t('modal.provider.save.success'), 'success');
         // 重新获取该提供商类型的最新配置
-        await refreshProviderConfig(providerType);
+        await refreshProviderConfig();
     } catch (error) {
         console.error('Failed to update provider:', error);
         showToast(t('common.error'), t('modal.provider.save.failed') + ': ' + error.message, 'error');
@@ -910,14 +913,13 @@ async function deleteProvider(uuid, event) {
     }
     
     const providerDetail = event.target.closest('.provider-item-detail');
-    const providerType = providerDetail.closest('.provider-modal').getAttribute('data-provider-type');
     
     try {
-        await window.apiClient.delete(`/providers/${encodeURIComponent(providerType)}/${uuid}`);
+        await window.apiClient.delete(`/providers/${encodeURIComponent(SINGLE_PROVIDER_TYPE)}/${uuid}`);
         await window.apiClient.post('/reload-config');
         showToast(t('common.success'), t('modal.provider.delete.success'), 'success');
         // 重新获取最新配置
-        await refreshProviderConfig(providerType);
+        await refreshProviderConfig();
     } catch (error) {
         console.error('Failed to delete provider:', error);
         showToast(t('common.error'), t('modal.provider.delete.failed') + ': ' + error.message, 'error');
@@ -926,19 +928,18 @@ async function deleteProvider(uuid, event) {
 
 /**
  * 重新获取并刷新提供商配置
- * @param {string} providerType - 提供商类型
  */
-async function refreshProviderConfig(providerType) {
+async function refreshProviderConfig() {
     try {
         // 重新获取该提供商类型的最新数据
-        const data = await window.apiClient.get(`/providers/${encodeURIComponent(providerType)}`);
+        const data = await window.apiClient.get(`/providers/${encodeURIComponent(SINGLE_PROVIDER_TYPE)}`);
         
         // 如果当前显示的是该提供商类型的模态框，则更新模态框
         const modal = document.querySelector('.provider-modal');
-        if (modal && modal.getAttribute('data-provider-type') === providerType) {
+        if (modal) {
             // 更新缓存的提供商数据
             currentProviders = data.providers;
-            currentProviderType = providerType;
+            currentProviderType = SINGLE_PROVIDER_TYPE;
             
             // 更新统计信息
             const totalCountElement = modal.querySelector('.provider-summary-item .value');
@@ -990,7 +991,7 @@ async function refreshProviderConfig(providerType) {
             const startIndex = (currentPage - 1) * PROVIDERS_PER_PAGE;
             const endIndex = Math.min(startIndex + PROVIDERS_PER_PAGE, data.providers.length);
             const pageProviders = data.providers.slice(startIndex, endIndex);
-            loadModelsForProviderType(providerType, pageProviders);
+            loadModelsForProvider(pageProviders);
         }
         
         // 同时更新主界面的提供商统计数据
@@ -1005,9 +1006,8 @@ async function refreshProviderConfig(providerType) {
 
 /**
  * 显示添加提供商表单
- * @param {string} providerType - 提供商类型
  */
-function showAddProviderForm(providerType) {
+function showAddProviderForm() {
     const modal = document.querySelector('.provider-modal');
     const existingForm = modal.querySelector('.add-provider-form');
     
@@ -1041,7 +1041,7 @@ function showAddProviderForm(providerType) {
             <!-- 动态配置字段将在这里显示 -->
         </div>
         <div class="form-actions" style="margin-top: 15px;">
-            <button class="btn btn-success" onclick="window.addProvider('${providerType}')">
+            <button class="btn btn-success" onclick="window.addProvider()">
                 <i class="fas fa-save"></i> <span data-i18n="modal.provider.save">保存</span>
             </button>
             <button class="btn btn-secondary" onclick="this.closest('.add-provider-form').remove()">
@@ -1051,7 +1051,7 @@ function showAddProviderForm(providerType) {
     `;
     
     // 添加动态配置字段
-    addDynamicConfigFields(form, providerType);
+    addDynamicConfigFields(form);
     
     // 为添加表单中的密码切换按钮绑定事件监听器
     bindAddFormPasswordToggleListeners(form);
@@ -1064,13 +1064,12 @@ function showAddProviderForm(providerType) {
 /**
  * 添加动态配置字段
  * @param {HTMLElement} form - 表单元素
- * @param {string} providerType - 提供商类型
  */
-function addDynamicConfigFields(form, providerType) {
+function addDynamicConfigFields(form) {
     const configFields = form.querySelector('#dynamicConfigFields');
     
     // 获取该提供商类型的字段配置（已经在 utils.js 中包含了 URL 字段）
-    const allFields = getProviderTypeFields(providerType);
+    const allFields = getProviderTypeFields(SINGLE_PROVIDER_TYPE);
     
     // 过滤掉已经在 form-grid 中硬编码显示的三个基础字段，避免重复
     const baseFields = ['customName', 'checkModelName', 'checkHealth'];
@@ -1205,9 +1204,8 @@ function bindAddFormPasswordToggleListeners(form) {
 
 /**
  * 添加新提供商
- * @param {string} providerType - 提供商类型
  */
-async function addProvider(providerType) {
+async function addProvider() {
     const customName = document.getElementById('newCustomName')?.value;
     const checkModelName = document.getElementById('newCheckModelName')?.value;
     const checkHealth = document.getElementById('newCheckHealth')?.value === 'true';
@@ -1219,7 +1217,7 @@ async function addProvider(providerType) {
     };
     
     // 根据提供商类型动态收集配置字段（自动匹配 utils.js 中的定义）
-    const allFields = getProviderTypeFields(providerType);
+    const allFields = getProviderTypeFields(SINGLE_PROVIDER_TYPE);
     allFields.forEach(field => {
         const element = document.getElementById(`new${field.id}`);
         if (element) {
@@ -1229,7 +1227,7 @@ async function addProvider(providerType) {
     
     try {
         await window.apiClient.post('/providers', {
-            providerType,
+            providerType: SINGLE_PROVIDER_TYPE,
             providerConfig
         });
         await window.apiClient.post('/reload-config');
@@ -1240,7 +1238,7 @@ async function addProvider(providerType) {
             form.remove();
         }
         // 重新获取最新配置数据
-        await refreshProviderConfig(providerType);
+        await refreshProviderConfig();
     } catch (error) {
         console.error('Failed to add provider:', error);
         showToast(t('common.error'), t('modal.provider.add.failed') + ': ' + error.message, 'error');
@@ -1256,7 +1254,6 @@ async function toggleProviderStatus(uuid, event) {
     event.stopPropagation();
     
     const providerDetail = event.target.closest('.provider-item-detail');
-    const providerType = providerDetail.closest('.provider-modal').getAttribute('data-provider-type');
     const currentProvider = providerDetail.closest('.provider-modal').querySelector(`[data-uuid="${uuid}"]`);
     
     // 获取当前提供商信息
@@ -1271,11 +1268,11 @@ async function toggleProviderStatus(uuid, event) {
     }
     
     try {
-        await window.apiClient.post(`/providers/${encodeURIComponent(providerType)}/${uuid}/${action}`, { action });
+        await window.apiClient.post(`/providers/${encodeURIComponent(SINGLE_PROVIDER_TYPE)}/${uuid}/${action}`, { action });
         await window.apiClient.post('/reload-config');
         showToast(t('common.success'), t('common.success'), 'success');
         // 重新获取该提供商类型的最新配置
-        await refreshProviderConfig(providerType);
+        await refreshProviderConfig();
     } catch (error) {
         console.error('Failed to toggle provider status:', error);
         showToast(t('common.error'), t('common.error') + ': ' + error.message, 'error');
@@ -1284,10 +1281,9 @@ async function toggleProviderStatus(uuid, event) {
 
 /**
  * 重置所有提供商的健康状态
- * @param {string} providerType - 提供商类型
  */
-async function resetAllProvidersHealth(providerType) {
-    if (!confirm(t('modal.provider.resetHealthConfirm', {type: providerType}))) {
+async function resetAllProvidersHealth() {
+    if (!confirm(t('modal.provider.resetHealthConfirm', {type: SINGLE_PROVIDER_TITLE}))) {
         return;
     }
     
@@ -1295,7 +1291,7 @@ async function resetAllProvidersHealth(providerType) {
         showToast(t('common.info'), t('modal.provider.resetHealth') + '...', 'info');
         
         const response = await window.apiClient.post(
-            `/providers/${encodeURIComponent(providerType)}/reset-health`,
+            `/providers/${encodeURIComponent(SINGLE_PROVIDER_TYPE)}/reset-health`,
             {}
         );
         
@@ -1306,7 +1302,7 @@ async function resetAllProvidersHealth(providerType) {
             await window.apiClient.post('/reload-config');
             
             // 刷新提供商配置显示
-            await refreshProviderConfig(providerType);
+            await refreshProviderConfig();
         } else {
             showToast(t('common.error'), t('modal.provider.resetHealth.failed'), 'error');
         }
@@ -1318,10 +1314,9 @@ async function resetAllProvidersHealth(providerType) {
 
 /**
  * 执行健康检测
- * @param {string} providerType - 提供商类型
  */
-async function performHealthCheck(providerType) {
-    if (!confirm(t('modal.provider.healthCheckConfirm', {type: providerType}))) {
+async function performHealthCheck() {
+    if (!confirm(t('modal.provider.healthCheckConfirm', {type: SINGLE_PROVIDER_TITLE}))) {
         return;
     }
     
@@ -1329,7 +1324,7 @@ async function performHealthCheck(providerType) {
         showToast(t('common.info'), t('modal.provider.healthCheck') + '...', 'info');
         
         const response = await window.apiClient.post(
-            `/providers/${encodeURIComponent(providerType)}/health-check`,
+            `/providers/${encodeURIComponent(SINGLE_PROVIDER_TYPE)}/health-check`,
             {}
         );
         
@@ -1349,7 +1344,7 @@ async function performHealthCheck(providerType) {
             await window.apiClient.post('/reload-config');
             
             // 刷新提供商配置显示
-            await refreshProviderConfig(providerType);
+            await refreshProviderConfig();
         } else {
             showToast(t('common.error'), t('modal.provider.healthCheck') + ' ' + t('common.error'), 'error');
         }
@@ -1367,8 +1362,6 @@ async function performHealthCheck(providerType) {
 async function checkSingleProvider(uuid, event) {
     event.stopPropagation();
 
-    const providerDetail = event.target.closest('.provider-item-detail');
-    const providerType = providerDetail.closest('.provider-modal').getAttribute('data-provider-type');
     const btn = event.target.closest('button');
     const btnIcon = btn?.querySelector('i');
     const originalIconClass = btnIcon?.className;
@@ -1383,7 +1376,7 @@ async function checkSingleProvider(uuid, event) {
         }
 
         const response = await window.apiClient.post(
-            `/providers/${encodeURIComponent(providerType)}/${uuid}/health-check`,
+            `/providers/${encodeURIComponent(SINGLE_PROVIDER_TYPE)}/${uuid}/health-check`,
             {}
         );
 
@@ -1402,7 +1395,7 @@ async function checkSingleProvider(uuid, event) {
             await window.apiClient.post('/reload-config');
 
             // 刷新提供商配置显示
-            await refreshProviderConfig(providerType);
+            await refreshProviderConfig();
         } else {
             showToast(t('common.error'), t('modal.provider.check.failed'), 'error');
         }
@@ -1472,7 +1465,7 @@ export {
     resetAllProvidersHealth,
     performHealthCheck,
     checkSingleProvider,
-    loadModelsForProviderType,
+    loadModelsForProvider,
     renderNotSupportedModelsSelector,
     goToProviderPage
 };

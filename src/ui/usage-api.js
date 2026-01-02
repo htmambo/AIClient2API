@@ -5,8 +5,9 @@
 
 import path from 'path';
 import { CONFIG } from '../config-manager.js';
-import { getServiceAdapter, serviceInstances } from '../claude/kiro-api.js';
+import { getServiceAdapter, serviceInstances } from '../kiro/adapter.js';
 import { formatKiroUsage } from '../usage-service.js';
+import { SINGLE_PROVIDER_CRED_PATH_KEY, SINGLE_PROVIDER_TYPE } from '../provider-utils.js';
 import { createLogger } from '../logger.js';
 
 const logger = createLogger('UsageAPI');
@@ -23,33 +24,15 @@ export async function getAllProvidersUsage(currentConfig, providerPoolManager) {
         providers: {}
     };
 
-    // 支持用量查询的提供商列表
-    const supportedProviders = ['claude-kiro-oauth'];
-
-    // 并发获取所有提供商的用量数据
-    const usagePromises = supportedProviders.map(async (providerType) => {
-        try {
-            const providerUsage = await getProviderTypeUsage(providerType, currentConfig, providerPoolManager);
-            return { providerType, data: providerUsage, success: true };
-        } catch (error) {
-            logger.error('Failed to get provider usage', { providerType, error: error.message });
-            return {
-                providerType,
-                data: {
-                    error: error.message,
-                    instances: []
-                },
-                success: false
-            };
-        }
-    });
-
-    // 等待所有并发请求完成
-    const usageResults = await Promise.all(usagePromises);
-
-    // 将结果整合到 results.providers 中
-    for (const result of usageResults) {
-        results.providers[result.providerType] = result.data;
+    try {
+        const providerUsage = await getProviderTypeUsage(SINGLE_PROVIDER_TYPE, currentConfig, providerPoolManager);
+        results.providers[SINGLE_PROVIDER_TYPE] = providerUsage;
+    } catch (error) {
+        logger.error('Failed to get provider usage', { providerType: SINGLE_PROVIDER_TYPE, error: error.message });
+        results.providers[SINGLE_PROVIDER_TYPE] = {
+            error: error.message,
+            instances: []
+        };
     }
 
     logger.info('Retrieved usage for all providers', {
@@ -67,6 +50,11 @@ export async function getAllProvidersUsage(currentConfig, providerPoolManager) {
  * @returns {Promise<Object>} 提供商用量信息
  */
 export async function getProviderTypeUsage(providerType, currentConfig, providerPoolManager) {
+    // 单一提供商模式：仅支持固定 providerType
+    if (providerType !== SINGLE_PROVIDER_TYPE) {
+        throw new Error(`Unsupported provider type: ${providerType}`);
+    }
+
     const result = {
         providerType,
         instances: [],
@@ -77,10 +65,12 @@ export async function getProviderTypeUsage(providerType, currentConfig, provider
 
     // 获取提供商池中的所有实例
     let providers = [];
-    if (providerPoolManager && providerPoolManager.providerPools && providerPoolManager.providerPools[providerType]) {
-        providers = providerPoolManager.providerPools[providerType];
-    } else if (currentConfig.providerPools && currentConfig.providerPools[providerType]) {
-        providers = currentConfig.providerPools[providerType];
+    if (providerPoolManager && Array.isArray(providerPoolManager.providerPools)) {
+        providers = providerPoolManager.providerPools;
+    } else if (Array.isArray(currentConfig.providerPools)) {
+        providers = currentConfig.providerPools;
+    } else if (currentConfig.providerPools && typeof currentConfig.providerPools === 'object') {
+        providers = currentConfig.providerPools[SINGLE_PROVIDER_TYPE] || [];
     }
 
     result.totalCount = providers.length;
@@ -182,13 +172,8 @@ async function getAdapterUsage(adapter, providerType) {
  * @returns {string} 显示名称
  */
 function getProviderDisplayName(provider, providerType) {
-    // 尝试从凭据文件路径提取名称
-    const credPathKey = {
-        'claude-kiro-oauth': 'KIRO_OAUTH_CREDS_FILE_PATH'
-    }[providerType];
-
-    if (credPathKey && provider[credPathKey]) {
-        const filePath = provider[credPathKey];
+    if (providerType === SINGLE_PROVIDER_TYPE && SINGLE_PROVIDER_CRED_PATH_KEY && provider[SINGLE_PROVIDER_CRED_PATH_KEY]) {
+        const filePath = provider[SINGLE_PROVIDER_CRED_PATH_KEY];
         const fileName = path.basename(filePath);
         const dirName = path.basename(path.dirname(filePath));
         return `${dirName}/${fileName}`;

@@ -15,8 +15,10 @@ import { scanConfigFiles } from './ui/config-scanner.js';
 import { getAllProvidersUsage, getProviderTypeUsage } from './ui/usage-api.js';
 import { getCpuUsagePercent, checkForUpdates, performUpdate, getSystemInfo } from './ui/system-api.js';
 import { reloadConfig, updateAdminPassword, getSanitizedConfig } from './ui/config-api.js';
-import { getProviderPools, getProviderTypeDetails, getProviderModels, addProvider, updateProvider, deleteProvider } from './ui/provider-api.js';
+import { getProviderPools, getProviderDetails, getProviderModels, addProvider, updateProvider, deleteProvider } from './ui/provider-api.js';
+import { SINGLE_PROVIDER_TYPE } from './provider-utils.js';
 import { createLogger } from './logger.js';
+import { handleKiroOAuth } from './kiro/oauth-handlers.js';
 
 const logger = createLogger('UIManager');
 
@@ -24,6 +26,39 @@ const execAsync = promisify(exec);
 
 // 用量缓存文件路径
 const USAGE_CACHE_FILE = path.join(process.cwd(), 'configs', 'usage-cache.json');
+
+function normalizeProviderPoolsForResponse(providers) {
+    return { [SINGLE_PROVIDER_TYPE]: Array.isArray(providers) ? providers : [] };
+}
+
+async function writeProviderPoolsFile(currentConfig, providers) {
+    const filePath = currentConfig.PROVIDER_POOLS_FILE_PATH || 'configs/provider_pools.json';
+    const nextProviders = Array.isArray(providers) ? providers : [];
+    try {
+        let currentPools = null;
+        try {
+            if (existsSync(filePath)) {
+                currentPools = JSON.parse(readFileSync(filePath, 'utf-8'));
+            }
+        } catch (readError) {
+            // ignore and treat as empty
+        }
+
+        let nextPools;
+        if (Array.isArray(currentPools)) {
+            nextPools = nextProviders;
+        } else if (currentPools && typeof currentPools === 'object') {
+            nextPools = { ...currentPools, [SINGLE_PROVIDER_TYPE]: nextProviders };
+        } else {
+            nextPools = nextProviders;
+        }
+
+        writeFileSync(filePath, JSON.stringify(nextPools, null, 2), 'utf8');
+    } catch (error) {
+        console.warn('[UI API] Failed to write provider pools file:', error.message);
+    }
+    return filePath;
+}
 
 export async function handleUIApiRequests(method, pathParam, req, res, currentConfig, providerPoolManager) {
     // 处理登录接口
@@ -356,145 +391,49 @@ export async function handleUIApiRequests(method, pathParam, req, res, currentCo
 
     // Get provider pools summary
     if (method === 'GET' && pathParam === '/api/providers') {
-        let providerPools = {};
-        const filePath = currentConfig.PROVIDER_POOLS_FILE_PATH || 'configs/provider_pools.json';
-        try {
-            if (providerPoolManager && providerPoolManager.providerPools) {
-                providerPools = providerPoolManager.providerPools;
-            } else if (filePath && existsSync(filePath)) {
-                const poolsData = JSON.parse(readFileSync(filePath, 'utf-8'));
-                providerPools = poolsData;
-            }
-        } catch (error) {
-            console.warn('[UI API] Failed to load provider pools:', error.message);
-        }
-
+        const providers = getProviderPools(currentConfig, providerPoolManager);
         res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify(providerPools));
+        res.end(JSON.stringify(normalizeProviderPoolsForResponse(providers)));
         return true;
     }
 
     // Get specific provider type details
     const providerTypeMatch = pathParam.match(/^\/api\/providers\/([^\/]+)$/);
     if (method === 'GET' && providerTypeMatch) {
-        const providerType = decodeURIComponent(providerTypeMatch[1]);
-        let providerPools = {};
-        const filePath = currentConfig.PROVIDER_POOLS_FILE_PATH || 'configs/provider_pools.json';
-        try {
-            if (providerPoolManager && providerPoolManager.providerPools) {
-                providerPools = providerPoolManager.providerPools;
-            } else if (filePath && existsSync(filePath)) {
-                const poolsData = JSON.parse(readFileSync(filePath, 'utf-8'));
-                providerPools = poolsData;
-            }
-        } catch (error) {
-            console.warn('[UI API] Failed to load provider pools:', error.message);
-        }
-
-        const providers = providerPools[providerType] || [];
+        // 单一提供商模式：忽略 URL 中的 providerType，统一返回固定 providerType 的详情
+        const details = getProviderDetails(currentConfig, providerPoolManager);
         res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({
-            providerType,
-            providers,
-            totalCount: providers.length,
-            healthyCount: providers.filter(p => p.isHealthy).length
-        }));
+        res.end(JSON.stringify(details));
         return true;
     }
 
     // Get available models for a specific provider type
     const providerModelsMatch = pathParam.match(/^\/api\/provider-models\/([^\/]+)$/);
     if (method === 'GET' && providerModelsMatch) {
-        const providerType = decodeURIComponent(providerModelsMatch[1]);
+        // 单一提供商模式：忽略 URL 中的 providerType
+        const modelInfo = getProviderModels();
         res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({
-            providerType,
-            KIRO_MODELS
-        }));
+        res.end(JSON.stringify(modelInfo));
         return true;
     }
 
-    // Add new provider configuration
-    if (method === 'POST' && pathParam === '/api/providers') {
-        try {
-            const body = await getRequestBody(req);
-            const { providerType, providerConfig } = body;
+	    // Add new provider configuration
+	    if (method === 'POST' && pathParam === '/api/providers') {
+	        try {
+	            const body = await getRequestBody(req);
+	            const providerConfig = body?.providerConfig;
+	            if (!providerConfig) {
+	                res.writeHead(400, { 'Content-Type': 'application/json' });
+	                res.end(JSON.stringify({ error: { message: 'providerConfig is required' } }));
+	                return true;
+	            }
 
-            if (!providerType || !providerConfig) {
-                res.writeHead(400, { 'Content-Type': 'application/json' });
-                res.end(JSON.stringify({ error: { message: 'providerType and providerConfig are required' } }));
-                return true;
-            }
-
-            // Generate UUID if not provided
-            if (!providerConfig.uuid) {
-                providerConfig.uuid = uuidv4();
-            }
-
-            // Set default values
-            providerConfig.isHealthy = providerConfig.isHealthy !== undefined ? providerConfig.isHealthy : true;
-            providerConfig.lastUsed = providerConfig.lastUsed || null;
-            providerConfig.usageCount = providerConfig.usageCount || 0;
-            providerConfig.errorCount = providerConfig.errorCount || 0;
-            providerConfig.lastErrorTime = providerConfig.lastErrorTime || null;
-
-            const filePath = currentConfig.PROVIDER_POOLS_FILE_PATH || 'provider_pools.json';
-            let providerPools = {};
-            
-            // Load existing pools
-            if (existsSync(filePath)) {
-                try {
-                    const fileContent = readFileSync(filePath, 'utf8');
-                    providerPools = JSON.parse(fileContent);
-                } catch (readError) {
-                    console.warn('[UI API] Failed to read existing provider pools:', readError.message);
-                }
-            }
-
-            // Add new provider to the appropriate type
-            if (!providerPools[providerType]) {
-                providerPools[providerType] = [];
-            }
-            providerPools[providerType].push(providerConfig);
-
-            // Save to file
-            writeFileSync(filePath, JSON.stringify(providerPools, null, 2), 'utf8');
-            console.log(`[UI API] Added new provider to ${providerType}: ${providerConfig.uuid}`);
-
-            // Update provider pool manager if available
-            if (providerPoolManager) {
-                providerPoolManager.providerPools = providerPools;
-                providerPoolManager.initializeProviderStatus();
-            }
-
-            // 广播更新事件
-            broadcastEvent('config_update', {
-                action: 'add',
-                filePath: filePath,
-                providerType,
-                providerConfig,
-                timestamp: new Date().toISOString()
-            });
-
-            // 广播提供商更新事件
-            broadcastEvent('provider_update', {
-                action: 'add',
-                providerType,
-                providerConfig,
-                timestamp: new Date().toISOString()
-            });
-
-            res.writeHead(200, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({
-                success: true,
-                message: 'Provider added successfully',
-                provider: providerConfig,
-                providerType
-            }));
-            return true;
-        } catch (error) {
-            res.writeHead(500, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ error: { message: error.message } }));
+	            res.writeHead(200, { 'Content-Type': 'application/json' });
+	            res.end(JSON.stringify(addProvider(providerConfig, currentConfig, providerPoolManager)));
+	            return true;
+	        } catch (error) {
+	            res.writeHead(500, { 'Content-Type': 'application/json' });
+	            res.end(JSON.stringify({ error: { message: error.message } }));
             return true;
         }
     }
@@ -502,83 +441,21 @@ export async function handleUIApiRequests(method, pathParam, req, res, currentCo
     // Update specific provider configuration
     const updateProviderMatch = pathParam.match(/^\/api\/providers\/([^\/]+)\/([^\/]+)$/);
     if (method === 'PUT' && updateProviderMatch) {
-        const providerType = decodeURIComponent(updateProviderMatch[1]);
+        // 单一提供商模式：忽略 URL 中的 providerType
         const providerUuid = updateProviderMatch[2];
 
         try {
             const body = await getRequestBody(req);
-            const { providerConfig } = body;
+            const providerConfig = body?.providerConfig;
 
             if (!providerConfig) {
                 res.writeHead(400, { 'Content-Type': 'application/json' });
                 res.end(JSON.stringify({ error: { message: 'providerConfig is required' } }));
                 return true;
             }
-
-            const filePath = currentConfig.PROVIDER_POOLS_FILE_PATH || 'configs/provider_pools.json';
-            let providerPools = {};
-            
-            // Load existing pools
-            if (existsSync(filePath)) {
-                try {
-                    const fileContent = readFileSync(filePath, 'utf8');
-                    providerPools = JSON.parse(fileContent);
-                } catch (readError) {
-                    res.writeHead(404, { 'Content-Type': 'application/json' });
-                    res.end(JSON.stringify({ error: { message: 'Provider pools file not found' } }));
-                    return true;
-                }
-            }
-
-            // Find and update the provider
-            const providers = providerPools[providerType] || [];
-            const providerIndex = providers.findIndex(p => p.uuid === providerUuid);
-            
-            if (providerIndex === -1) {
-                res.writeHead(404, { 'Content-Type': 'application/json' });
-                res.end(JSON.stringify({ error: { message: 'Provider not found' } }));
-                return true;
-            }
-
-            // Update provider while preserving certain fields
-            const existingProvider = providers[providerIndex];
-            const updatedProvider = {
-                ...existingProvider,
-                ...providerConfig,
-                uuid: providerUuid, // Ensure UUID doesn't change
-                lastUsed: existingProvider.lastUsed, // Preserve usage stats
-                usageCount: existingProvider.usageCount,
-                errorCount: existingProvider.errorCount,
-                lastErrorTime: existingProvider.lastErrorTime
-            };
-
-            providerPools[providerType][providerIndex] = updatedProvider;
-
-            // Save to file
-            writeFileSync(filePath, JSON.stringify(providerPools, null, 2), 'utf8');
-            console.log(`[UI API] Updated provider ${providerUuid} in ${providerType}`);
-
-            // Update provider pool manager if available
-            if (providerPoolManager) {
-                providerPoolManager.providerPools = providerPools;
-                providerPoolManager.initializeProviderStatus();
-            }
-
-            // 广播更新事件
-            broadcastEvent('config_update', {
-                action: 'update',
-                filePath: filePath,
-                providerType,
-                providerConfig: updatedProvider,
-                timestamp: new Date().toISOString()
-            });
-
+            const result = updateProvider(providerUuid, providerConfig, currentConfig, providerPoolManager);
             res.writeHead(200, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({
-                success: true,
-                message: 'Provider updated successfully',
-                provider: updatedProvider
-            }));
+            res.end(JSON.stringify(result));
             return true;
         } catch (error) {
             res.writeHead(500, { 'Content-Type': 'application/json' });
@@ -589,68 +466,13 @@ export async function handleUIApiRequests(method, pathParam, req, res, currentCo
 
     // Delete specific provider configuration
     if (method === 'DELETE' && updateProviderMatch) {
-        const providerType = decodeURIComponent(updateProviderMatch[1]);
+        // 单一提供商模式：忽略 URL 中的 providerType
         const providerUuid = updateProviderMatch[2];
 
         try {
-            const filePath = currentConfig.PROVIDER_POOLS_FILE_PATH || 'configs/provider_pools.json';
-            let providerPools = {};
-            
-            // Load existing pools
-            if (existsSync(filePath)) {
-                try {
-                    const fileContent = readFileSync(filePath, 'utf8');
-                    providerPools = JSON.parse(fileContent);
-                } catch (readError) {
-                    res.writeHead(404, { 'Content-Type': 'application/json' });
-                    res.end(JSON.stringify({ error: { message: 'Provider pools file not found' } }));
-                    return true;
-                }
-            }
-
-            // Find and remove the provider
-            const providers = providerPools[providerType] || [];
-            const providerIndex = providers.findIndex(p => p.uuid === providerUuid);
-            
-            if (providerIndex === -1) {
-                res.writeHead(404, { 'Content-Type': 'application/json' });
-                res.end(JSON.stringify({ error: { message: 'Provider not found' } }));
-                return true;
-            }
-
-            const deletedProvider = providers[providerIndex];
-            providers.splice(providerIndex, 1);
-
-            // Remove the entire provider type if no providers left
-            if (providers.length === 0) {
-                delete providerPools[providerType];
-            }
-
-            // Save to file
-            writeFileSync(filePath, JSON.stringify(providerPools, null, 2), 'utf8');
-            console.log(`[UI API] Deleted provider ${providerUuid} from ${providerType}`);
-
-            // Update provider pool manager if available
-            if (providerPoolManager) {
-                providerPoolManager.providerPools = providerPools;
-                providerPoolManager.initializeProviderStatus();
-            }
-
-            // 广播更新事件
-            broadcastEvent('config_update', {
-                action: 'delete',
-                filePath: filePath,
-                providerType,
-                providerConfig: deletedProvider,
-                timestamp: new Date().toISOString()
-            });
-
+            const result = deleteProvider(providerUuid, currentConfig, providerPoolManager);
             res.writeHead(200, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({
-                success: true,
-                message: 'Provider deleted successfully',
-                deletedProvider
-            }));
+            res.end(JSON.stringify(result));
             return true;
         } catch (error) {
             res.writeHead(500, { 'Content-Type': 'application/json' });
@@ -662,53 +484,31 @@ export async function handleUIApiRequests(method, pathParam, req, res, currentCo
     // Disable/Enable specific provider configuration
     const disableEnableProviderMatch = pathParam.match(/^\/api\/providers\/([^\/]+)\/([^\/]+)\/(disable|enable)$/);
     if (disableEnableProviderMatch) {
-        const providerType = decodeURIComponent(disableEnableProviderMatch[1]);
+        // 单一提供商模式：忽略 URL 中的 providerType
         const providerUuid = disableEnableProviderMatch[2];
         const action = disableEnableProviderMatch[3];
 
         try {
-            const filePath = currentConfig.PROVIDER_POOLS_FILE_PATH || 'configs/provider_pools.json';
-            let providerPools = {};
-            
-            // Load existing pools
-            if (existsSync(filePath)) {
-                try {
-                    const fileContent = readFileSync(filePath, 'utf8');
-                    providerPools = JSON.parse(fileContent);
-                } catch (readError) {
-                    res.writeHead(404, { 'Content-Type': 'application/json' });
-                    res.end(JSON.stringify({ error: { message: 'Provider pools file not found' } }));
-                    return true;
-                }
-            }
-
-            // Find and update the provider
-            const providers = providerPools[providerType] || [];
-            const providerIndex = providers.findIndex(p => p.uuid === providerUuid);
-            
-            if (providerIndex === -1) {
+            const providers = getProviderPools(currentConfig, providerPoolManager);
+            const provider = providers.find(p => p.uuid === providerUuid);
+            if (!provider) {
                 res.writeHead(404, { 'Content-Type': 'application/json' });
                 res.end(JSON.stringify({ error: { message: 'Provider not found' } }));
                 return true;
             }
 
-            // Update isDisabled field
-            const provider = providers[providerIndex];
             provider.isDisabled = action === 'disable';
-            
-            // Save to file
-            writeFileSync(filePath, JSON.stringify(providerPools, null, 2), 'utf8');
-            console.log(`[UI API] ${action === 'disable' ? 'Disabled' : 'Enabled'} provider ${providerUuid} in ${providerType}`);
+            const filePath = await writeProviderPoolsFile(currentConfig, providers);
 
-            // Update provider pool manager if available
+            console.log(`[UI API] ${action === 'disable' ? 'Disabled' : 'Enabled'} provider ${providerUuid} (${SINGLE_PROVIDER_TYPE})`);
+
             if (providerPoolManager) {
-                providerPoolManager.providerPools = providerPools;
-                
-                // Call the appropriate method
+                providerPoolManager.providerPools = providers;
+                providerPoolManager.initializeProviderStatus();
                 if (action === 'disable') {
-                    providerPoolManager.disableProvider(providerType, provider);
+                    providerPoolManager.disableProvider(provider);
                 } else {
-                    providerPoolManager.enableProvider(providerType, provider);
+                    providerPoolManager.enableProvider(provider);
                 }
             }
 
@@ -716,7 +516,7 @@ export async function handleUIApiRequests(method, pathParam, req, res, currentCo
             broadcastEvent('config_update', {
                 action: action,
                 filePath: filePath,
-                providerType,
+                providerType: SINGLE_PROVIDER_TYPE,
                 providerConfig: provider,
                 timestamp: new Date().toISOString()
             });
@@ -738,30 +538,14 @@ export async function handleUIApiRequests(method, pathParam, req, res, currentCo
     // Reset all providers health status for a specific provider type
     const resetHealthMatch = pathParam.match(/^\/api\/providers\/([^\/]+)\/reset-health$/);
     if (method === 'POST' && resetHealthMatch) {
-        const providerType = decodeURIComponent(resetHealthMatch[1]);
+        // 单一提供商模式：忽略 URL 中的 providerType
 
         try {
-            const filePath = currentConfig.PROVIDER_POOLS_FILE_PATH || 'configs/provider_pools.json';
-            let providerPools = {};
-            
-            // Load existing pools
-            if (existsSync(filePath)) {
-                try {
-                    const fileContent = readFileSync(filePath, 'utf8');
-                    providerPools = JSON.parse(fileContent);
-                } catch (readError) {
-                    res.writeHead(404, { 'Content-Type': 'application/json' });
-                    res.end(JSON.stringify({ error: { message: 'Provider pools file not found' } }));
-                    return true;
-                }
-            }
-
-            // Reset health status for all providers of this type
-            const providers = providerPools[providerType] || [];
+            const providers = getProviderPools(currentConfig, providerPoolManager);
             
             if (providers.length === 0) {
                 res.writeHead(404, { 'Content-Type': 'application/json' });
-                res.end(JSON.stringify({ error: { message: 'No providers found for this type' } }));
+                res.end(JSON.stringify({ error: { message: 'No providers found' } }));
                 return true;
             }
 
@@ -776,12 +560,12 @@ export async function handleUIApiRequests(method, pathParam, req, res, currentCo
             });
 
             // Save to file
-            writeFileSync(filePath, JSON.stringify(providerPools, null, 2), 'utf8');
-            console.log(`[UI API] Reset health status for ${resetCount} providers in ${providerType}`);
+            const filePath = await writeProviderPoolsFile(currentConfig, providers);
+            console.log(`[UI API] Reset health status for ${resetCount} providers (${SINGLE_PROVIDER_TYPE})`);
 
             // Update provider pool manager if available
             if (providerPoolManager) {
-                providerPoolManager.providerPools = providerPools;
+                providerPoolManager.providerPools = providers;
                 providerPoolManager.initializeProviderStatus();
             }
 
@@ -789,7 +573,7 @@ export async function handleUIApiRequests(method, pathParam, req, res, currentCo
             broadcastEvent('config_update', {
                 action: 'reset_health',
                 filePath: filePath,
-                providerType,
+                providerType: SINGLE_PROVIDER_TYPE,
                 resetCount,
                 timestamp: new Date().toISOString()
             });
@@ -812,7 +596,7 @@ export async function handleUIApiRequests(method, pathParam, req, res, currentCo
     // Perform health check for a single provider by UUID (must be before batch health check route)
     const singleHealthCheckMatch = pathParam.match(/^\/api\/providers\/([^\/]+)\/([^\/]+)\/health-check$/);
     if (method === 'POST' && singleHealthCheckMatch) {
-        const providerType = decodeURIComponent(singleHealthCheckMatch[1]);
+        // 单一提供商模式：忽略 URL 中的 providerType
         const providerUuid = singleHealthCheckMatch[2];
 
         try {
@@ -822,8 +606,8 @@ export async function handleUIApiRequests(method, pathParam, req, res, currentCo
                 return true;
             }
 
-            const providers = providerPoolManager.providerStatus[providerType] || [];
-            const providerStatus = providers.find(p => p.config.uuid === providerUuid);
+            const providerType = providerPoolManager.providerType || SINGLE_PROVIDER_TYPE;
+            const providerStatus = (providerPoolManager.providerStatus || []).find(p => p.config.uuid === providerUuid);
 
             if (!providerStatus) {
                 res.writeHead(404, { 'Content-Type': 'application/json' });
@@ -846,7 +630,7 @@ export async function handleUIApiRequests(method, pathParam, req, res, currentCo
                         message: '健康检测不支持此提供商类型'
                     };
                 } else if (healthResult.success) {
-                    providerPoolManager.markProviderHealthy(providerType, providerConfig, false, healthResult.modelName);
+                    providerPoolManager.markProviderHealthy(providerConfig, false, healthResult.modelName);
                     result = {
                         uuid: providerConfig.uuid,
                         success: true,
@@ -854,7 +638,7 @@ export async function handleUIApiRequests(method, pathParam, req, res, currentCo
                         message: '健康'
                     };
                 } else {
-                    providerPoolManager.markProviderUnhealthy(providerType, providerConfig, healthResult.errorMessage);
+                    providerPoolManager.markProviderUnhealthy(providerConfig, healthResult.errorMessage);
                     providerStatus.config.lastHealthCheckTime = new Date().toISOString();
                     if (healthResult.modelName) {
                         providerStatus.config.lastHealthCheckModel = healthResult.modelName;
@@ -867,7 +651,7 @@ export async function handleUIApiRequests(method, pathParam, req, res, currentCo
                     };
                 }
             } catch (error) {
-                providerPoolManager.markProviderUnhealthy(providerType, providerConfig, error.message);
+                providerPoolManager.markProviderUnhealthy(providerConfig, error.message);
                 result = {
                     uuid: providerConfig.uuid,
                     success: false,
@@ -876,12 +660,10 @@ export async function handleUIApiRequests(method, pathParam, req, res, currentCo
             }
 
             // 保存更新后的状态到文件
-            const filePath = currentConfig.PROVIDER_POOLS_FILE_PATH || 'configs/provider_pools.json';
-            const providerPools = {};
-            for (const pType in providerPoolManager.providerStatus) {
-                providerPools[pType] = providerPoolManager.providerStatus[pType].map(ps => ps.config);
-            }
-            writeFileSync(filePath, JSON.stringify(providerPools, null, 2), 'utf8');
+            const filePath = await writeProviderPoolsFile(
+                currentConfig,
+                (providerPoolManager.providerStatus || []).map(ps => ps.config)
+            );
 
             console.log(`[UI API] Single health check completed for ${providerUuid}: ${result.success ? 'healthy' : 'unhealthy'}`);
 
@@ -889,7 +671,7 @@ export async function handleUIApiRequests(method, pathParam, req, res, currentCo
             broadcastEvent('config_update', {
                 action: 'health_check',
                 filePath: filePath,
-                providerType,
+                providerType: SINGLE_PROVIDER_TYPE,
                 results: [result],
                 timestamp: new Date().toISOString()
             });
@@ -911,7 +693,7 @@ export async function handleUIApiRequests(method, pathParam, req, res, currentCo
     // Perform health check for all providers of a specific type
     const healthCheckMatch = pathParam.match(/^\/api\/providers\/([^\/]+)\/health-check$/);
     if (method === 'POST' && healthCheckMatch) {
-        const providerType = decodeURIComponent(healthCheckMatch[1]);
+        // 单一提供商模式：忽略 URL 中的 providerType
 
         try {
             if (!providerPoolManager) {
@@ -920,15 +702,16 @@ export async function handleUIApiRequests(method, pathParam, req, res, currentCo
                 return true;
             }
 
-            const providers = providerPoolManager.providerStatus[providerType] || [];
+            const providerType = providerPoolManager.providerType || SINGLE_PROVIDER_TYPE;
+            const providers = providerPoolManager.providerStatus || [];
             
             if (providers.length === 0) {
                 res.writeHead(404, { 'Content-Type': 'application/json' });
-                res.end(JSON.stringify({ error: { message: 'No providers found for this type' } }));
+                res.end(JSON.stringify({ error: { message: 'No providers found' } }));
                 return true;
             }
 
-            console.log(`[UI API] Starting health check for ${providers.length} providers in ${providerType}`);
+            console.log(`[UI API] Starting health check for ${providers.length} providers (${providerType})`);
 
             // 执行健康检测（强制检查，忽略 checkHealth 配置）
             const results = [];
@@ -948,7 +731,7 @@ export async function handleUIApiRequests(method, pathParam, req, res, currentCo
                     }
                     
                     if (healthResult.success) {
-                        providerPoolManager.markProviderHealthy(providerType, providerConfig, false, healthResult.modelName);
+                        providerPoolManager.markProviderHealthy(providerConfig, false, healthResult.modelName);
                         results.push({
                             uuid: providerConfig.uuid,
                             success: true,
@@ -956,7 +739,7 @@ export async function handleUIApiRequests(method, pathParam, req, res, currentCo
                             message: 'Healthy'
                         });
                     } else {
-                        providerPoolManager.markProviderUnhealthy(providerType, providerConfig, healthResult.errorMessage);
+                        providerPoolManager.markProviderUnhealthy(providerConfig, healthResult.errorMessage);
                         providerStatus.config.lastHealthCheckTime = new Date().toISOString();
                         if (healthResult.modelName) {
                             providerStatus.config.lastHealthCheckModel = healthResult.modelName;
@@ -969,7 +752,7 @@ export async function handleUIApiRequests(method, pathParam, req, res, currentCo
                         });
                     }
                 } catch (error) {
-                    providerPoolManager.markProviderUnhealthy(providerType, providerConfig, error.message);
+                    providerPoolManager.markProviderUnhealthy(providerConfig, error.message);
                     results.push({
                         uuid: providerConfig.uuid,
                         success: false,
@@ -979,14 +762,10 @@ export async function handleUIApiRequests(method, pathParam, req, res, currentCo
             }
 
             // 保存更新后的状态到文件
-            const filePath = currentConfig.PROVIDER_POOLS_FILE_PATH || 'configs/provider_pools.json';
-            
-            // 从 providerStatus 构建 providerPools 对象并保存
-            const providerPools = {};
-            for (const pType in providerPoolManager.providerStatus) {
-                providerPools[pType] = providerPoolManager.providerStatus[pType].map(ps => ps.config);
-            }
-            writeFileSync(filePath, JSON.stringify(providerPools, null, 2), 'utf8');
+            const filePath = await writeProviderPoolsFile(
+                currentConfig,
+                (providerPoolManager.providerStatus || []).map(ps => ps.config)
+            );
 
             const successCount = results.filter(r => r.success === true).length;
             const failCount = results.filter(r => r.success === false).length;
@@ -997,7 +776,7 @@ export async function handleUIApiRequests(method, pathParam, req, res, currentCo
             broadcastEvent('config_update', {
                 action: 'health_check',
                 filePath: filePath,
-                providerType,
+                providerType: SINGLE_PROVIDER_TYPE,
                 results,
                 timestamp: new Date().toISOString()
             });
@@ -1323,26 +1102,11 @@ export async function handleUIApiRequests(method, pathParam, req, res, currentCo
 
             const { providerType, credPathKey, defaultCheckModel, displayName } = providerMapping;
             const poolsFilePath = currentConfig.PROVIDER_POOLS_FILE_PATH || 'configs/provider_pools.json';
-            
-            // Load existing pools
-            let providerPools = {};
-            if (existsSync(poolsFilePath)) {
-                try {
-                    const fileContent = readFileSync(poolsFilePath, 'utf8');
-                    providerPools = JSON.parse(fileContent);
-                } catch (readError) {
-                    console.warn('[UI API] Failed to read existing provider pools:', readError.message);
-                }
-            }
-
-            // Ensure provider type array exists
-            if (!providerPools[providerType]) {
-                providerPools[providerType] = [];
-            }
+            const providers = getProviderPools(currentConfig, providerPoolManager);
 
             // Check if already linked - 使用标准化路径进行比较
             const normalizedForComparison = filePath.replace(/\\/g, '/');
-            const isAlreadyLinked = providerPools[providerType].some(p => {
+            const isAlreadyLinked = providers.some(p => {
                 const existingPath = p[credPathKey];
                 if (!existingPath) return false;
                 const normalizedExistingPath = existingPath.replace(/\\/g, '/');
@@ -1363,33 +1127,17 @@ export async function handleUIApiRequests(method, pathParam, req, res, currentCo
                 credPath: formatSystemPath(filePath),
                 defaultCheckModel,
                 needsProjectId: providerMapping.needsProjectId
-            });
+                });
 
-            providerPools[providerType].push(newProvider);
-
-            // Save to file
-            writeFileSync(poolsFilePath, JSON.stringify(providerPools, null, 2), 'utf8');
-            console.log(`[UI API] Quick linked config: ${filePath} -> ${providerType}`);
-
-            // Update provider pool manager if available
-            if (providerPoolManager) {
-                providerPoolManager.providerPools = providerPools;
-                providerPoolManager.initializeProviderStatus();
-            }
+            const addResult = addProvider(newProvider, currentConfig, providerPoolManager);
+            console.log(`[UI API] Quick linked config: ${filePath} -> ${addResult.providerType}`);
 
             // Broadcast update event
             broadcastEvent('config_update', {
                 action: 'quick_link',
                 filePath: poolsFilePath,
-                providerType,
+                providerType: SINGLE_PROVIDER_TYPE,
                 newProvider,
-                timestamp: new Date().toISOString()
-            });
-
-            broadcastEvent('provider_update', {
-                action: 'add',
-                providerType,
-                providerConfig: newProvider,
                 timestamp: new Date().toISOString()
             });
 
@@ -1398,7 +1146,7 @@ export async function handleUIApiRequests(method, pathParam, req, res, currentCo
                 success: true,
                 message: `Config successfully linked to ${displayName}`,
                 provider: newProvider,
-                providerType: providerType
+                providerType: SINGLE_PROVIDER_TYPE
             }));
             return true;
         } catch (error) {

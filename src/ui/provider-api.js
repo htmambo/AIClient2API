@@ -5,20 +5,34 @@
 
 import { existsSync, readFileSync, writeFileSync } from 'fs';
 import { v4 as uuidv4 } from 'uuid';
-import { KIRO_MODELS } from '../claude/kiro-constants.js';
+import { KIRO_MODELS } from '../kiro/constants.js';
+import { SINGLE_PROVIDER_CRED_PATH_KEY, SINGLE_PROVIDER_TYPE } from '../provider-utils.js';
 import { broadcastEvent } from './event-broadcaster.js';
 import { createLogger } from '../logger.js';
 
 const logger = createLogger('ProviderAPI');
 
+function normalizeProviderPools(providerPools) {
+    if (Array.isArray(providerPools)) {
+        return providerPools;
+    }
+    if (providerPools && typeof providerPools === 'object') {
+        const legacyPools = providerPools[SINGLE_PROVIDER_TYPE];
+        if (Array.isArray(legacyPools)) {
+            return legacyPools;
+        }
+    }
+    return [];
+}
+
 /**
  * 获取提供商池摘要
  * @param {Object} currentConfig - 当前配置
  * @param {Object} providerPoolManager - 提供商池管理器
- * @returns {Object} 提供商池数据
+ * @returns {Array} 提供商池数据（单一提供商数组）
  */
 export function getProviderPools(currentConfig, providerPoolManager) {
-    let providerPools = {};
+    let providerPools = [];
     const filePath = currentConfig.PROVIDER_POOLS_FILE_PATH || 'configs/provider_pools.json';
 
     try {
@@ -32,22 +46,20 @@ export function getProviderPools(currentConfig, providerPoolManager) {
         logger.warn('Failed to load provider pools', { error: error.message });
     }
 
-    return providerPools;
+    return normalizeProviderPools(providerPools);
 }
 
 /**
- * 获取特定提供商类型的详细信息
- * @param {string} providerType - 提供商类型
+ * 获取提供商的详细信息（单一提供商）
  * @param {Object} currentConfig - 当前配置
  * @param {Object} providerPoolManager - 提供商池管理器
- * @returns {Object} 提供商类型详情
+ * @returns {Object} 提供商详情
  */
-export function getProviderTypeDetails(providerType, currentConfig, providerPoolManager) {
-    const providerPools = getProviderPools(currentConfig, providerPoolManager);
-    const providers = providerPools[providerType] || [];
+export function getProviderDetails(currentConfig, providerPoolManager) {
+    const providers = getProviderPools(currentConfig, providerPoolManager);
 
     return {
-        providerType,
+        providerType: SINGLE_PROVIDER_TYPE,
         providers,
         totalCount: providers.length,
         healthyCount: providers.filter(p => p.isHealthy).length
@@ -56,27 +68,25 @@ export function getProviderTypeDetails(providerType, currentConfig, providerPool
 
 /**
  * 获取提供商类型的可用模型
- * @param {string} providerType - 提供商类型
  * @returns {Object} 模型信息
  */
-export function getProviderModels(providerType) {
+export function getProviderModels() {
     return {
-        providerType,
+        providerType: SINGLE_PROVIDER_TYPE,
         models: KIRO_MODELS
     };
 }
 
 /**
  * 添加新的提供商配置
- * @param {string} providerType - 提供商类型
  * @param {Object} providerConfig - 提供商配置
  * @param {Object} currentConfig - 当前配置
  * @param {Object} providerPoolManager - 提供商池管理器
  * @returns {Object} 添加结果
  */
-export function addProvider(providerType, providerConfig, currentConfig, providerPoolManager) {
-    if (!providerType || !providerConfig) {
-        throw new Error('providerType and providerConfig are required');
+export function addProvider(providerConfig, currentConfig, providerPoolManager) {
+    if (!providerConfig) {
+        throw new Error('providerConfig is required');
     }
 
     // Generate UUID if not provided
@@ -92,27 +102,23 @@ export function addProvider(providerType, providerConfig, currentConfig, provide
     providerConfig.lastErrorTime = providerConfig.lastErrorTime || null;
 
     const filePath = currentConfig.PROVIDER_POOLS_FILE_PATH || 'configs/provider_pools.json';
-    let providerPools = {};
+    let providerPools = [];
 
     // Load existing pools
     if (existsSync(filePath)) {
         try {
             const fileContent = readFileSync(filePath, 'utf8');
-            providerPools = JSON.parse(fileContent);
+            providerPools = normalizeProviderPools(JSON.parse(fileContent));
         } catch (readError) {
             logger.warn('Failed to read existing provider pools', { error: readError.message });
         }
     }
 
-    // Add new provider to the appropriate type
-    if (!providerPools[providerType]) {
-        providerPools[providerType] = [];
-    }
-    providerPools[providerType].push(providerConfig);
+    providerPools.push(providerConfig);
 
     // Save to file
     writeFileSync(filePath, JSON.stringify(providerPools, null, 2), 'utf8');
-    logger.info('Added new provider', { providerType, uuid: providerConfig.uuid });
+    logger.info('Added new provider', { providerType: SINGLE_PROVIDER_TYPE, uuid: providerConfig.uuid });
 
     // Update provider pool manager if available
     if (providerPoolManager) {
@@ -124,7 +130,7 @@ export function addProvider(providerType, providerConfig, currentConfig, provide
     broadcastEvent('config_update', {
         action: 'add',
         filePath: filePath,
-        providerType,
+        providerType: SINGLE_PROVIDER_TYPE,
         providerConfig,
         timestamp: new Date().toISOString()
     });
@@ -132,7 +138,7 @@ export function addProvider(providerType, providerConfig, currentConfig, provide
     // 广播提供商更新事件
     broadcastEvent('provider_update', {
         action: 'add',
-        providerType,
+        providerType: SINGLE_PROVIDER_TYPE,
         providerConfig,
         timestamp: new Date().toISOString()
     });
@@ -141,47 +147,45 @@ export function addProvider(providerType, providerConfig, currentConfig, provide
         success: true,
         message: 'Provider added successfully',
         provider: providerConfig,
-        providerType
+        providerType: SINGLE_PROVIDER_TYPE
     };
 }
 
 /**
  * 更新提供商配置
- * @param {string} providerType - 提供商类型
  * @param {string} providerUuid - 提供商UUID
  * @param {Object} providerConfig - 新的提供商配置
  * @param {Object} currentConfig - 当前配置
  * @param {Object} providerPoolManager - 提供商池管理器
  * @returns {Object} 更新结果
  */
-export function updateProvider(providerType, providerUuid, providerConfig, currentConfig, providerPoolManager) {
+export function updateProvider(providerUuid, providerConfig, currentConfig, providerPoolManager) {
     if (!providerConfig) {
         throw new Error('providerConfig is required');
     }
 
     const filePath = currentConfig.PROVIDER_POOLS_FILE_PATH || 'configs/provider_pools.json';
-    let providerPools = {};
+    let providerPools = [];
 
     // Load existing pools
     if (existsSync(filePath)) {
         try {
             const fileContent = readFileSync(filePath, 'utf8');
-            providerPools = JSON.parse(fileContent);
+            providerPools = normalizeProviderPools(JSON.parse(fileContent));
         } catch (readError) {
             throw new Error('Provider pools file not found');
         }
     }
 
     // Find and update the provider
-    const providers = providerPools[providerType] || [];
-    const providerIndex = providers.findIndex(p => p.uuid === providerUuid);
+    const providerIndex = providerPools.findIndex(p => p.uuid === providerUuid);
 
     if (providerIndex === -1) {
         throw new Error('Provider not found');
     }
 
     // Update provider while preserving certain fields
-    const existingProvider = providers[providerIndex];
+    const existingProvider = providerPools[providerIndex];
     const updatedProvider = {
         ...existingProvider,
         ...providerConfig,
@@ -192,11 +196,11 @@ export function updateProvider(providerType, providerUuid, providerConfig, curre
         lastErrorTime: existingProvider.lastErrorTime
     };
 
-    providerPools[providerType][providerIndex] = updatedProvider;
+    providerPools[providerIndex] = updatedProvider;
 
     // Save to file
     writeFileSync(filePath, JSON.stringify(providerPools, null, 2), 'utf8');
-    logger.info('Updated provider', { providerType, uuid: providerUuid });
+    logger.info('Updated provider', { providerType: SINGLE_PROVIDER_TYPE, uuid: providerUuid });
 
     // Update provider pool manager if available
     if (providerPoolManager) {
@@ -208,7 +212,7 @@ export function updateProvider(providerType, providerUuid, providerConfig, curre
     broadcastEvent('config_update', {
         action: 'update',
         filePath: filePath,
-        providerType,
+        providerType: SINGLE_PROVIDER_TYPE,
         providerConfig: updatedProvider,
         timestamp: new Date().toISOString()
     });
@@ -216,7 +220,7 @@ export function updateProvider(providerType, providerUuid, providerConfig, curre
     // 广播提供商更新事件
     broadcastEvent('provider_update', {
         action: 'update',
-        providerType,
+        providerType: SINGLE_PROVIDER_TYPE,
         providerConfig: updatedProvider,
         timestamp: new Date().toISOString()
     });
@@ -225,46 +229,44 @@ export function updateProvider(providerType, providerUuid, providerConfig, curre
         success: true,
         message: 'Provider updated successfully',
         provider: updatedProvider,
-        providerType
+        providerType: SINGLE_PROVIDER_TYPE
     };
 }
 
 /**
  * 删除提供商配置
- * @param {string} providerType - 提供商类型
  * @param {string} providerUuid - 提供商UUID
  * @param {Object} currentConfig - 当前配置
  * @param {Object} providerPoolManager - 提供商池管理器
  * @returns {Object} 删除结果
  */
-export function deleteProvider(providerType, providerUuid, currentConfig, providerPoolManager) {
+export function deleteProvider(providerUuid, currentConfig, providerPoolManager) {
     const filePath = currentConfig.PROVIDER_POOLS_FILE_PATH || 'configs/provider_pools.json';
-    let providerPools = {};
+    let providerPools = [];
 
     // Load existing pools
     if (existsSync(filePath)) {
         try {
             const fileContent = readFileSync(filePath, 'utf8');
-            providerPools = JSON.parse(fileContent);
+            providerPools = normalizeProviderPools(JSON.parse(fileContent));
         } catch (readError) {
             throw new Error('Provider pools file not found');
         }
     }
 
     // Find and remove the provider
-    const providers = providerPools[providerType] || [];
-    const providerIndex = providers.findIndex(p => p.uuid === providerUuid);
+    const providerIndex = providerPools.findIndex(p => p.uuid === providerUuid);
 
     if (providerIndex === -1) {
         throw new Error('Provider not found');
     }
 
-    const deletedProvider = providers[providerIndex];
-    providerPools[providerType].splice(providerIndex, 1);
+    const deletedProvider = providerPools[providerIndex];
+    providerPools.splice(providerIndex, 1);
 
     // Save to file
     writeFileSync(filePath, JSON.stringify(providerPools, null, 2), 'utf8');
-    logger.info('Deleted provider', { providerType, uuid: providerUuid });
+    logger.info('Deleted provider', { providerType: SINGLE_PROVIDER_TYPE, uuid: providerUuid });
 
     // Update provider pool manager if available
     if (providerPoolManager) {
@@ -276,7 +278,7 @@ export function deleteProvider(providerType, providerUuid, currentConfig, provid
     broadcastEvent('config_update', {
         action: 'delete',
         filePath: filePath,
-        providerType,
+        providerType: SINGLE_PROVIDER_TYPE,
         providerUuid,
         timestamp: new Date().toISOString()
     });
@@ -284,7 +286,7 @@ export function deleteProvider(providerType, providerUuid, currentConfig, provid
     // 广播提供商更新事件
     broadcastEvent('provider_update', {
         action: 'delete',
-        providerType,
+        providerType: SINGLE_PROVIDER_TYPE,
         providerUuid,
         timestamp: new Date().toISOString()
     });
@@ -293,6 +295,6 @@ export function deleteProvider(providerType, providerUuid, currentConfig, provid
         success: true,
         message: 'Provider deleted successfully',
         provider: deletedProvider,
-        providerType
+        providerType: SINGLE_PROVIDER_TYPE
     };
 }
