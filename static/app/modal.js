@@ -5,98 +5,76 @@ import { handleProviderPasswordToggle } from './event-handlers.js';
 import { t } from './i18n.js';
 
 // 分页配置
-const PROVIDERS_PER_PAGE = 5;
-const SINGLE_PROVIDER_TYPE = 'claude-kiro-oauth';
-const SINGLE_PROVIDER_TITLE = 'Claude Kiro OAuth';
+const PROVIDERS_PER_PAGE = 10;
 let currentPage = 1;
 let currentProviders = [];
 let currentProviderType = '';
 let cachedModels = []; // 缓存模型列表
 
 /**
- * 显示提供商管理模态框
+ * 在页面内嵌容器中渲染提供商详情（不使用模态框）
+ * @param {HTMLElement} container - 目标容器
  * @param {Object} data - 提供商数据
  */
-function showProviderManagerModal(data) {
-    const providers = Array.isArray(data.providers) ? data.providers : [];
-    const totalCount = data.totalCount || providers.length;
-    const healthyCount = data.healthyCount || providers.filter(provider => provider.isHealthy).length;
-    const providerType = SINGLE_PROVIDER_TYPE;
-    const providerTitle = SINGLE_PROVIDER_TITLE;
-    
+function renderProviderDetailsInline(container, data) {
+    if (!container || !data) return;
+    const { providerType, providers, totalCount, healthyCount } = data;
+    loadModelsForProviderType(providerType, providers);
     // 保存当前数据用于分页
     currentProviders = providers;
     currentProviderType = providerType;
     currentPage = 1;
     cachedModels = [];
-    
-    // 移除已存在的模态框
-    const existingModal = document.querySelector('.provider-modal');
-    if (existingModal) {
-        // 清理事件监听器
-        if (existingModal.cleanup) {
-            existingModal.cleanup();
-        }
-        existingModal.remove();
-    }
-    
-    const totalPages = Math.ceil(providers.length / PROVIDERS_PER_PAGE);
-    
-    // 创建模态框
-    const modal = document.createElement('div');
-    modal.className = 'provider-modal';
-    modal.setAttribute('data-provider-type', providerType);
-    modal.innerHTML = `
-        <div class="provider-modal-content">
-            <div class="provider-modal-header">
-                <h3 data-i18n="modal.provider.manage" data-i18n-params='{"type":"${providerTitle}"}'><i class="fas fa-cogs"></i> 管理 ${providerTitle} 提供商配置</h3>
-                <button class="modal-close" onclick="window.closeProviderModal(this)">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-            <div class="provider-modal-body">
-                <div class="provider-summary">
-                    <div class="provider-summary-item">
-                        <span class="label" data-i18n="modal.provider.totalAccounts">总账户数:</span>
-                        <span class="value">${totalCount}</span>
-                    </div>
-                    <div class="provider-summary-item">
-                        <span class="label" data-i18n="modal.provider.healthyAccounts">健康账户:</span>
-                        <span class="value">${healthyCount}</span>
-                    </div>
-                    <div class="provider-summary-actions">
-                        <button class="btn btn-success" onclick="window.showAddProviderForm()">
-                            <i class="fas fa-plus"></i> <span data-i18n="modal.provider.add">添加新提供商</span>
-                        </button>
-                        <button class="btn btn-warning" onclick="window.resetAllProvidersHealth()" data-i18n="modal.provider.resetHealth" title="将所有节点的健康状态重置为健康">
-                            <i class="fas fa-heartbeat"></i> 重置为健康
-                        </button>
-                        <button class="btn btn-info" onclick="window.performHealthCheck()" data-i18n="modal.provider.healthCheck" title="对所有节点执行健康检测">
-                            <i class="fas fa-stethoscope"></i> 健康检测
-                        </button>
-                    </div>
-                </div>
-                
-                ${totalPages > 1 ? renderPagination(1, totalPages, providers.length) : ''}
-                
-                <div class="provider-list" id="providerList">
-                    ${renderProviderListPaginated(providers, 1)}
-                </div>
-                
-                ${totalPages > 1 ? renderPagination(1, totalPages, providers.length, 'bottom') : ''}
-            </div>
+
+    container.dataset.providerType = providerType;
+    container.innerHTML = `
+        <div class="provider-details-inline" data-provider-type="${providerType}">
+            ${renderProviderManagerBodyHtml(data, {
+                mode: 'inline',
+                enablePagination: true,
+                showActions: true,
+                includeModelsSelector: true,
+                idPrefix: 'inline'
+            })}
         </div>
     `;
-    
-    // 添加到页面
-    document.body.appendChild(modal);
-    
-    // 添加模态框事件监听
-    addModalEventListeners(modal);
-    
-    // 先获取该提供商类型的模型列表（只调用一次API）
-    const pageProviders = providers.slice(0, PROVIDERS_PER_PAGE);
-    loadModelsForProvider(pageProviders);
+}
+
+/**
+ * 渲染提供商管理器主体内容（可用于模态框或内联显示）
+ * @param {Object} data - 提供商数据
+ * @param {Object} options - 渲染选项
+ * @returns {string} HTML字符串
+ */
+function renderProviderManagerBodyHtml(data, options = {}) {
+    const {
+        providerType,
+        providers = [],
+        totalCount = 0,
+        healthyCount = 0
+    } = data || {};
+
+    const {
+        enablePagination = true,
+        showActions = true,
+        includeModelsSelector = true,
+        idPrefix = 'modal'
+    } = options;
+
+    const totalPages = Math.ceil(providers.length / PROVIDERS_PER_PAGE);
+    const shouldPaginate = enablePagination && totalPages > 1;
+
+    const listHtml = shouldPaginate
+        ? renderProviderListPaginated(providers, 1, { providerType, showActions, includeModelsSelector, idPrefix })
+        : renderProviderList(providers, { providerType, showActions, includeModelsSelector, idPrefix });
+
+    return `
+        ${shouldPaginate ? renderPagination(1, totalPages, providers.length) : ''}
+        <div class="provider-list">
+            ${listHtml}
+        </div>
+        ${shouldPaginate ? renderPagination(1, totalPages, providers.length, 'bottom') : ''}
+    `;
 }
 
 /**
@@ -176,26 +154,22 @@ function goToProviderPage(page) {
     if (page > totalPages) page = totalPages;
     
     currentPage = page;
-    
+
     // 更新提供商列表
-    const providerList = document.getElementById('providerList');
+    const providerList = document.querySelector('.provider-list');
     if (providerList) {
         providerList.innerHTML = renderProviderListPaginated(currentProviders, page);
+    } else {
+        console.warn('Provider list container not found.');
     }
-    
+        
     // 更新分页控件
     const paginationContainers = document.querySelectorAll('.pagination-container');
     paginationContainers.forEach(container => {
         const position = container.getAttribute('data-position');
         container.outerHTML = renderPagination(page, totalPages, currentProviders.length, position);
     });
-    
-    // 滚动到顶部
-    const modalBody = document.querySelector('.provider-modal-body');
-    if (modalBody) {
-        modalBody.scrollTop = 0;
-    }
-    
+
     // 为当前页的提供商加载模型列表
     const startIndex = (page - 1) * PROVIDERS_PER_PAGE;
     const endIndex = Math.min(startIndex + PROVIDERS_PER_PAGE, currentProviders.length);
@@ -207,7 +181,7 @@ function goToProviderPage(page) {
             renderNotSupportedModelsSelector(provider.uuid, cachedModels, provider.notSupportedModels || []);
         });
     } else {
-        loadModelsForProvider(pageProviders);
+        loadModelsForProviderType(currentProviderType, pageProviders);
     }
 }
 
@@ -215,21 +189,23 @@ function goToProviderPage(page) {
  * 渲染分页后的提供商列表
  * @param {Array} providers - 提供商数组
  * @param {number} page - 当前页码
+ * @param {Object} options - 渲染选项
  * @returns {string} HTML字符串
  */
-function renderProviderListPaginated(providers, page) {
+function renderProviderListPaginated(providers, page, options = {}) {
     const startIndex = (page - 1) * PROVIDERS_PER_PAGE;
     const endIndex = Math.min(startIndex + PROVIDERS_PER_PAGE, providers.length);
     const pageProviders = providers.slice(startIndex, endIndex);
-    
-    return renderProviderList(pageProviders);
+
+    return renderProviderList(pageProviders, options);
 }
 
 /**
- * 为提供商加载模型列表（优化：只调用一次API，并缓存结果）
+ * 为提供商类型加载模型列表（优化：只调用一次API，并缓存结果）
+ * @param {string} providerType - 提供商类型
  * @param {Array} providers - 提供商列表
  */
-async function loadModelsForProvider(providers) {
+async function loadModelsForProviderType(providerType, providers) {
     try {
         // 如果已有缓存，直接使用
         if (cachedModels.length > 0) {
@@ -240,7 +216,7 @@ async function loadModelsForProvider(providers) {
         }
         
         // 只调用一次API获取模型列表
-        const response = await window.apiClient.get(`/provider-models/${encodeURIComponent(SINGLE_PROVIDER_TYPE)}`);
+        const response = await window.apiClient.get(`/provider-models/cloud-kiro-api`);
         const models = response.models || [];
         
         // 缓存模型列表
@@ -251,7 +227,7 @@ async function loadModelsForProvider(providers) {
             renderNotSupportedModelsSelector(provider.uuid, models, provider.notSupportedModels || []);
         });
     } catch (error) {
-        console.error('Failed to load models for provider:', error);
+        console.error('Failed to load models for provider type:', error);
         // 如果加载失败，为每个提供商显示错误信息
         providers.forEach(provider => {
             const container = document.querySelector(`.not-supported-models-container[data-uuid="${provider.uuid}"]`);
@@ -306,8 +282,9 @@ function addModalEventListeners(modal) {
             event.preventDefault();
             event.stopPropagation();
             const targetInputId = button.getAttribute('data-target');
+            const providerType = modal.getAttribute('data-provider-type');
             if (targetInputId && window.fileUploadHandler) {
-                window.fileUploadHandler.handleFileUpload(button, targetInputId);
+                window.fileUploadHandler.handleFileUpload(button, targetInputId, providerType);
             }
         }
     };
@@ -338,7 +315,7 @@ function addModalEventListeners(modal) {
  * @param {HTMLElement} button - 关闭按钮
  */
 function closeProviderModal(button) {
-    const modal = button.closest('.provider-modal');
+    const modal = button.closest('.provider-list');
     if (modal) {
         if (modal.cleanup) {
             modal.cleanup();
@@ -350,9 +327,17 @@ function closeProviderModal(button) {
 /**
  * 渲染提供商列表
  * @param {Array} providers - 提供商数组
+ * @param {Object} options - 渲染选项
  * @returns {string} HTML字符串
  */
-function renderProviderList(providers) {
+function renderProviderList(providers, options = {}) {
+    const {
+        providerType,
+        showActions = true,
+        includeModelsSelector = true,
+        idPrefix = 'modal'
+    } = options;
+
     return providers.map(provider => {
         const isHealthy = provider.isHealthy;
         const isDisabled = provider.isDisabled || false;
@@ -384,9 +369,9 @@ function renderProviderList(providers) {
         
         return `
             <div class="provider-item-detail ${healthClass} ${disabledClass}" data-uuid="${provider.uuid}">
-                <div class="provider-item-header" onclick="window.toggleProviderDetails('${provider.uuid}')">
+                <div class="provider-item-header" onclick="window.toggleProviderDetails('${provider.uuid}', event)">
                     <div class="provider-info">
-                        <div class="provider-name">${provider.customName || provider.uuid}</div>
+                        <div class="provider-name">${provider.customName || provider.uuid}(${provider.KIRO_OAUTH_CREDS_FILE_PATH})</div>
                         <div class="provider-meta">
                             <span class="health-status">
                                 <i class="${healthIcon}"></i>
@@ -412,24 +397,26 @@ function renderProviderList(providers) {
                         </div>
                         ${errorInfoHtml}
                     </div>
-                    <div class="provider-actions-group">
-                        <button class="btn-small ${toggleButtonClass}" onclick="window.toggleProviderStatus('${provider.uuid}', event)" title="${toggleButtonText}此提供商">
-                            <i class="${toggleButtonIcon}"></i> ${toggleButtonText}
-                        </button>
-                        <button class="btn-small btn-check" onclick="window.checkSingleProvider('${provider.uuid}', event)" title="检查此提供商健康状态">
-                            <i class="fas fa-stethoscope"></i> <span data-i18n="modal.provider.check">检查</span>
-                        </button>
-                        <button class="btn-small btn-edit" onclick="window.editProvider('${provider.uuid}', event)">
-                            <i class="fas fa-edit"></i> <span data-i18n="modal.provider.edit">编辑</span>
-                        </button>
-                        <button class="btn-small btn-delete" onclick="window.deleteProvider('${provider.uuid}', event)">
-                            <i class="fas fa-trash"></i> <span data-i18n="modal.provider.delete">删除</span>
-                        </button>
-                    </div>
+                    ${showActions ? `
+                        <div class="provider-actions-group">
+                            <button class="btn-small ${toggleButtonClass}" onclick="window.toggleProviderStatus('${provider.uuid}', event)" title="${toggleButtonText}此提供商">
+                                <i class="${toggleButtonIcon}"></i> ${toggleButtonText}
+                            </button>
+                            <button class="btn-small btn-check" onclick="window.checkSingleProvider('${provider.uuid}', event)" title="检查此提供商健康状态">
+                                <i class="fas fa-stethoscope"></i> <span data-i18n="modal.provider.check">检查</span>
+                            </button>
+                            <button class="btn-small btn-edit" onclick="window.editProvider('${provider.uuid}', event)">
+                                <i class="fas fa-edit"></i> <span data-i18n="modal.provider.edit">编辑</span>
+                            </button>
+                            <button class="btn-small btn-delete" onclick="window.deleteProvider('${provider.uuid}', event)">
+                                <i class="fas fa-trash"></i> <span data-i18n="modal.provider.delete">删除</span>
+                            </button>
+                        </div>
+                    ` : ''}
                 </div>
-                <div class="provider-item-content" id="content-${provider.uuid}">
+                <div class="provider-item-content">
                     <div class="">
-                        ${renderProviderConfig(provider)}
+                        ${renderProviderConfig(provider, { providerType, includeModelsSelector, idPrefix })}
                     </div>
                 </div>
             </div>
@@ -440,14 +427,22 @@ function renderProviderList(providers) {
 /**
  * 渲染提供商配置
  * @param {Object} provider - 提供商对象
+ * @param {Object} options - 渲染选项
  * @returns {string} HTML字符串
  */
-function renderProviderConfig(provider) {
+function renderProviderConfig(provider, options = {}) {
+    const {
+        providerType: explicitProviderType,
+        includeModelsSelector = true,
+        idPrefix = 'modal'
+    } = options;
+
+    const resolvedProviderType = explicitProviderType || currentProviderType;
     // 获取该提供商类型的所有字段定义（从 utils.js）
-    const fieldConfigs = getProviderTypeFields(currentProviderType);
-    
+    const fieldConfigs = getProviderTypeFields(resolvedProviderType);
+
     // 获取字段显示顺序
-    const fieldOrder = getFieldOrder(provider);
+    const fieldOrder = getFieldOrder(provider, resolvedProviderType);
     
     // 先渲染基础配置字段（customName、checkModelName 和 checkHealth）
     let html = '<div class="form-grid">';
@@ -541,18 +536,19 @@ function renderProviderConfig(provider) {
             `;
         } else if (field1IsOAuthFilePath) {
             // OAuth凭据文件路径字段，添加上传按钮
+            const inputId = `${idPrefix}-edit-${provider.uuid}-${field1Key}`;
             html += `
                 <div class="config-item">
                     <label>${field1Label}</label>
                     <div class="file-input-group">
                         <input type="text"
-                               id="edit-${provider.uuid}-${field1Key}"
+                               id="${inputId}"
                                value="${field1Value || ''}"
                                readonly
                                data-config-key="${field1Key}"
                                data-config-value="${field1Value || ''}"
                                placeholder="${field1Def.placeholder || ''}">
-                       <button type="button" class="btn btn-outline upload-btn" data-target="edit-${provider.uuid}-${field1Key}" aria-label="上传文件" disabled>
+                       <button type="button" class="btn btn-outline upload-btn" data-target="${inputId}" aria-label="上传文件" disabled>
                             <i class="fas fa-upload"></i>
                         </button>
                     </div>
@@ -601,18 +597,19 @@ function renderProviderConfig(provider) {
                 `;
             } else if (field2IsOAuthFilePath) {
                 // OAuth凭据文件路径字段，添加上传按钮
+                const inputId = `${idPrefix}-edit-${provider.uuid}-${field2Key}`;
                 html += `
                     <div class="config-item">
                         <label>${field2Label}</label>
                         <div class="file-input-group">
                             <input type="text"
-                                   id="edit-${provider.uuid}-${field2Key}"
+                                   id="${inputId}"
                                    value="${field2Value || ''}"
                                    readonly
                                    data-config-key="${field2Key}"
                                    data-config-value="${field2Value || ''}"
                                    placeholder="${field2Def.placeholder || ''}">
-                            <button type="button" class="btn btn-outline upload-btn" data-target="edit-${provider.uuid}-${field2Key}" aria-label="上传文件" disabled>
+                            <button type="button" class="btn btn-outline upload-btn" data-target="${inputId}" aria-label="上传文件" disabled>
                                 <i class="fas fa-upload"></i>
                             </button>
                         </div>
@@ -635,33 +632,36 @@ function renderProviderConfig(provider) {
         
         html += '</div>';
     }
-    
-    // 添加 notSupportedModels 配置区域
-    html += '<div class="form-grid full-width">';
-    html += `
-        <div class="config-item not-supported-models-section">
-            <label>
-                <i class="fas fa-ban"></i> <span data-i18n="modal.provider.unsupportedModels">不支持的模型</span>
-                <span class="help-text" data-i18n="modal.provider.unsupportedModelsHelp">选择此提供商不支持的模型，系统会自动排除这些模型</span>
-            </label>
-            <div class="not-supported-models-container" data-uuid="${provider.uuid}">
-                <div class="models-loading">
-                    <i class="fas fa-spinner fa-spin"></i> <span data-i18n="modal.provider.loadingModels">加载模型列表...</span>
+
+    if (includeModelsSelector) {
+        // 添加 notSupportedModels 配置区域（仅模态框中使用）
+        html += '<div class="form-grid full-width">';
+        html += `
+            <div class="config-item not-supported-models-section">
+                <label>
+                    <i class="fas fa-ban"></i> <span data-i18n="modal.provider.unsupportedModels">不支持的模型</span>
+                    <span class="help-text" data-i18n="modal.provider.unsupportedModelsHelp">选择此提供商不支持的模型，系统会自动排除这些模型</span>
+                </label>
+                <div class="not-supported-models-container" data-uuid="${provider.uuid}">
+                    <div class="models-loading">
+                        <i class="fas fa-spinner fa-spin"></i> <span data-i18n="modal.provider.loadingModels">加载模型列表...</span>
+                    </div>
                 </div>
             </div>
-        </div>
-    `;
-    html += '</div>';
-    
+        `;
+        html += '</div>';
+    }
+
     return html;
 }
 
 /**
  * 获取字段显示顺序
  * @param {Object} provider - 提供商对象
+ * @param {string} providerTypeHint - 提供商类型提示
  * @returns {Array} 字段键数组
  */
-function getFieldOrder(provider) {
+function getFieldOrder(provider, providerTypeHint) {
     const orderedFields = ['customName', 'checkModelName', 'checkHealth'];
     
     // 需要排除的内部状态字段
@@ -677,7 +677,7 @@ function getFieldOrder(provider) {
     };
 
     // 尝试从全局或当前模态框上下文中推断提供商类型
-    let providerType = currentProviderType;
+    let providerType = providerTypeHint || currentProviderType;
     if (!providerType) {
         if (provider.KIRO_OAUTH_CREDS_FILE_PATH) {
             providerType = 'claude-kiro-oauth';
@@ -711,12 +711,14 @@ function getFieldOrder(provider) {
 /**
  * 切换提供商详情显示
  * @param {string} uuid - 提供商UUID
+ * @param {Event} event - 事件对象
  */
-function toggleProviderDetails(uuid) {
-    const content = document.getElementById(`content-${uuid}`);
-    if (content) {
-        content.classList.toggle('expanded');
-    }
+function toggleProviderDetails(uuid, event) {
+    const providerDetail = event?.target?.closest('.provider-item-detail') ||
+        document.querySelector(`.provider-item-detail[data-uuid="${uuid}"]`);
+    const content = providerDetail?.querySelector('.provider-item-content');
+    if (!content) return;
+    content.classList.toggle('expanded');
 }
 
 /**
@@ -730,11 +732,11 @@ function editProvider(uuid, event) {
     const providerDetail = event.target.closest('.provider-item-detail');
     const configInputs = providerDetail.querySelectorAll('input[data-config-key]');
     const configSelects = providerDetail.querySelectorAll('select[data-config-key]');
-    const content = providerDetail.querySelector(`#content-${uuid}`);
-    
+    const content = providerDetail.querySelector('.provider-item-content');
+
     // 如果还没有展开，则自动展开编辑框
     if (content && !content.classList.contains('expanded')) {
-        toggleProviderDetails(uuid);
+        toggleProviderDetails(uuid, event);
     }
     
     // 等待一小段时间让展开动画完成，然后切换输入框为可编辑状态
@@ -771,7 +773,7 @@ function editProvider(uuid, event) {
         // 替换编辑按钮为保存和取消按钮，但保留禁用/启用按钮
         const actionsGroup = providerDetail.querySelector('.provider-actions-group');
         const toggleButton = actionsGroup.querySelector('[onclick*="toggleProviderStatus"]');
-        const currentProvider = providerDetail.closest('.provider-modal').querySelector(`[data-uuid="${uuid}"]`);
+        const currentProvider = providerDetail.closest('.provider-list').querySelector(`[data-uuid="${uuid}"]`);
         const isCurrentlyDisabled = currentProvider.classList.contains('disabled');
         const toggleButtonText = isCurrentlyDisabled ? '启用' : '禁用';
         const toggleButtonIcon = isCurrentlyDisabled ? 'fas fa-play' : 'fas fa-ban';
@@ -838,7 +840,7 @@ function cancelEdit(uuid, event) {
     
     // 恢复原来的编辑和删除按钮，但保留禁用/启用按钮
     const actionsGroup = providerDetail.querySelector('.provider-actions-group');
-    const currentProvider = providerDetail.closest('.provider-modal').querySelector(`[data-uuid="${uuid}"]`);
+    const currentProvider = providerDetail.closest('.provider-list').querySelector(`[data-uuid="${uuid}"]`);
     const isCurrentlyDisabled = currentProvider.classList.contains('disabled');
     const toggleButtonText = isCurrentlyDisabled ? '启用' : '禁用';
     const toggleButtonIcon = isCurrentlyDisabled ? 'fas fa-play' : 'fas fa-ban';
@@ -866,6 +868,7 @@ async function saveProvider(uuid, event) {
     event.stopPropagation();
     
     const providerDetail = event.target.closest('.provider-item-detail');
+    const providerType = providerDetail.closest('.provider-list').getAttribute('data-provider-type');
     
     const configInputs = providerDetail.querySelectorAll('input[data-config-key]');
     const configSelects = providerDetail.querySelectorAll('select[data-config-key]');
@@ -889,11 +892,11 @@ async function saveProvider(uuid, event) {
     providerConfig.notSupportedModels = notSupportedModels;
     
     try {
-        await window.apiClient.put(`/providers/${encodeURIComponent(SINGLE_PROVIDER_TYPE)}/${uuid}`, { providerConfig });
+        await window.apiClient.put(`/providers/${encodeURIComponent(providerType)}/${uuid}`, { providerConfig });
         await window.apiClient.post('/reload-config');
         showToast(t('common.success'), t('modal.provider.save.success'), 'success');
         // 重新获取该提供商类型的最新配置
-        await refreshProviderConfig();
+        await refreshProviderConfig(providerType);
     } catch (error) {
         console.error('Failed to update provider:', error);
         showToast(t('common.error'), t('modal.provider.save.failed') + ': ' + error.message, 'error');
@@ -913,13 +916,14 @@ async function deleteProvider(uuid, event) {
     }
     
     const providerDetail = event.target.closest('.provider-item-detail');
+    const providerType = providerDetail.closest('.provider-list').getAttribute('data-provider-type');
     
     try {
-        await window.apiClient.delete(`/providers/${encodeURIComponent(SINGLE_PROVIDER_TYPE)}/${uuid}`);
+        await window.apiClient.delete(`/providers/${encodeURIComponent(providerType)}/${uuid}`);
         await window.apiClient.post('/reload-config');
         showToast(t('common.success'), t('modal.provider.delete.success'), 'success');
         // 重新获取最新配置
-        await refreshProviderConfig();
+        await refreshProviderConfig(providerType);
     } catch (error) {
         console.error('Failed to delete provider:', error);
         showToast(t('common.error'), t('modal.provider.delete.failed') + ': ' + error.message, 'error');
@@ -928,18 +932,19 @@ async function deleteProvider(uuid, event) {
 
 /**
  * 重新获取并刷新提供商配置
+ * @param {string} providerType - 提供商类型
  */
-async function refreshProviderConfig() {
+async function refreshProviderConfig(providerType) {
     try {
         // 重新获取该提供商类型的最新数据
-        const data = await window.apiClient.get(`/providers/${encodeURIComponent(SINGLE_PROVIDER_TYPE)}`);
+        const data = await window.apiClient.get(`/providers/${encodeURIComponent(providerType)}`);
         
         // 如果当前显示的是该提供商类型的模态框，则更新模态框
-        const modal = document.querySelector('.provider-modal');
+        const modal = document.querySelector('#providers');
         if (modal) {
             // 更新缓存的提供商数据
             currentProviders = data.providers;
-            currentProviderType = SINGLE_PROVIDER_TYPE;
+            currentProviderType = providerType;
             
             // 更新统计信息
             const totalCountElement = modal.querySelector('.provider-summary-item .value');
@@ -975,7 +980,7 @@ async function refreshProviderConfig() {
                 
                 // 如果之前没有分页控件，需要添加
                 if (paginationContainers.length === 0) {
-                    const modalBody = modal.querySelector('.provider-modal-body');
+                    const modalBody = modal.querySelector('.provider-details');
                     const providerListEl = modal.querySelector('.provider-list');
                     if (modalBody && providerListEl) {
                         providerListEl.insertAdjacentHTML('beforebegin', renderPagination(currentPage, totalPages, data.providers.length, 'top'));
@@ -991,7 +996,7 @@ async function refreshProviderConfig() {
             const startIndex = (currentPage - 1) * PROVIDERS_PER_PAGE;
             const endIndex = Math.min(startIndex + PROVIDERS_PER_PAGE, data.providers.length);
             const pageProviders = data.providers.slice(startIndex, endIndex);
-            loadModelsForProvider(pageProviders);
+            loadModelsForProviderType(providerType, pageProviders);
         }
         
         // 同时更新主界面的提供商统计数据
@@ -1006,10 +1011,11 @@ async function refreshProviderConfig() {
 
 /**
  * 显示添加提供商表单
+ * @param {string} providerType - 提供商类型
  */
-function showAddProviderForm() {
+function showAddProviderForm(providerType) {
     const modal = document.querySelector('.provider-modal');
-    const existingForm = modal.querySelector('.add-provider-form');
+    const existingForm = document.querySelector('.add-provider-form');
     
     if (existingForm) {
         existingForm.remove();
@@ -1041,7 +1047,7 @@ function showAddProviderForm() {
             <!-- 动态配置字段将在这里显示 -->
         </div>
         <div class="form-actions" style="margin-top: 15px;">
-            <button class="btn btn-success" onclick="window.addProvider()">
+            <button class="btn btn-success" onclick="window.addProvider('${providerType}')">
                 <i class="fas fa-save"></i> <span data-i18n="modal.provider.save">保存</span>
             </button>
             <button class="btn btn-secondary" onclick="this.closest('.add-provider-form').remove()">
@@ -1051,25 +1057,26 @@ function showAddProviderForm() {
     `;
     
     // 添加动态配置字段
-    addDynamicConfigFields(form);
+    addDynamicConfigFields(form, providerType);
     
     // 为添加表单中的密码切换按钮绑定事件监听器
     bindAddFormPasswordToggleListeners(form);
     
     // 插入到提供商列表前面
-    const providerList = modal.querySelector('.provider-list');
+    const providerList = document.querySelector('.provider-list');
     providerList.parentNode.insertBefore(form, providerList);
 }
 
 /**
  * 添加动态配置字段
  * @param {HTMLElement} form - 表单元素
+ * @param {string} providerType - 提供商类型
  */
-function addDynamicConfigFields(form) {
+function addDynamicConfigFields(form, providerType) {
     const configFields = form.querySelector('#dynamicConfigFields');
     
     // 获取该提供商类型的字段配置（已经在 utils.js 中包含了 URL 字段）
-    const allFields = getProviderTypeFields(SINGLE_PROVIDER_TYPE);
+    const allFields = getProviderTypeFields(providerType);
     
     // 过滤掉已经在 form-grid 中硬编码显示的三个基础字段，避免重复
     const baseFields = ['customName', 'checkModelName', 'checkHealth'];
@@ -1204,8 +1211,9 @@ function bindAddFormPasswordToggleListeners(form) {
 
 /**
  * 添加新提供商
+ * @param {string} providerType - 提供商类型
  */
-async function addProvider() {
+async function addProvider(providerType) {
     const customName = document.getElementById('newCustomName')?.value;
     const checkModelName = document.getElementById('newCheckModelName')?.value;
     const checkHealth = document.getElementById('newCheckHealth')?.value === 'true';
@@ -1217,7 +1225,7 @@ async function addProvider() {
     };
     
     // 根据提供商类型动态收集配置字段（自动匹配 utils.js 中的定义）
-    const allFields = getProviderTypeFields(SINGLE_PROVIDER_TYPE);
+    const allFields = getProviderTypeFields(providerType);
     allFields.forEach(field => {
         const element = document.getElementById(`new${field.id}`);
         if (element) {
@@ -1227,7 +1235,7 @@ async function addProvider() {
     
     try {
         await window.apiClient.post('/providers', {
-            providerType: SINGLE_PROVIDER_TYPE,
+            providerType,
             providerConfig
         });
         await window.apiClient.post('/reload-config');
@@ -1238,7 +1246,7 @@ async function addProvider() {
             form.remove();
         }
         // 重新获取最新配置数据
-        await refreshProviderConfig();
+        await refreshProviderConfig(providerType);
     } catch (error) {
         console.error('Failed to add provider:', error);
         showToast(t('common.error'), t('modal.provider.add.failed') + ': ' + error.message, 'error');
@@ -1254,7 +1262,8 @@ async function toggleProviderStatus(uuid, event) {
     event.stopPropagation();
     
     const providerDetail = event.target.closest('.provider-item-detail');
-    const currentProvider = providerDetail.closest('.provider-modal').querySelector(`[data-uuid="${uuid}"]`);
+    const providerType = providerDetail.closest('.provider-list').getAttribute('data-provider-type');
+    const currentProvider = providerDetail.closest('.provider-list').querySelector(`[data-uuid="${uuid}"]`);
     
     // 获取当前提供商信息
     const isCurrentlyDisabled = currentProvider.classList.contains('disabled');
@@ -1268,11 +1277,11 @@ async function toggleProviderStatus(uuid, event) {
     }
     
     try {
-        await window.apiClient.post(`/providers/${encodeURIComponent(SINGLE_PROVIDER_TYPE)}/${uuid}/${action}`, { action });
+        await window.apiClient.post(`/providers/${encodeURIComponent(providerType)}/${uuid}/${action}`, { action });
         await window.apiClient.post('/reload-config');
         showToast(t('common.success'), t('common.success'), 'success');
         // 重新获取该提供商类型的最新配置
-        await refreshProviderConfig();
+        await refreshProviderConfig(providerType);
     } catch (error) {
         console.error('Failed to toggle provider status:', error);
         showToast(t('common.error'), t('common.error') + ': ' + error.message, 'error');
@@ -1281,9 +1290,10 @@ async function toggleProviderStatus(uuid, event) {
 
 /**
  * 重置所有提供商的健康状态
+ * @param {string} providerType - 提供商类型
  */
-async function resetAllProvidersHealth() {
-    if (!confirm(t('modal.provider.resetHealthConfirm', {type: SINGLE_PROVIDER_TITLE}))) {
+async function resetAllProvidersHealth(providerType) {
+    if (!confirm(t('modal.provider.resetHealthConfirm', {type: providerType}))) {
         return;
     }
     
@@ -1291,7 +1301,7 @@ async function resetAllProvidersHealth() {
         showToast(t('common.info'), t('modal.provider.resetHealth') + '...', 'info');
         
         const response = await window.apiClient.post(
-            `/providers/${encodeURIComponent(SINGLE_PROVIDER_TYPE)}/reset-health`,
+            `/providers/${encodeURIComponent(providerType)}/reset-health`,
             {}
         );
         
@@ -1302,7 +1312,7 @@ async function resetAllProvidersHealth() {
             await window.apiClient.post('/reload-config');
             
             // 刷新提供商配置显示
-            await refreshProviderConfig();
+            await refreshProviderConfig(providerType);
         } else {
             showToast(t('common.error'), t('modal.provider.resetHealth.failed'), 'error');
         }
@@ -1314,9 +1324,10 @@ async function resetAllProvidersHealth() {
 
 /**
  * 执行健康检测
+ * @param {string} providerType - 提供商类型
  */
-async function performHealthCheck() {
-    if (!confirm(t('modal.provider.healthCheckConfirm', {type: SINGLE_PROVIDER_TITLE}))) {
+async function performHealthCheck(providerType) {
+    if (!confirm(t('modal.provider.healthCheckConfirm', {type: providerType}))) {
         return;
     }
     
@@ -1324,7 +1335,7 @@ async function performHealthCheck() {
         showToast(t('common.info'), t('modal.provider.healthCheck') + '...', 'info');
         
         const response = await window.apiClient.post(
-            `/providers/${encodeURIComponent(SINGLE_PROVIDER_TYPE)}/health-check`,
+            `/providers/${encodeURIComponent(providerType)}/health-check`,
             {}
         );
         
@@ -1344,7 +1355,7 @@ async function performHealthCheck() {
             await window.apiClient.post('/reload-config');
             
             // 刷新提供商配置显示
-            await refreshProviderConfig();
+            await refreshProviderConfig(providerType);
         } else {
             showToast(t('common.error'), t('modal.provider.healthCheck') + ' ' + t('common.error'), 'error');
         }
@@ -1362,6 +1373,8 @@ async function performHealthCheck() {
 async function checkSingleProvider(uuid, event) {
     event.stopPropagation();
 
+    const providerDetail = event.target.closest('.provider-item-detail');
+    const providerType = providerDetail.closest('.provider-list').getAttribute('data-provider-type');
     const btn = event.target.closest('button');
     const btnIcon = btn?.querySelector('i');
     const originalIconClass = btnIcon?.className;
@@ -1376,7 +1389,7 @@ async function checkSingleProvider(uuid, event) {
         }
 
         const response = await window.apiClient.post(
-            `/providers/${encodeURIComponent(SINGLE_PROVIDER_TYPE)}/${uuid}/health-check`,
+            `/providers/${encodeURIComponent(providerType)}/${uuid}/health-check`,
             {}
         );
 
@@ -1395,7 +1408,7 @@ async function checkSingleProvider(uuid, event) {
             await window.apiClient.post('/reload-config');
 
             // 刷新提供商配置显示
-            await refreshProviderConfig();
+            await refreshProviderConfig(providerType);
         } else {
             showToast(t('common.error'), t('modal.provider.check.failed'), 'error');
         }
@@ -1451,7 +1464,7 @@ function renderNotSupportedModelsSelector(uuid, models, notSupportedModels = [])
 
 // 导出所有函数，并挂载到window对象供HTML调用
 export {
-    showProviderManagerModal,
+    renderProviderDetailsInline,
     closeProviderModal,
     toggleProviderDetails,
     editProvider,
@@ -1465,7 +1478,7 @@ export {
     resetAllProvidersHealth,
     performHealthCheck,
     checkSingleProvider,
-    loadModelsForProvider,
+    loadModelsForProviderType,
     renderNotSupportedModelsSelector,
     goToProviderPage
 };

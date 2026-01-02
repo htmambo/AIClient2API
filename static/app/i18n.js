@@ -225,10 +225,9 @@ const translations = {
         
         // Providers
         'providers.title': '号池管理',
-        'providers.note': '配置了号池后，默认使用号池的配置，号池配置失效降级到默认配置',
         'providers.activeConnections': '活动连接',
-        'providers.activeProviders': '活跃提供商',
-        'providers.healthyProviders': '健康提供商',
+        'providers.totalAccounts': '总账户数',
+        'providers.healthyProviders': '健康账户',
         'providers.status.healthy': '{healthy}/{total} 健康',
         'providers.status.empty': '0/0 节点',
         'providers.stat.totalAccounts': '总账户',
@@ -588,9 +587,8 @@ const translations = {
         
         // Providers
         'providers.title': 'OAuth Pool Management',
-        'providers.note': 'When provider pool is configured, it will be used by default. Falls back to default config if pool config fails',
         'providers.activeConnections': 'Active Connections',
-        'providers.activeProviders': 'Active Providers',
+        'providers.totalAccounts': 'Active Providers',
         'providers.healthyProviders': 'Healthy Providers',
         'providers.status.healthy': '{healthy}/{total} Healthy',
         'providers.status.empty': '0/0 Nodes',

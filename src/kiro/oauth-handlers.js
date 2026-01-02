@@ -109,73 +109,21 @@ function generateCodeChallenge(codeVerifier) {
  * 处理 Kiro OAuth 授权（统一入口）
  * @param {Object} currentConfig - 当前配置对象
  * @param {Object} options - 额外选项
- *   - method: 'google' | 'github' | 'builder-id'
+ *   - method: 'builder-id'
  *   - saveToConfigs: boolean
  * @returns {Promise<Object>} 返回授权URL和相关信息
  */
 export async function handleKiroOAuth(currentConfig, options = {}) {
-    const method = options.method || 'google';  // 默认使用 Google
+    const method = options.method || 'builder-id';  // 默认使用 builder-id
     
     console.log(`${KIRO_OAUTH_CONFIG.logPrefix} Starting OAuth with method: ${method}`);
     
     switch (method) {
-        case 'google':
-            return handleKiroSocialAuth('Google', currentConfig, options);
-        case 'github':
-            return handleKiroSocialAuth('Github', currentConfig, options);
         case 'builder-id':
             return handleKiroBuilderIDDeviceCode(currentConfig, options);
         default:
             throw new Error(`不支持的认证方式: ${method}`);
     }
-}
-
-/**
- * Kiro Social Auth (Google/GitHub) - 使用 HTTP localhost 回调
- */
-async function handleKiroSocialAuth(provider, currentConfig, options = {}) {
-    // 生成 PKCE 参数
-    const codeVerifier = generateCodeVerifier();
-    const codeChallenge = generateCodeChallenge(codeVerifier);
-    const state = crypto.randomBytes(16).toString('base64url');
-    
-    // 启动本地回调服务器并获取端口
-    let handlerPort;
-    const providerKey = 'claude-kiro-oauth';
-    if (options.port) {
-        const port = parseInt(options.port);
-        await closeKiroServer(providerKey, port);
-        const server = await createKiroHttpCallbackServer(port, codeVerifier, state, options);
-        activeKiroServers.set(providerKey, { server, port });
-        handlerPort = port;
-    } else {
-        handlerPort = await startKiroCallbackServer(codeVerifier, state, options);
-    }
-    
-    // 使用 HTTP localhost 作为 redirect_uri
-    const redirectUri = `http://127.0.0.1:${handlerPort}/oauth/callback`;
-    
-    // 构建授权 URL
-    const authUrl = `${KIRO_OAUTH_CONFIG.authServiceEndpoint}/login?` +
-        `idp=${provider}&` +
-        `redirect_uri=${encodeURIComponent(redirectUri)}&` +
-        `code_challenge=${codeChallenge}&` +
-        `code_challenge_method=S256&` +
-        `state=${state}&` +
-        `prompt=select_account`;
-    
-    return {
-        authUrl,
-        authInfo: {
-            provider: 'claude-kiro-oauth',
-            authMethod: 'social',
-            socialProvider: provider,
-            port: handlerPort,
-            redirectUri: redirectUri,
-            state: state,
-            ...options
-        }
-    };
 }
 
 /**

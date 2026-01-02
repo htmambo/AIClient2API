@@ -74,7 +74,7 @@ function createConfigItemElement(config, index) {
 
     const typeIcon = config.type === 'oauth' ? 'fa-key' :
                     config.type === 'api-key' ? 'fa-lock' :
-                    config.type === 'provider-pool' ? 'fa-network-wired' :
+                    config.type === 'provider-pool' ? 'fa-file-invoice-dollar' :
                     config.type === 'system-prompt' ? 'fa-file-text' : 'fa-cog';
 
     // 生成关联详情HTML
@@ -197,7 +197,7 @@ function generateUsageInfoHtml(config) {
     let detailsHtml = '';
     usageDetails.forEach(detail => {
         const isMain = detail.type === '主要配置' || detail.type === 'Main Config';
-        const icon = isMain ? 'fa-cog' : 'fa-network-wired';
+        const icon = isMain ? 'fa-cog' : 'fa-file-invoice-dollar';
         const usageTypeKey = isMain ? 'main_config' : 'provider_pool';
         detailsHtml += `
             <div class="usage-detail-item" data-usage-type="${usageTypeKey}">

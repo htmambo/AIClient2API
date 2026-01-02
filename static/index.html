@@ -43,7 +43,7 @@
                         <i class="fas fa-cog" aria-hidden="true"></i> <span data-i18n="nav.config">系统配置</span>
                     </a>
                     <a href="#providers" class="nav-item" data-section="providers" aria-label="Provider Pool Management" data-i18n-aria-label="nav.providers">
-                        <i class="fas fa-network-wired" aria-hidden="true"></i> <span data-i18n="nav.providers">号池管理</span>
+                        <i class="fas fa-file-invoice-dollar" aria-hidden="true"></i> <span data-i18n="nav.providers">号池管理</span>
                     </a>
                     <a href="#upload-config" class="nav-item" data-section="upload-config" aria-label="Upload Config Management" data-i18n-aria-label="nav.upload">
                         <i class="fas fa-upload" aria-hidden="true"></i> <span data-i18n="nav.upload">配置管理</span>
@@ -446,10 +446,22 @@
                 <!-- Provider Pools Section -->
                 <section id="providers" class="section" aria-labelledby="providers-title">
                     <h2 id="providers-title" data-i18n="providers.title">号池管理</h2>
-                    <div class="pool-description">
-                        <div class="highlight-note">
-                            <i class="fas fa-info-circle"></i>
-                            <span data-i18n="providers.note">配置了号池后，默认使用号池的配置，号池配置失效降级到默认配置</span>
+                    <div class="provider-summary">
+                        <div class="provider-summary-actions">
+                            <button class="btn btn-success" onclick="window.showAddProviderForm('claude-kiro-oauth')" data-i18n="modal.provider.add" title="添加新提供商">
+                                <i class="fas fa-plus"></i> <span data-i18n="modal.provider.add">添加新提供商</span>
+                            </button>
+                            <button class="btn btn-warning" onclick="window.resetAllProvidersHealth('claude-kiro-oauth')" data-i18n="modal.provider.resetHealth" title="将所有节点的健康状态重置为健康">
+                                <i class="fas fa-heartbeat"></i> 重置为健康
+                            </button>
+                            <button class="btn btn-info" onclick="window.performHealthCheck('claude-kiro-oauth')" data-i18n="modal.provider.healthCheck" title="对所有节点执行健康检测">
+                                <i class="fas fa-stethoscope"></i> 健康检测
+                            </button>
+                            <button class="btn btn-danger generate-auth-btn" title="生成OAuth授权链接">
+                                <i class="fas fa-key"></i>
+                                <span data-i18n="providers.auth.generate">生成授权</span>
+                            </button>
+
                         </div>
                     </div>
                     <!-- Provider Pool Stats -->
@@ -465,11 +477,11 @@
                         </div>
                         <div class="stat-card">
                             <div class="stat-icon">
-                                <i class="fas fa-network-wired"></i>
+                                <i class="fas fa-file-invoice-dollar"></i>
                             </div>
                             <div class="stat-info">
-                                <h3 id="activeProviders">0</h3>
-                                <p data-i18n="providers.activeProviders">活跃提供商</p>
+                                <h3 id="totalAccounts">0</h3>
+                                <p data-i18n="providers.totalAccounts">总账户数</p>
                             </div>
                         </div>
                         <div class="stat-card">
@@ -478,13 +490,34 @@
                             </div>
                             <div class="stat-info">
                                 <h3 id="healthyProviders">0</h3>
-                                <p data-i18n="providers.healthyProviders">健康提供商</p>
+                                <p data-i18n="providers.healthyProviders">健康账户</p>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon">
+                                <i class="fas fa-thumbs-up"></i>
+                            </div>
+                            <div class="stat-info">
+                                <h3 id="totalUsage">0</h3>
+                                <p data-i18n="providers.stat.usageCount">使用次数</p>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon">
+                                <i class="fas fa-bomb"></i>
+                            </div>
+                            <div class="stat-info">
+                                <h3 id="totalErrors">0</h3>
+                                <p data-i18n="providers.stat.errorCount">错误次数</p>
                             </div>
                         </div>
                     </div>
                     <div class="providers-container">
-                        <div id="providersList" class="providers-list">
-                            <!-- Providers will be loaded here -->
+                        <!-- Inline provider details (auto-render first provider) -->
+                        <div id="providerDetails" class="provider-details" aria-live="polite">
+                            <div id="providerList"  class="provider-details-placeholder">
+                                <!-- Provider details will be loaded here -->
+                            </div>
                         </div>
                     </div>
                 </section>

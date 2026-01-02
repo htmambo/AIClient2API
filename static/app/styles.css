@@ -241,14 +241,14 @@ body {
 /* 统计卡片 */
 .stats-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 1.5rem;
-    margin-bottom: 2rem;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: .5rem;
+    margin-bottom: .5rem;
 }
 
 .stat-card {
     background: var(--bg-primary);
-    padding: 1.5rem;
+    padding: .5rem;
     border-radius: 0.5rem;
     box-shadow: var(--shadow-md);
     display: flex;
@@ -637,7 +637,7 @@ textarea.form-control {
 /* 提供商列表 */
 .providers-container {
     background: var(--bg-primary);
-    padding: 1.5rem;
+    padding: 0;
     border-radius: 0.5rem;
     box-shadow: var(--shadow-md);
 }
@@ -3243,36 +3243,6 @@ input:checked + .toggle-slider:before {
 /* 全宽配置项 */
 .form-grid.full-width {
     grid-column: 1 / -1;
-}
-
-/* 授权按钮样式 - 与健康状态样式类似 */
-.generate-auth-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.25rem 0.75rem;
-    background: #e0f2fe;
-    color: #0369a1;
-    border: none;
-    border-radius: 9999px;
-    font-size: 0.75rem;
-    font-weight: 500;
-    cursor: pointer;
-    transition: var(--transition);
-}
-
-.generate-auth-btn:hover {
-    background: #bae6fd;
-    color: #075985;
-    transform: translateY(-1px);
-}
-
-.generate-auth-btn:active {
-    transform: translateY(0);
-}
-
-.generate-auth-btn i {
-    font-size: 0.75rem;
 }
 
 /* 授权模态框样式 */

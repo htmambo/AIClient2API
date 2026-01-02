@@ -118,12 +118,18 @@ function updateProviderStatus(data) {
  * @param {Object} data - 更新数据
  */
 function handleProviderUpdate(data) {
-    if (data.action) {
+    if (data.action && data.providerType) {
+        // 如果当前打开的模态框是更新事件的提供商类型，则刷新该模态框
         const modal = document.querySelector('.provider-modal');
-        if (modal && typeof refreshProviderConfig === 'function') {
-            refreshProviderConfig();
-        } else if (typeof loadProviders === 'function') {
-            loadProviders();
+        if (modal && modal.getAttribute('data-provider-type') === data.providerType) {
+            if (typeof refreshProviderConfig === 'function') {
+                refreshProviderConfig(data.providerType);
+            }
+        } else {
+            // 否则更新主界面的提供商列表
+            if (typeof loadProviders === 'function') {
+                loadProviders();
+            }
         }
     }
 }

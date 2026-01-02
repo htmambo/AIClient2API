@@ -38,7 +38,6 @@ import {
     loadSystemInfo,
     updateTimeDisplay,
     loadProviders,
-    openProviderManager,
     showAuthModal,
     executeGenerateAuthUrl
 } from './provider-manager.js';
@@ -49,7 +48,6 @@ import {
 } from './config-manager.js';
 
 import {
-    showProviderManagerModal,
     refreshProviderConfig
 } from './modal.js';
 
@@ -128,8 +126,7 @@ function initApp() {
         // if (providerStats.activeProviders > 0) {
         //     const stats = getProviderStats(providerStats);
         //     console.log('=== 提供商统计报告 ===');
-        //     console.log(`活跃提供商: ${stats.activeProviders}`);
-        //     console.log(`健康提供商: ${stats.healthyProviders} (${stats.healthRatio})`);
+        //     console.log(`健康账户: ${stats.healthyProviders} (${stats.healthRatio})`);
         //     console.log(`总账户数: ${stats.totalAccounts}`);
         //     console.log(`总请求数: ${stats.totalRequests}`);
         //     console.log(`总错误数: ${stats.totalErrors}`);
@@ -146,8 +143,6 @@ document.addEventListener('DOMContentLoaded', initApp);
 
 // 导出全局函数供其他模块使用
 window.loadProviders = loadProviders;
-window.openProviderManager = openProviderManager;
-window.showProviderManagerModal = showProviderManagerModal;
 window.refreshProviderConfig = refreshProviderConfig;
 window.fileUploadHandler = fileUploadHandler;
 window.showAuthModal = showAuthModal;
