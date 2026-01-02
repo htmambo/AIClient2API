@@ -52,9 +52,6 @@ export class KiroApiServiceAdapter extends ApiServiceAdapter {
     constructor(config) {
         super();
         this.kiroApiService = new KiroApiService(config);
-        // this.kiroApiService.initialize().catch(error => {
-        //     console.error("Failed to initialize kiroApiService:", error);
-        // });
     }
 
     async generateContent(model, requestBody) {

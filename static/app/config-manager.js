@@ -170,10 +170,10 @@ async function saveConfiguration() {
         await window.apiClient.post('/reload-config');
         showToast(t('common.success'), t('common.configSaved'), 'success');
         
-        // 检查当前是否在提供商池管理页面，如果是则刷新数据
+        // 检查当前是否在号池管理页面，如果是则刷新数据
         const providersSection = document.getElementById('providers');
         if (providersSection && providersSection.classList.contains('active')) {
-            // 当前在提供商池页面，刷新数据
+            // 当前在号池页面，刷新数据
             await loadProviders();
             showToast(t('common.success'), t('common.providerPoolRefreshed'), 'success');
         }

@@ -279,15 +279,6 @@ export class KiroApiService {
         this.useSystemProxy = config?.USE_SYSTEM_PROXY_KIRO ?? false;
         this.uuid = config?.uuid; // 获取多节点配置的 uuid
         console.log(`[Kiro] System proxy ${this.useSystemProxy ? 'enabled' : 'disabled'}`);
-        // this.accessToken = config.KIRO_ACCESS_TOKEN;
-        // this.refreshToken = config.KIRO_REFRESH_TOKEN;
-        // this.clientId = config.KIRO_CLIENT_ID;
-        // this.clientSecret = config.KIRO_CLIENT_SECRET;
-        // this.authMethod = KIRO_CONSTANTS.AUTH_METHOD_SOCIAL;
-        // this.refreshUrl = KIRO_CONSTANTS.REFRESH_URL;
-        // this.refreshIDCUrl = KIRO_CONSTANTS.REFRESH_IDC_URL;
-        // this.baseUrl = KIRO_CONSTANTS.BASE_URL;
-        // this.amazonQUrl = KIRO_CONSTANTS.AMAZON_Q_URL;
 
         // Add kiro-oauth-creds-base64 and kiro-oauth-creds-file to config
         if (config.KIRO_OAUTH_CREDS_BASE64) {
@@ -883,8 +874,7 @@ async initializeAuth(forceRefresh = false) {
         if (this.authMethod === KIRO_CONSTANTS.AUTH_METHOD_SOCIAL) {
             request.profileArn = this.profileArn;
         }
-        
-        // fs.writeFile('claude-kiro-request'+Date.now()+'.json', JSON.stringify(request));
+
         return request;
     }
 
@@ -1540,32 +1530,12 @@ async initializeAuth(forceRefresh = false) {
 
     /**
      * Calculate input tokens from request body using Claude's official tokenizer
+     * @deprecated Use countTokens() instead for more accurate counting
+     * @param {Object} requestBody - The request body
+     * @returns {number} Total input tokens
      */
     estimateInputTokens(requestBody) {
-        let totalTokens = 0;
-        
-        // Count system prompt tokens
-        if (requestBody.system) {
-            const systemText = this.getContentText(requestBody.system);
-            totalTokens += this.countTextTokens(systemText);
-        }
-        
-        // Count all messages tokens
-        if (requestBody.messages && Array.isArray(requestBody.messages)) {
-            for (const message of requestBody.messages) {
-                if (message.content) {
-                    const contentText = this.getContentText(message);
-                    totalTokens += this.countTextTokens(contentText);
-                }
-            }
-        }
-        
-        // Count tools definitions tokens if present
-        if (requestBody.tools && Array.isArray(requestBody.tools)) {
-            totalTokens += this.countTextTokens(JSON.stringify(requestBody.tools));
-        }
-        
-        return totalTokens;
+        return this.countTokens(requestBody).input_tokens;
     }
 
     /**

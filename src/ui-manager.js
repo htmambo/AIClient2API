@@ -58,18 +58,15 @@ import { serviceInstances, getServiceAdapter } from './adapter.js';
 import { initApiService } from './service-manager.js';
 import { handleKiroOAuth } from './oauth-handlers.js';
 import {
-    generateUUID,
-    normalizePath,
-    getFileName,
     pathsEqual,
     isPathUsed,
     detectProviderFromPath,
-    isValidOAuthCredentials,
     createProviderConfig,
     addToUsedPaths,
     formatSystemPath
 } from './provider-utils.js';
 import { formatKiroUsage } from './usage-service.js';
+import { v4 as uuidv4 } from 'uuid';
 
 // Token存储到本地文件中
 const TOKEN_STORE_FILE = path.join(process.cwd(), 'configs', 'token-store.json');
@@ -891,7 +888,7 @@ export async function handleUIApiRequests(method, pathParam, req, res, currentCo
 
             // Generate UUID if not provided
             if (!providerConfig.uuid) {
-                providerConfig.uuid = generateUUID();
+                providerConfig.uuid = uuidv4();
             }
 
             // Set default values

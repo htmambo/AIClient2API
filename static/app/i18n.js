@@ -24,7 +24,7 @@ const translations = {
         'nav.main': '主导航',
         'nav.dashboard': '仪表盘',
         'nav.config': '系统配置',
-        'nav.providers': '提供商池管理',
+        'nav.providers': '号池管理',
         'nav.upload': '配置管理',
         'nav.usage': '用量查询',
         'nav.logs': '实时日志',
@@ -224,8 +224,8 @@ const translations = {
         'upload.batchLink.partial': '关联完成: 成功 {success} 个, 失败 {fail} 个',
         
         // Providers
-        'providers.title': '提供商池管理',
-        'providers.note': '配置了提供商池后，默认使用提供商池的配置，提供商池配置失效降级到默认配置',
+        'providers.title': '号池管理',
+        'providers.note': '配置了号池后，默认使用号池的配置，号池配置失效降级到默认配置',
         'providers.activeConnections': '活动连接',
         'providers.activeProviders': '活跃提供商',
         'providers.healthyProviders': '健康提供商',
@@ -587,7 +587,7 @@ const translations = {
         'upload.batchLink.partial': 'Linking completed: {success} succeeded, {fail} failed',
         
         // Providers
-        'providers.title': 'Provider Pool Management',
+        'providers.title': 'OAuth Pool Management',
         'providers.note': 'When provider pool is configured, it will be used by default. Falls back to default config if pool config fails',
         'providers.activeConnections': 'Active Connections',
         'providers.activeProviders': 'Active Providers',

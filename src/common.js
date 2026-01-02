@@ -3,6 +3,11 @@ import * as path from 'path';
 import * as http from 'http'; // Add http for IncomingMessage and ServerResponse types
 import * as crypto from 'crypto'; // Import crypto for MD5 hashing
 import { ProviderStrategyFactory } from './provider-strategies.js';
+import {
+    handleError as handleErrorWithConfig,
+    createErrorResponse,
+    createStreamErrorResponse
+} from './error-handler.js';
 
 export const API_ACTIONS = {
     GENERATE_CONTENT: 'generateContent',
@@ -167,7 +172,6 @@ export async function handleStreamRequest(res, service, model, requestBody, from
 
     await handleUnifiedResponse(res, '', true);
 
-    // fs.writeFile('request'+Date.now()+'.json', JSON.stringify(requestBody));
     // The service returns a stream in its native format (toProvider).
     requestBody.model = model;
     const nativeStream = await service.generateContentStream(model, requestBody);
@@ -193,16 +197,10 @@ export async function handleStreamRequest(res, service, model, requestBody, from
 
             for (const chunk of chunksToSend) {
                 if (addEvent) {
-                    // fullOldResponseJson += chunk.type+"\n";
-                    // fullResponseJson += chunk.type+"\n";
                     res.write(`event: ${chunk.type}\n`);
-                    // console.log(`event: ${chunk.type}\n`);
                 }
 
-                // fullOldResponseJson += JSON.stringify(chunk)+"\n";
-                // fullResponseJson += JSON.stringify(chunk)+"\n\n";
                 res.write(`data: ${JSON.stringify(chunk)}\n\n`);
-                // console.log(`data: ${JSON.stringify(chunk)}\n`);
             }
         }
 
@@ -234,8 +232,6 @@ export async function handleStreamRequest(res, service, model, requestBody, from
             res.end();
         }
         await logConversation('output', fullResponseText, PROMPT_LOG_MODE, PROMPT_LOG_FILENAME);
-        // fs.writeFile('oldResponseChunk'+Date.now()+'.json', fullOldResponseJson);
-        // fs.writeFile('responseChunk'+Date.now()+'.json', fullResponseJson);
     }
 }
 
@@ -244,17 +240,14 @@ export async function handleUnaryRequest(res, service, model, requestBody, fromP
     try{
         // The service returns the response in its native format (toProvider).
         requestBody.model = model;
-        // fs.writeFile('oldRequest'+Date.now()+'.json', JSON.stringify(requestBody));
         const nativeResponse = await service.generateContent(model, requestBody);
         const responseText = extractResponseText(nativeResponse, toProvider);
 
         // Use the response directly (no conversion needed with single provider)
         const clientResponse = nativeResponse;
 
-        //console.log(`[Response] Sending response to client: ${JSON.stringify(clientResponse)}`);
         await handleUnifiedResponse(res, JSON.stringify(clientResponse), false);
         await logConversation('output', responseText, PROMPT_LOG_MODE, PROMPT_LOG_FILENAME);
-        // fs.writeFile('oldResponse'+Date.now()+'.json', JSON.stringify(clientResponse));
         
         // 一元请求成功完成，统计使用次数，错误次数重置为0
         if (providerPoolManager && pooluuid) {
@@ -335,7 +328,6 @@ export async function handleContentGenerationRequest(req, res, service, endpoint
 
     // 1. Use request body directly (no conversion needed with single provider)
     let processedRequestBody = originalRequestBody;
-    // fs.writeFile('originalRequestBody'+Date.now()+'.json', JSON.stringify(originalRequestBody));
     console.log(`[Request Convert] Request format matches backend provider. No conversion needed.`);
 
     // 3. Apply system prompt from file if configured.
@@ -387,81 +379,8 @@ export function extractPromptText(requestBody, provider) {
     return strategy.extractPromptText(requestBody);
 }
 
-export function handleError(res, error) {
-    const statusCode = error.response?.status || 500;
-    let errorMessage = error.message;
-    let suggestions = [];
-
-    // Provide detailed information and suggestions for different error types
-    switch (statusCode) {
-        case 401:
-            errorMessage = 'Authentication failed. Please check your credentials.';
-            suggestions = [
-                'Verify your OAuth credentials are valid',
-                'Try re-authenticating by deleting the credentials file',
-                'Check if your Google Cloud project has the necessary permissions'
-            ];
-            break;
-        case 403:
-            errorMessage = 'Access forbidden. Insufficient permissions.';
-            suggestions = [
-                'Ensure your Google Cloud project has the Code Assist API enabled',
-                'Check if your account has the necessary permissions',
-                'Verify the project ID is correct'
-            ];
-            break;
-        case 429:
-            errorMessage = 'Too many requests. Rate limit exceeded.';
-            suggestions = [
-                'The request has been automatically retried with exponential backoff',
-                'If the issue persists, try reducing the request frequency',
-                'Consider upgrading your API quota if available'
-            ];
-            break;
-        case 500:
-        case 502:
-        case 503:
-        case 504:
-            errorMessage = 'Server error occurred. This is usually temporary.';
-            suggestions = [
-                'The request has been automatically retried',
-                'If the issue persists, try again in a few minutes',
-                'Check Google Cloud status page for service outages'
-            ];
-            break;
-        default:
-            if (statusCode >= 400 && statusCode < 500) {
-                errorMessage = `Client error (${statusCode}): ${error.message}`;
-                suggestions = ['Check your request format and parameters'];
-            } else if (statusCode >= 500) {
-                errorMessage = `Server error (${statusCode}): ${error.message}`;
-                suggestions = ['This is a server-side issue, please try again later'];
-            }
-    }
-
-    console.error(`\n[Server] Request failed (${statusCode}): ${errorMessage}`);
-    if (suggestions.length > 0) {
-        console.error('[Server] Suggestions:');
-        suggestions.forEach((suggestion, index) => {
-            console.error(`  ${index + 1}. ${suggestion}`);
-        });
-    }
-    console.error('[Server] Full error details:', error.stack);
-
-    if (!res.headersSent) {
-        res.writeHead(statusCode, { 'Content-Type': 'application/json' });
-    }
-
-    const errorPayload = {
-        error: {
-            message: errorMessage,
-            code: statusCode,
-            suggestions: suggestions,
-            details: error.response?.data
-        }
-    };
-    res.end(JSON.stringify(errorPayload));
-}
+// 导出新的错误处理函数
+export const handleError = handleErrorWithConfig;
 
 /**
  * 从请求体中提取系统提示词。
@@ -504,92 +423,4 @@ export function extractSystemPromptFromRequestBody(requestBody, provider) {
 export function getMD5Hash(obj) {
     const jsonString = JSON.stringify(obj);
     return crypto.createHash('md5').update(jsonString).digest('hex');
-}
-
-
-/**
- * 创建符合 fromProvider 格式的错误响应（非流式）
- * @param {Error} error - 错误对象
- * @param {string} fromProvider - 客户端期望的提供商格式
- * @returns {Object} 格式化的错误响应对象
- */
-function createErrorResponse(error, fromProvider) {
-    const protocolPrefix = getProtocolPrefix(fromProvider);
-    const statusCode = error.status || error.code || 500;
-    const errorMessage = error.message || "An error occurred during processing.";
-    
-    // 根据 HTTP 状态码映射错误类型
-    const getErrorType = (code) => {
-        if (code === 401) return 'authentication_error';
-        if (code === 403) return 'permission_error';
-        if (code === 429) return 'rate_limit_error';
-        if (code >= 500) return 'server_error';
-        return 'invalid_request_error';
-    };
-    
-    switch (protocolPrefix) {
-        case MODEL_PROTOCOL_PREFIX.CLAUDE:
-            // Claude 非流式错误格式（外层有 type 标记）
-            return {
-                type: "error",  // 核心区分标记
-                error: {
-                    type: getErrorType(statusCode),  // Claude 使用 error.type 作为核心判断
-                    message: errorMessage
-                }
-            };
-            
-        default:
-            return {
-                error: {
-                    message: errorMessage,
-                    type: getErrorType(statusCode),
-                    code: getErrorType(statusCode)
-                }
-            };
-    }
-}
-
-/**
- * 创建符合 fromProvider 格式的流式错误响应
- * @param {Error} error - 错误对象
- * @param {string} fromProvider - 客户端期望的提供商格式
- * @returns {string} 格式化的流式错误响应字符串
- */
-function createStreamErrorResponse(error, fromProvider) {
-    const protocolPrefix = getProtocolPrefix(fromProvider);
-    const statusCode = error.status || error.code || 500;
-    const errorMessage = error.message || "An error occurred during streaming.";
-    
-    // 根据 HTTP 状态码映射错误类型
-    const getErrorType = (code) => {
-        if (code === 401) return 'authentication_error';
-        if (code === 403) return 'permission_error';
-        if (code === 429) return 'rate_limit_error';
-        if (code >= 500) return 'server_error';
-        return 'invalid_request_error';
-    };
-    
-    switch (protocolPrefix) {
-        case MODEL_PROTOCOL_PREFIX.CLAUDE:
-            // Claude 流式错误格式（SSE event + data）
-            const claudeError = {
-                type: "error",
-                error: {
-                    type: getErrorType(statusCode),
-                    message: errorMessage
-                }
-            };
-            return `event: error\ndata: ${JSON.stringify(claudeError)}\n\n`;
-            
-        default:
-            // 默认
-            const defaultError = {
-                error: {
-                    message: errorMessage,
-                    type: getErrorType(statusCode),
-                    code: null
-                }
-            };
-            return `data: ${JSON.stringify(defaultError)}\n\n`;
-    }
 }
