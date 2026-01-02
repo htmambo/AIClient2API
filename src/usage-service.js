@@ -4,8 +4,8 @@
  */
 
 import { getProviderPoolManager } from './service-manager.js';
-import { serviceInstances } from './adapter.js';
-import { MODEL_PROVIDER } from './common.js';
+import { MODEL_PROVIDER} from './common.js';
+import { serviceInstances } from './claude/kiro-api.js';
 
 /**
  * 用量查询服务类
@@ -93,11 +93,6 @@ export class UsageService {
         // 使用适配器的 getUsageLimits 方法
         if (typeof adapter.getUsageLimits === 'function') {
             return adapter.getUsageLimits();
-        }
-        
-        // 兼容直接访问 kiroApiService 的情况
-        if (adapter.kiroApiService && typeof adapter.kiroApiService.getUsageLimits === 'function') {
-            return adapter.kiroApiService.getUsageLimits();
         }
         
         throw new Error(`Kiro 服务实例不支持用量查询: ${providerKey}`);

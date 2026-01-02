@@ -236,7 +236,7 @@ async function loadModelsForProviderType(providerType, providers) {
         
         // 只调用一次API获取模型列表
         const response = await window.apiClient.get(`/provider-models/${encodeURIComponent(providerType)}`);
-        const models = response.models || [];
+        const models = response.KIRO_MODELS || [];
         
         // 缓存模型列表
         cachedModels = models;

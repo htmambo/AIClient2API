@@ -2,7 +2,7 @@ import * as http from 'http';
 import { initializeConfig, CONFIG, logProviderSpecificDetails } from './config-manager.js';
 import { initApiService, autoLinkProviderConfigs } from './service-manager.js';
 import { initializeUIManagement } from './ui-manager.js';
-import { initializeAPIManagement } from './api-manager.js';
+import { initializeAPIManagement } from './common.js';
 import { createRequestHandler } from './request-handler.js';
 
 /**

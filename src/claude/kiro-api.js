@@ -1,54 +1,29 @@
 import axios from 'axios';
 import { v4 as uuidv4 } from 'uuid';
-import { promises as fs } from 'fs';
 import * as path from 'path';
 import * as os from 'os';
 import * as crypto from 'crypto';
 import * as http from 'http';
 import * as https from 'https';
-import { getProviderModels } from '../provider-models.js';
 import { countTokens } from '@anthropic-ai/tokenizer';
+import { KIRO_CONSTANTS, KIRO_MODELS, FULL_MODEL_MAPPING } from './kiro-constants.js';
+import { KiroAuthManager } from './kiro-auth.js';
+import { buildCodewhispererRequest } from './kiro-request-builder.js';
+import { parseBracketToolCalls, deduplicateToolCalls } from './kiro-tool-parser.js';
+import { parseAwsEventStreamBuffer, parseEventStreamChunk } from './kiro-stream-parser.js';
+import { createLogger } from '../logger.js';
+import { MODEL_PROVIDER } from '../common.js';
+import { promises as fs } from 'fs';
 
-const KIRO_CONSTANTS = {
-    REFRESH_URL: 'https://prod.{{region}}.auth.desktop.kiro.dev/refreshToken',
-    REFRESH_IDC_URL: 'https://oidc.{{region}}.amazonaws.com/token',
-    BASE_URL: 'https://codewhisperer.{{region}}.amazonaws.com/generateAssistantResponse',
-    AMAZON_Q_URL: 'https://codewhisperer.{{region}}.amazonaws.com/SendMessageStreaming',
-    USAGE_LIMITS_URL: 'https://q.{{region}}.amazonaws.com/getUsageLimits',
-    DEFAULT_MODEL_NAME: 'claude-opus-4-5',
-    AXIOS_TIMEOUT: 300000, // 5 minutes timeout (increased from 2 minutes)
-    USER_AGENT: 'KiroIDE',
-    KIRO_VERSION: '0.7.5',
-    CONTENT_TYPE_JSON: 'application/json',
-    ACCEPT_JSON: 'application/json',
-    AUTH_METHOD_SOCIAL: 'social',
-    CHAT_TRIGGER_TYPE_MANUAL: 'MANUAL',
-    ORIGIN_AI_EDITOR: 'AI_EDITOR',
-};
-
-// 从 provider-models.js 获取支持的模型列表
-const KIRO_MODELS = getProviderModels('claude-kiro-oauth');
-
-// 完整的模型映射表
-const FULL_MODEL_MAPPING = {
-    "claude-opus-4-5":"claude-opus-4.5",
-    "claude-opus-4-5-20251101":"claude-opus-4.5",
-    "claude-haiku-4-5":"claude-haiku-4.5",
-    "claude-sonnet-4-5": "CLAUDE_SONNET_4_5_20250929_V1_0",
-    "claude-sonnet-4-5-20250929": "CLAUDE_SONNET_4_5_20250929_V1_0",
-    "claude-sonnet-4-20250514": "CLAUDE_SONNET_4_20250514_V1_0",
-    "claude-3-7-sonnet-20250219": "CLAUDE_3_7_SONNET_20250219_V1_0"
-};
+const logger = createLogger('KiroApi');
 
 // 只保留 KIRO_MODELS 中存在的模型映射
 const MODEL_MAPPING = Object.fromEntries(
     Object.entries(FULL_MODEL_MAPPING).filter(([key]) => KIRO_MODELS.includes(key))
 );
 
-const KIRO_AUTH_TOKEN_FILE = "kiro-auth-token.json";
-
 /**
- * Kiro API Service - Node.js implementation based on the Python ki2api
+ * Kiro API
  */
 
 /**
@@ -83,194 +58,7 @@ function getSystemRuntimeInfo() {
     };
 }
 
-// Helper functions for tool calls and JSON parsing
-
-/**
- * 通用的括号匹配函数 - 支持多种括号类型
- * @param {string} text - 要搜索的文本
- * @param {number} startPos - 起始位置
- * @param {string} openChar - 开括号字符 (默认 '[')
- * @param {string} closeChar - 闭括号字符 (默认 ']')
- * @returns {number} 匹配的闭括号位置，未找到返回 -1
- */
-function findMatchingBracket(text, startPos, openChar = '[', closeChar = ']') {
-    if (!text || startPos >= text.length || text[startPos] !== openChar) {
-        return -1;
-    }
-
-    let bracketCount = 1;
-    let inString = false;
-    let escapeNext = false;
-
-    for (let i = startPos + 1; i < text.length; i++) {
-        const char = text[i];
-
-        if (escapeNext) {
-            escapeNext = false;
-            continue;
-        }
-
-        if (char === '\\' && inString) {
-            escapeNext = true;
-            continue;
-        }
-
-        if (char === '"' && !escapeNext) {
-            inString = !inString;
-            continue;
-        }
-
-        if (!inString) {
-            if (char === openChar) {
-                bracketCount++;
-            } else if (char === closeChar) {
-                bracketCount--;
-                if (bracketCount === 0) {
-                    return i;
-                }
-            }
-        }
-    }
-    return -1;
-}
-
-
-/**
- * 尝试修复常见的 JSON 格式问题
- * @param {string} jsonStr - 可能有问题的 JSON 字符串
- * @returns {string} 修复后的 JSON 字符串
- */
-function repairJson(jsonStr) {
-    let repaired = jsonStr;
-    // 移除尾部逗号
-    repaired = repaired.replace(/,\s*([}\]])/g, '$1');
-    // 为未引用的键添加引号
-    repaired = repaired.replace(/([{,]\s*)([a-zA-Z0-9_]+?)\s*:/g, '$1"$2":');
-    // 确保字符串值被正确引用
-    repaired = repaired.replace(/:\s*([a-zA-Z0-9_]+)(?=[,\}\]])/g, ':"$1"');
-    return repaired;
-}
-
-/**
- * 解析单个工具调用文本
- * @param {string} toolCallText - 工具调用文本
- * @returns {Object|null} 解析后的工具调用对象或 null
- */
-function parseSingleToolCall(toolCallText) {
-    const namePattern = /\[Called\s+(\w+)\s+with\s+args:/i;
-    const nameMatch = toolCallText.match(namePattern);
-
-    if (!nameMatch) {
-        return null;
-    }
-
-    const functionName = nameMatch[1].trim();
-    const argsStartMarker = "with args:";
-    const argsStartPos = toolCallText.toLowerCase().indexOf(argsStartMarker.toLowerCase());
-
-    if (argsStartPos === -1) {
-        return null;
-    }
-
-    const argsStart = argsStartPos + argsStartMarker.length;
-    const argsEnd = toolCallText.lastIndexOf(']');
-
-    if (argsEnd <= argsStart) {
-        return null;
-    }
-
-    const jsonCandidate = toolCallText.substring(argsStart, argsEnd).trim();
-
-    try {
-        const repairedJson = repairJson(jsonCandidate);
-        const argumentsObj = JSON.parse(repairedJson);
-
-        if (typeof argumentsObj !== 'object' || argumentsObj === null) {
-            return null;
-        }
-
-        const toolCallId = `call_${uuidv4().replace(/-/g, '').substring(0, 8)}`;
-        return {
-            id: toolCallId,
-            type: "function",
-            function: {
-                name: functionName,
-                arguments: JSON.stringify(argumentsObj)
-            }
-        };
-    } catch (e) {
-        console.error(`Failed to parse tool call arguments: ${e.message}`, jsonCandidate);
-        return null;
-    }
-}
-
-function parseBracketToolCalls(responseText) {
-    if (!responseText || !responseText.includes("[Called")) {
-        return null;
-    }
-
-    const toolCalls = [];
-    const callPositions = [];
-    let start = 0;
-    while (true) {
-        const pos = responseText.indexOf("[Called", start);
-        if (pos === -1) {
-            break;
-        }
-        callPositions.push(pos);
-        start = pos + 1;
-    }
-
-    for (let i = 0; i < callPositions.length; i++) {
-        const startPos = callPositions[i];
-        let endSearchLimit;
-        if (i + 1 < callPositions.length) {
-            endSearchLimit = callPositions[i + 1];
-        } else {
-            endSearchLimit = responseText.length;
-        }
-
-        const segment = responseText.substring(startPos, endSearchLimit);
-        const bracketEnd = findMatchingBracket(segment, 0);
-
-        let toolCallText;
-        if (bracketEnd !== -1) {
-            toolCallText = segment.substring(0, bracketEnd + 1);
-        } else {
-            // Fallback: if no matching bracket, try to find the last ']' in the segment
-            const lastBracket = segment.lastIndexOf(']');
-            if (lastBracket !== -1) {
-                toolCallText = segment.substring(0, lastBracket + 1);
-            } else {
-                continue; // Skip this one if no closing bracket found
-            }
-        }
-        
-        const parsedCall = parseSingleToolCall(toolCallText);
-        if (parsedCall) {
-            toolCalls.push(parsedCall);
-        }
-    }
-    return toolCalls.length > 0 ? toolCalls : null;
-}
-
-function deduplicateToolCalls(toolCalls) {
-    const seen = new Set();
-    const uniqueToolCalls = [];
-
-    for (const tc of toolCalls) {
-        const key = `${tc.function.name}-${tc.function.arguments}`;
-        if (!seen.has(key)) {
-            seen.add(key);
-            uniqueToolCalls.push(tc);
-        } else {
-            console.log(`Skipping duplicate tool call: ${tc.function.name}`);
-        }
-    }
-    return uniqueToolCalls;
-}
-
-export class KiroApiService {
+export class KiroApi {
     constructor(config = {}) {
         this.isInitialized = false;
         this.config = config;
@@ -1884,4 +1672,33 @@ async initializeAuth(forceRefresh = false) {
             throw error;
         }
     }
+
+    async checkToken() {
+        if(this.isExpiryDateNear()===true){
+            console.log(`[Kiro] Expiry date is near, refreshing token...`);
+            return this.initializeAuth(true);
+        }
+        return Promise.resolve();
+    }
+
+}
+
+// 用于存储服务适配器单例的映射
+export const serviceInstances = {};
+
+// 服务适配器工厂
+export function getServiceAdapter(config) {
+    console.log(`[Adapter] getServiceAdapter, provider: ${config.MODEL_PROVIDER}, uuid: ${config.uuid}`);
+    const provider = config.MODEL_PROVIDER;
+    const providerKey = config.uuid ? provider + config.uuid : provider;
+    if (!serviceInstances[providerKey]) {
+        switch (provider) {
+            case MODEL_PROVIDER.KIRO_API:
+                serviceInstances[providerKey] = new KiroApi(config);
+                break;
+            default:
+                throw new Error(`Unsupported model provider: ${provider}`);
+        }
+    }
+    return serviceInstances[providerKey];
 }

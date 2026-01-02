@@ -1,6 +1,10 @@
 import * as fs from 'fs';
 import { promises as pfs } from 'fs';
 import { INPUT_SYSTEM_PROMPT_FILE, MODEL_PROVIDER } from './common.js';
+import { validateConfig, ConfigValidationError } from './config-validator.js';
+import { createLogger } from './logger.js';
+
+const logger = createLogger('ConfigManager');
 
 export let CONFIG = {}; // Make CONFIG exportable
 export let PROMPT_LOG_FILENAME = ''; // Make PROMPT_LOG_FILENAME exportable
@@ -58,9 +62,9 @@ export async function initializeConfig(args = process.argv.slice(2), configFileP
     try {
         const configData = fs.readFileSync(configFilePath, 'utf8');
         currentConfig = JSON.parse(configData);
-        console.log('[Config] Loaded configuration from configs/config.json');
+        logger.info('Loaded configuration from config file', { path: configFilePath });
     } catch (error) {
-        console.error('[Config Error] Failed to load configs/config.json:', error.message);
+        logger.error('Failed to load config file', { path: configFilePath, error: error.message });
         // Fallback to default values if config.json is not found or invalid
         currentConfig = {
             REQUIRED_API_KEY: "123456",
@@ -229,6 +233,19 @@ export async function initializeConfig(args = process.argv.slice(2), configFileP
 
     normalizeConfiguredProviders(currentConfig);
 
+    // 验证配置
+    try {
+        const validatedConfig = validateConfig(currentConfig);
+        Object.assign(currentConfig, validatedConfig);
+        logger.info('Configuration validated successfully');
+    } catch (error) {
+        if (error instanceof ConfigValidationError) {
+            logger.warn('Configuration validation failed, using defaults', { error: error.message });
+        } else {
+            throw error;
+        }
+    }
+
     if (!currentConfig.SYSTEM_PROMPT_FILE_PATH) {
         currentConfig.SYSTEM_PROMPT_FILE_PATH = INPUT_SYSTEM_PROMPT_FILE;
     }
@@ -242,9 +259,12 @@ export async function initializeConfig(args = process.argv.slice(2), configFileP
         try {
             const poolsData = await pfs.readFile(currentConfig.PROVIDER_POOLS_FILE_PATH, 'utf8');
             currentConfig.providerPools = JSON.parse(poolsData);
-            console.log(`[Config] Loaded provider pools from ${currentConfig.PROVIDER_POOLS_FILE_PATH}`);
+            logger.info('Loaded provider pools', { path: currentConfig.PROVIDER_POOLS_FILE_PATH });
         } catch (error) {
-            console.error(`[Config Error] Failed to load provider pools from ${currentConfig.PROVIDER_POOLS_FILE_PATH}: ${error.message}`);
+            logger.error('Failed to load provider pools', {
+                path: currentConfig.PROVIDER_POOLS_FILE_PATH,
+                error: error.message
+            });
             currentConfig.providerPools = {};
         }
     } else {

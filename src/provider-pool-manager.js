@@ -1,8 +1,7 @@
 import * as fs from 'fs'; // Import fs module
-import { getServiceAdapter } from './adapter.js';
-import { MODEL_PROVIDER, getProtocolPrefix } from './common.js';
-import { getProviderModels } from './provider-models.js';
-import axios from 'axios';
+import { getProtocolPrefix } from './common.js';
+import { getServiceAdapter } from './claude/kiro-api.js';
+import { KIRO_MODELS } from './claude/kiro-constants.js';
 
 /**
  * Manages a pool of API service providers, handling their health and selection.
@@ -228,8 +227,7 @@ export class ProviderPoolManager {
                 }
 
                 // 检查 fallback 类型是否支持请求的模型
-                const supportedModels = getProviderModels(currentType);
-                if (supportedModels.length > 0 && !supportedModels.includes(requestedModel)) {
+                if (KIRO_MODELS.length > 0 && !KIRO_MODELS.includes(requestedModel)) {
                     this._log('info', `Skipping fallback type ${currentType}: model ${requestedModel} not supported`);
                     continue;
                 }

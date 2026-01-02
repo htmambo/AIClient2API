@@ -2,12 +2,16 @@ import { promises as fs } from 'fs';
 import * as path from 'path';
 import * as http from 'http'; // Add http for IncomingMessage and ServerResponse types
 import * as crypto from 'crypto'; // Import crypto for MD5 hashing
-import { ProviderStrategyFactory } from './provider-strategies.js';
+
 import {
     handleError as handleErrorWithConfig,
     createErrorResponse,
     createStreamErrorResponse
 } from './error-handler.js';
+import { createLogger } from './logger.js';
+import { KiroStrategy } from './claude/kiro-strategy.js';
+
+const logger = createLogger('Common');
 
 export const API_ACTIONS = {
     GENERATE_CONTENT: 'generateContent',
@@ -22,6 +26,58 @@ export const MODEL_PROTOCOL_PREFIX = {
 export const MODEL_PROVIDER = {
     // Model provider constants
     KIRO_API: 'claude-kiro-oauth',
+}
+
+/**
+ * Handle API authentication and routing
+ * @param {string} method - The HTTP method
+ * @param {string} path - The request path
+ * @param {http.IncomingMessage} req - The HTTP request object
+ * @param {http.ServerResponse} res - The HTTP response object
+ * @param {Object} currentConfig - The current configuration object
+ * @param {Object} apiService - The API service instance
+ * @param {Object} providerPoolManager - The provider pool manager instance
+ * @param {string} promptLogFilename - The prompt log filename
+ * @returns {Promise<boolean>} - True if the request was handled by API
+ */
+export async function handleAPIRequests(method, path, req, res, currentConfig, apiService, providerPoolManager, promptLogFilename) {
+
+    // Route content generation requests
+    if (method === 'POST') {
+        if (path === '/v1/messages') {
+            await handleContentGenerationRequest(req, res, apiService, ENDPOINT_TYPE.CLAUDE_MESSAGE, currentConfig, promptLogFilename, providerPoolManager, currentConfig.uuid);
+            return true;
+        }
+    }
+
+    return false;
+}
+
+/**
+ * Initialize API management features
+ * @param {Object} services - The initialized services
+ * @returns {Function} - The heartbeat and token refresh function
+ */
+export function initializeAPIManagement(services) {
+    return async function heartbeatAndRefreshToken() {
+        console.log(`[Heartbeat] Server is running. Current time: ${new Date().toLocaleString()}`, Object.keys(services));
+        // 循环遍历所有已初始化的服务适配器，并尝试刷新令牌
+        for (const providerKey in services) {
+            const serviceAdapter = services[providerKey];
+            try {
+                // For pooled providers, refreshToken should be handled by individual instances
+                // For single instances, this remains relevant
+                await serviceAdapter.checkToken();
+                // console.log(`[Token Refresh] Refreshed token for ${providerKey}`);
+            } catch (error) {
+                console.error(`[Token Refresh Error] Failed to refresh token for ${providerKey}: ${error.message}`);
+                // 如果是号池中的某个实例刷新失败，这里需要捕获并更新其状态
+                // 现有的 serviceInstances 存储的是每个配置对应的单例，而非池中的成员
+                // 这意味着如果一个池成员的 token 刷新失败，需要找到它并更新其在 poolManager 中的状态
+                // 暂时通过捕获错误日志来发现问题，更精细的控制需要在 refreshToken 中抛出更多信息
+            }
+        }
+    };
 }
 
 /**
@@ -94,13 +150,13 @@ export async function logConversation(type, content, logMode, logFilename) {
     const logEntry = `${timestamp} [${type.toUpperCase()}]:\n${content}\n--------------------------------------\n`;
 
     if (logMode === 'console') {
-        console.log(logEntry);
+        logger.info(logEntry);
     } else if (logMode === 'file') {
         try {
             // Append to the file
             await fs.appendFile(logFilename, logEntry);
         } catch (err) {
-            console.error(`[Error] Failed to write conversation log to ${logFilename}:`, err);
+            logger.error('Failed to write conversation log', { filename: logFilename, error: err });
         }
     }
 }
@@ -141,7 +197,12 @@ export function isAuthorized(req, requestUrl, REQUIRED_API_KEY) {
         return true;
     }
 
-    console.log(`[Auth] Unauthorized request denied. Bearer: "${authHeader ? 'present' : 'N/A'}", Query Key: "${queryKey}", x-goog-api-key: "${googApiKey}", x-api-key: "${claudeApiKey}"`);
+    logger.warn('Unauthorized request denied', {
+        hasBearer: !!authHeader,
+        hasQueryKey: !!queryKey,
+        hasGoogApiKey: !!googApiKey,
+        hasClaudeApiKey: !!claudeApiKey
+    });
     return false;
 }
 
@@ -206,16 +267,16 @@ export async function handleStreamRequest(res, service, model, requestBody, from
 
         // 流式请求成功完成，统计使用次数，错误次数重置为0
         if (providerPoolManager && pooluuid) {
-            console.log(`[Provider Pool] Increasing usage count for ${toProvider} (${pooluuid}) after successful stream request`);
+            logger.debug('Marking provider healthy after successful stream', { provider: toProvider, uuid: pooluuid });
             providerPoolManager.markProviderHealthy(toProvider, {
                 uuid: pooluuid
             });
         }
 
-    }  catch (error) {
-        console.error('\n[Server] Error during stream processing:', error.stack);
+    } catch (error) {
+        logger.error('Error during stream processing', error);
         if (providerPoolManager && pooluuid) {
-            console.log(`[Provider Pool] Marking ${toProvider} as unhealthy due to stream error`);
+            logger.warn('Marking provider unhealthy due to stream error', { provider: toProvider, uuid: pooluuid });
             // 如果是号池模式，并且请求处理失败，则标记当前使用的提供者为不健康
             providerPoolManager.markProviderUnhealthy(toProvider, {
                 uuid: pooluuid
@@ -248,18 +309,18 @@ export async function handleUnaryRequest(res, service, model, requestBody, fromP
 
         await handleUnifiedResponse(res, JSON.stringify(clientResponse), false);
         await logConversation('output', responseText, PROMPT_LOG_MODE, PROMPT_LOG_FILENAME);
-        
+
         // 一元请求成功完成，统计使用次数，错误次数重置为0
         if (providerPoolManager && pooluuid) {
-            console.log(`[Provider Pool] Increasing usage count for ${toProvider} (${pooluuid}) after successful unary request`);
+            logger.debug('Marking provider healthy after successful unary request', { provider: toProvider, uuid: pooluuid });
             providerPoolManager.markProviderHealthy(toProvider, {
                 uuid: pooluuid
             });
         }
     } catch (error) {
-        console.error('\n[Server] Error during unary processing:', error.stack);
+        logger.error('Error during unary processing', error);
         if (providerPoolManager && pooluuid) {
-            console.log(`[Provider Pool] Marking ${toProvider} as unhealthy due to stream error`);
+            logger.warn('Marking provider unhealthy due to unary error', { provider: toProvider, uuid: pooluuid });
             // 如果是号池模式，并且请求处理失败，则标记当前使用的提供者为不健康
             providerPoolManager.markProviderUnhealthy(toProvider, {
                 uuid: pooluuid
@@ -307,7 +368,7 @@ export async function handleContentGenerationRequest(req, res, service, endpoint
     if (!model) {
         throw new Error("Could not determine the model from the request.");
     }
-    console.log(`[Content Generation] Model: ${model}, Stream: ${isStream}`);
+    logger.info('Content generation request received', { model, isStream });
 
     // 2.5. 如果使用了提供商池，根据模型重新选择提供商（支持 Fallback）
     // 注意：这里使用 skipUsageCount: true，因为初次选择时已经增加了 usageCount
@@ -320,15 +381,19 @@ export async function handleContentGenerationRequest(req, res, service, endpoint
         actualUuid = result.uuid || pooluuid;
         
         if (result.isFallback) {
-            console.log(`[Content Generation] Fallback activated: ${CONFIG.MODEL_PROVIDER} -> ${toProvider} (uuid: ${actualUuid})`);
+            logger.warn('Fallback activated', {
+                from: CONFIG.MODEL_PROVIDER,
+                to: toProvider,
+                uuid: actualUuid
+            });
         } else {
-            console.log(`[Content Generation] Re-selected service adapter based on model: ${model}`);
+            logger.debug('Re-selected service adapter based on model', { model });
         }
     }
 
     // 1. Use request body directly (no conversion needed with single provider)
     let processedRequestBody = originalRequestBody;
-    console.log(`[Request Convert] Request format matches backend provider. No conversion needed.`);
+    logger.debug('Request format matches backend provider, no conversion needed');
 
     // 3. Apply system prompt from file if configured.
     processedRequestBody = await _applySystemPromptFromFile(CONFIG, processedRequestBody, toProvider);
@@ -354,28 +419,28 @@ export async function handleContentGenerationRequest(req, res, service, endpoint
  * @returns {{model: string, isStream: boolean}} An object containing the model name and stream status.
  */
 function _extractModelAndStreamInfo(req, requestBody, fromProvider) {
-    const strategy = ProviderStrategyFactory.getStrategy(getProtocolPrefix(fromProvider));
+    const strategy = new KiroStrategy();
     return strategy.extractModelAndStreamInfo(req, requestBody);
 }
 
 async function _applySystemPromptFromFile(config, requestBody, toProvider) {
-    const strategy = ProviderStrategyFactory.getStrategy(getProtocolPrefix(toProvider));
+    const strategy = new KiroStrategy();
     return strategy.applySystemPromptFromFile(config, requestBody);
 }
 
 export async function _manageSystemPrompt(requestBody, provider) {
-    const strategy = ProviderStrategyFactory.getStrategy(getProtocolPrefix(provider));
+    const strategy = new KiroStrategy();
     await strategy.manageSystemPrompt(requestBody);
 }
 
 // Helper functions for content extraction
 export function extractResponseText(response, provider) {
-    const strategy = ProviderStrategyFactory.getStrategy(getProtocolPrefix(provider));
+    const strategy = new KiroStrategy();
     return strategy.extractResponseText(response);
 }
 
 export function extractPromptText(requestBody, provider) {
-    const strategy = ProviderStrategyFactory.getStrategy(getProtocolPrefix(provider));
+    const strategy = new KiroStrategy();
     return strategy.extractPromptText(requestBody);
 }
 
@@ -409,7 +474,7 @@ export function extractSystemPromptFromRequestBody(requestBody, provider) {
             }
             break;
         default:
-            console.warn(`[System Prompt] Unknown provider: ${provider}`);
+            logger.warn('Unknown provider for system prompt extraction', { provider });
             break;
     }
     return incomingSystemText;

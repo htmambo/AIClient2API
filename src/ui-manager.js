@@ -51,10 +51,9 @@ function getCpuUsagePercent() {
     
     return `${cpuPercent.toFixed(1)}%`;
 }
-
-import { getAllProviderModels, getProviderModels } from './provider-models.js';
+import { KIRO_MODELS } from './claude/kiro-constants.js';
 import { CONFIG } from './config-manager.js';
-import { serviceInstances, getServiceAdapter } from './adapter.js';
+import { getServiceAdapter, serviceInstances } from './claude/kiro-api.js';
 import { initApiService } from './service-manager.js';
 import { handleKiroOAuth } from './oauth-handlers.js';
 import {
@@ -853,23 +852,14 @@ export async function handleUIApiRequests(method, pathParam, req, res, currentCo
         return true;
     }
 
-    // Get available models for all providers or specific provider type
-    if (method === 'GET' && pathParam === '/api/provider-models') {
-        const allModels = getAllProviderModels();
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify(allModels));
-        return true;
-    }
-
     // Get available models for a specific provider type
     const providerModelsMatch = pathParam.match(/^\/api\/provider-models\/([^\/]+)$/);
     if (method === 'GET' && providerModelsMatch) {
         const providerType = decodeURIComponent(providerModelsMatch[1]);
-        const models = getProviderModels(providerType);
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({
             providerType,
-            models
+            KIRO_MODELS
         }));
         return true;
     }
@@ -2566,17 +2556,11 @@ async function getProviderTypeUsage(providerType, currentConfig, providerPoolMan
  * @returns {Promise<Object>} 用量信息
  */
 async function getAdapterUsage(adapter, providerType) {
-    if (providerType === 'claude-kiro-oauth') {
-        if (typeof adapter.getUsageLimits === 'function') {
-            const rawUsage = await adapter.getUsageLimits();
-            return formatKiroUsage(rawUsage);
-        } else if (adapter.kiroApiService && typeof adapter.kiroApiService.getUsageLimits === 'function') {
-            const rawUsage = await adapter.kiroApiService.getUsageLimits();
-            return formatKiroUsage(rawUsage);
-        }
-        throw new Error('This adapter does not support usage query');
+    if (typeof adapter.getUsageLimits === 'function') {
+        const rawUsage = await adapter.getUsageLimits();
+        return formatKiroUsage(rawUsage);
     }
-    
+
     throw new Error(`Unsupported provider type: ${providerType}`);
 }
 

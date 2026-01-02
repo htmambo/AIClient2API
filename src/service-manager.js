@@ -1,4 +1,4 @@
-import { getServiceAdapter, serviceInstances } from './adapter.js';
+import { getServiceAdapter, serviceInstances } from './claude/kiro-api.js';
 import { ProviderPoolManager } from './provider-pool-manager.js';
 import deepmerge from 'deepmerge';
 import * as fs from 'fs';

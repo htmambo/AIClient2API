@@ -1,11 +1,15 @@
 import deepmerge from 'deepmerge';
 import { handleError, isAuthorized, getRequestBody } from './common.js';
 import { handleUIApiRequests, serveStaticFiles } from './ui-manager.js';
-import { handleAPIRequests } from './api-manager.js';
+import { handleAPIRequests } from './common.js';
 import { getApiService, getProviderStatus } from './service-manager.js';
 import { getProviderPoolManager } from './service-manager.js';
 import { MODEL_PROVIDER } from './common.js';
 import { PROMPT_LOG_FILENAME } from './config-manager.js';
+import { validateRequestSize, validateJSON, ValidationError } from './input-validator.js';
+import { createLogger } from './logger.js';
+
+const logger = createLogger('RequestHandler');
 
 /**
  * 创建主请求处理器
