@@ -383,15 +383,15 @@ function updateProviderStatsDisplay(activeProviders, healthyProviders, totalAcco
     if (activeConnectionsEl) activeConnectionsEl.textContent = activeConnections;
     
     // 打印调试信息到控制台
-    console.log('Provider Stats Updated:', {
-        activeProviders,
-        activeProvidersByUsage,
-        healthyProviders,
-        totalAccounts,
-        totalUsage,
-        totalErrors,
-        providerTypeStats: providerStats.providerTypeStats
-    });
+    // console.log('Provider Stats Updated:', {
+    //     activeProviders,
+    //     activeProvidersByUsage,
+    //     healthyProviders,
+    //     totalAccounts,
+    //     totalUsage,
+    //     totalErrors,
+    //     providerTypeStats: providerStats.providerTypeStats
+    // });
 }
 
 /**
@@ -461,20 +461,6 @@ function showKiroAuthMethodSelector(providerType) {
             </div>
             <div class="modal-body">
                 <div class="auth-method-options" style="display: flex; flex-direction: column; gap: 12px;">
-                    <!-- <button class="auth-method-btn" data-method="google" style="display: flex; align-items: center; gap: 12px; padding: 16px; border: 2px solid #e0e0e0; border-radius: 8px; background: white; cursor: pointer; transition: all 0.2s;">
-                        <i class="fab fa-google" style="font-size: 24px; color: #4285f4;"></i>
-                        <div style="text-align: left;">
-                            <div style="font-weight: 600; color: #333;" data-i18n="oauth.kiro.google">${t('oauth.kiro.google')}</div>
-                            <div style="font-size: 12px; color: #666;" data-i18n="oauth.kiro.googleDesc">${t('oauth.kiro.googleDesc')}</div>
-                        </div>
-                    </button>
-                    <button class="auth-method-btn" data-method="github" style="display: flex; align-items: center; gap: 12px; padding: 16px; border: 2px solid #e0e0e0; border-radius: 8px; background: white; cursor: pointer; transition: all 0.2s;">
-                        <i class="fab fa-github" style="font-size: 24px; color: #333;"></i>
-                        <div style="text-align: left;">
-                            <div style="font-weight: 600; color: #333;" data-i18n="oauth.kiro.github">${t('oauth.kiro.github')}</div>
-                            <div style="font-size: 12px; color: #666;" data-i18n="oauth.kiro.githubDesc">${t('oauth.kiro.githubDesc')}</div>
-                        </div>
-                    </button> -->
                     <button class="auth-method-btn" data-method="builder-id" style="display: flex; align-items: center; gap: 12px; padding: 16px; border: 2px solid #e0e0e0; border-radius: 8px; background: white; cursor: pointer; transition: all 0.2s;">
                         <i class="fab fa-aws" style="font-size: 24px; color: #ff9900;"></i>
                         <div style="text-align: left;">
@@ -617,7 +603,7 @@ function showAuthModal(authUrl, authInfo) {
         // 显示成功提示
         showToast(t('common.success'), t('modal.provider.auth.success'), 'success');
     };
-    //window.addEventListener('oauth_success_event', handleOAuthSuccess);
+    window.addEventListener('oauth_success_event', handleOAuthSuccess);
 
     // 获取授权文件路径
     const authFilePath = getAuthFilePath(authInfo.provider);

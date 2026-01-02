@@ -125,18 +125,18 @@ function initApp() {
     setInterval(() => {
         loadProviders();
 
-        if (providerStats.activeProviders > 0) {
-            const stats = getProviderStats(providerStats);
-            console.log('=== 提供商统计报告 ===');
-            console.log(`活跃提供商: ${stats.activeProviders}`);
-            console.log(`健康提供商: ${stats.healthyProviders} (${stats.healthRatio})`);
-            console.log(`总账户数: ${stats.totalAccounts}`);
-            console.log(`总请求数: ${stats.totalRequests}`);
-            console.log(`总错误数: ${stats.totalErrors}`);
-            console.log(`成功率: ${stats.successRate}`);
-            console.log(`平均每提供商请求数: ${stats.avgUsagePerProvider}`);
-            console.log('========================');
-        }
+        // if (providerStats.activeProviders > 0) {
+        //     const stats = getProviderStats(providerStats);
+        //     console.log('=== 提供商统计报告 ===');
+        //     console.log(`活跃提供商: ${stats.activeProviders}`);
+        //     console.log(`健康提供商: ${stats.healthyProviders} (${stats.healthRatio})`);
+        //     console.log(`总账户数: ${stats.totalAccounts}`);
+        //     console.log(`总请求数: ${stats.totalRequests}`);
+        //     console.log(`总错误数: ${stats.totalErrors}`);
+        //     console.log(`成功率: ${stats.successRate}`);
+        //     console.log(`平均每提供商请求数: ${stats.avgUsagePerProvider}`);
+        //     console.log('========================');
+        // }
     }, REFRESH_INTERVALS.SYSTEM_INFO);
 
 }
