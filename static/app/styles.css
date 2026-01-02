@@ -160,7 +160,6 @@ body {
 .main-content {
     display: flex;
     flex: 1;
-    max-width: 1400px;
     width: 100%;
     margin: 0 auto;
     padding-left: 240px;

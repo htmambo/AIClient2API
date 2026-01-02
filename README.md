@@ -31,6 +31,7 @@
 >
 > **📅 版本更新日志**
 >
+> - **2026.01.02** - 🔧 **重大重构**：完成代码模块化重构，删除 1,250+ 行重复代码，新增 9 个独立 UI 模块，ui-manager.js 代码量减少 38%。详见 [重构文档](./docs/REFACTORING.md)
 > - **2025.12.25** - 配置文件统一管理：所有配置集中到 `configs/` 目录，Docker 用户需更新挂载路径为 `-v "本地路径:/app/configs"`
 > - **2025.12.11** - Docker 镜像自动构建并发布到 Docker Hub: [justlikemaki/aiclient-2-api](https://hub.docker.com/r/justlikemaki/aiclient-2-api)
 > - **2025.11.16** - 新增 Ollama 协议支持，统一接口访问所有支持的模型（Claude、OpenAI等）

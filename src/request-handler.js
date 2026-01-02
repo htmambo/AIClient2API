@@ -1,6 +1,7 @@
 import deepmerge from 'deepmerge';
 import { handleError, isAuthorized, getRequestBody } from './common.js';
-import { handleUIApiRequests, serveStaticFiles } from './ui-manager.js';
+import { handleUIApiRequests } from './ui-manager.js';
+import { serveStaticFiles } from './ui/static-server.js';
 import { handleAPIRequests } from './common.js';
 import { getApiService, getProviderStatus } from './service-manager.js';
 import { getProviderPoolManager } from './service-manager.js';
