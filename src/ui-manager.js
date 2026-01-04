@@ -16,7 +16,7 @@ import { getAllProvidersUsage, getProviderTypeUsage } from './ui/usage-api.js';
 import { getCpuUsagePercent, checkForUpdates, performUpdate, getSystemInfo } from './ui/system-api.js';
 import { reloadConfig, updateAdminPassword, getSanitizedConfig } from './ui/config-api.js';
 import { getProviderPools, getProviderDetails, getProviderModels, addProvider, updateProvider, deleteProvider } from './ui/provider-api.js';
-import { SINGLE_PROVIDER_TYPE } from './provider-utils.js';
+import { SINGLE_PROVIDER_TYPE, detectProviderFromPath } from './provider-utils.js';
 import { createLogger } from './logger.js';
 import { handleKiroOAuth } from './kiro/oauth-handlers.js';
 

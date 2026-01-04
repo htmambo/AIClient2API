@@ -1696,6 +1696,9 @@ export function getServiceAdapter(config) {
             default:
                 throw new Error(`Unsupported model provider: ${provider}`);
         }
+    } else {
+        console.log(`[Adapter] Reusing existing service adapter for provider: ${provider}, uuid: ${config.uuid}`);
+        serviceInstances[providerKey].config = config; // 更新配置
     }
     return serviceInstances[providerKey];
 }
