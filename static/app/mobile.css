@@ -133,10 +133,9 @@
         border-right: none;
         border-bottom: 1px solid var(--border-color);
         padding: 0;
-        position: sticky;
-        top: 73px;
-        z-index: 90;
-        background: var(--bg-primary);
+        position: static;
+        height: auto;
+        overflow: visible;
     }
 
     .sidebar-nav {

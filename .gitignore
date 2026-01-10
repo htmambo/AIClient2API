@@ -13,3 +13,7 @@ usage-cache.json
 *-auth-token.json
 api-potluck-keys.json
 api-potluck-data.json
+.DS_Store
+.vscode/
+.env
+*_kiro-auth-token*.json

@@ -47,6 +47,9 @@
     --neutral-shadow-50: rgba(0, 0, 0, 0.5);
     --neutral-shadow-85: rgba(0, 0, 0, 0.85);
     --neutral-shadow-95: rgba(0, 0, 0, 0.95);
+
+    /* 布局尺寸 */
+    --header-height: 72px;
     
     --indigo-30: rgba(99, 102, 241, 0.3);
     --indigo-40: rgba(99, 102, 241, 0.4);
@@ -285,6 +288,7 @@ body {
     position: sticky;
     top: 0;
     z-index: 100;
+    min-height: var(--header-height);
 }
 
 .header-content {
@@ -467,6 +471,7 @@ body {
     max-width: 1400px;
     width: 100%;
     margin: 0 auto;
+    align-items: flex-start;
 }
 
 /* 侧边栏 */
@@ -475,6 +480,11 @@ body {
     background: var(--bg-primary);
     border-right: 1px solid var(--border-color);
     padding: 1.5rem 0;
+    position: sticky;
+    top: calc(var(--header-height) + 16px);
+    max-height: calc(100vh - var(--header-height) - 32px);
+    align-self: flex-start;
+    overflow-y: auto;
 }
 
 .sidebar-nav {
@@ -2162,6 +2172,9 @@ input:checked + .toggle-slider:before {
         width: 100%;
         border-right: none;
         border-bottom: 1px solid var(--border-color);
+        position: static;
+        height: auto;
+        overflow: visible;
     }
 
     .sidebar-nav {
